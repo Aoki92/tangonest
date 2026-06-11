@@ -33,37 +33,40 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 
-<script>
-(function(){
-  try{
-    document.documentElement.classList.add("tn-app-first");
-    document.documentElement.classList.remove("tn-needs-auth");
-    document.documentElement.classList.add("tn-has-session");
-  }catch(e){}
-})();
-</script>
-
-
-<script>
-(function(){
-  try{
-    var email=localStorage.getItem("tangonest_sync_email_v1");
-    var hash=localStorage.getItem("tangonest_sync_hash_v1");
-    if(email && hash){
-      document.documentElement.classList.add("tn-authenticated");
-      document.documentElement.classList.remove("tn-logged-out");
-    }else{
-      document.documentElement.classList.add("tn-logged-out");
-      document.documentElement.classList.remove("tn-authenticated");
-    }
-  }catch(e){
-    document.documentElement.classList.add("tn-logged-out");
-  }
-})();
-</script>
+<style id="tn73EmergencyStyle">
+#tn73Auth{position:fixed!important;inset:0!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:20px!important;width:100vw!important;height:100vh!important;overflow:auto!important;background:linear-gradient(135deg,#0f2f78,#2563eb 55%,#24d1c7)!important;pointer-events:auto!important;visibility:visible!important;opacity:1!important;transform:none!important}
+html.tn73-ready #tn73Auth{display:none!important;pointer-events:none!important;visibility:hidden!important;opacity:0!important}
+#tn73Auth,#tn73Auth *{pointer-events:auto!important;box-sizing:border-box!important;-webkit-user-select:auto!important;user-select:auto!important}
+.tn73-card{width:min(520px,calc(100vw - 40px))!important;max-height:calc(100vh - 40px)!important;overflow:auto!important;border-radius:32px!important;background:rgba(248,251,255,.97)!important;border:1px solid rgba(255,255,255,.55)!important;box-shadow:0 30px 90px rgba(15,23,42,.32)!important;padding:28px!important;color:#0f172a!important;position:relative!important;z-index:2147483647!important}
+.tn73-brand{display:flex!important;align-items:center!important;gap:14px!important;margin-bottom:8px!important}.tn73-logo{width:48px!important;height:48px!important;border-radius:15px!important;display:flex!important;align-items:center!important;justify-content:center!important;background:linear-gradient(135deg,#1d4ed8,#22d3ee)!important;color:white!important;font-weight:950!important}.tn73-title{font-size:30px!important;line-height:1!important;font-weight:950!important;letter-spacing:-.04em!important}.tn73-subtitle{margin-top:4px!important;font-weight:750!important;color:#64748b!important}.tn73-pill{display:inline-flex!important;border-radius:999px!important;background:white!important;padding:6px 12px!important;font-weight:900!important;color:#64748b!important;margin:6px 0 12px 62px!important}.tn73-kicker{display:inline-flex!important;border-radius:999px!important;padding:7px 12px!important;color:#2563eb!important;background:rgba(37,99,235,.10)!important;font-size:13px!important;font-weight:950!important;letter-spacing:.16em!important;margin-bottom:12px!important}
+#tn73Auth h1{margin:0 0 10px!important;font-size:40px!important;line-height:1.04!important;letter-spacing:-.06em!important;color:#0f172a!important}#tn73Auth p{margin:0 0 16px!important;color:#64748b!important;line-height:1.45!important;font-size:16px!important}#tn73Auth label{display:block!important;margin:11px 0 6px!important;font-weight:900!important;color:#475569!important;font-size:14px!important}
+#tn73Auth input{display:block!important;width:100%!important;height:50px!important;border-radius:16px!important;border:1px solid rgba(148,163,184,.30)!important;background:white!important;color:#0f172a!important;font-size:16px!important;padding:0 14px!important;outline:none!important;pointer-events:auto!important;cursor:text!important;position:relative!important;z-index:2147483647!important}
+#tn73Auth input:focus{border-color:#2563eb!important;box-shadow:0 0 0 4px rgba(37,99,235,.14)!important}.tn73-msg{margin:14px 0!important;padding:11px 13px!important;border-radius:14px!important;background:#eff6ff!important;color:#1d4ed8!important;border:1px solid rgba(59,130,246,.18)!important;font-weight:800!important}.tn73-msg.error{background:#fef2f2!important;color:#b91c1c!important}.tn73-msg.success{background:#ecfdf5!important;color:#047857!important}.tn73-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important}
+#tn73Auth button{min-height:50px!important;border-radius:999px!important;border:0!important;font-size:15px!important;font-weight:950!important;cursor:pointer!important;pointer-events:auto!important;position:relative!important;z-index:2147483647!important}#tn73Login{background:#2563eb!important;color:white!important}#tn73Create{background:white!important;color:#0f172a!important;border:1px solid rgba(148,163,184,.24)!important}.tn73-guest{margin-top:14px!important;width:100%!important;background:transparent!important;color:#64748b!important}
+html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!important;pointer-events:none!important;visibility:hidden!important;opacity:0!important;z-index:-1!important}
+@media(max-height:760px){#tn73Auth{align-items:flex-start!important;padding:12px!important}.tn73-card{max-height:none!important;padding:22px!important;border-radius:26px!important}#tn73Auth h1{font-size:32px!important}}
+@media(max-width:520px){.tn73-actions{grid-template-columns:1fr!important}#tn73Auth h1{font-size:33px!important}}
+</style>
 
 </head>
 <body>
+
+<div id="tn73Auth" class="tn73-auth">
+  <div class="tn73-card">
+    <div class="tn73-brand"><div class="tn73-logo">TN</div><div><div class="tn73-title">TangoNest</div><div class="tn73-subtitle">Your own language space.</div></div></div>
+    <div id="tn73Pill" class="tn73-pill">Local</div>
+    <div class="tn73-kicker">WELCOME BACK</div>
+    <h1>You're already halfway there.</h1>
+    <p>Login once to keep your words, playlists, and study space synced across PC and phone.</p>
+    <label>Email</label><input id="tn73Email" type="email" autocomplete="email" placeholder="you@example.com">
+    <label>Password</label><input id="tn73Password" type="password" autocomplete="current-password" placeholder="At least 6 characters">
+    <div id="tn73Msg" class="tn73-msg">No email confirmation needed.</div>
+    <div class="tn73-actions"><button id="tn73Login" type="button">Login</button><button id="tn73Create" type="button">Create account</button></div>
+    <button id="tn73Guest" type="button" class="tn73-guest">Continue as guest</button>
+  </div>
+</div>
+
+
 <div id="loginGate" class="login-gate">
   <div class="login-bg-card card-a"><span>Front</span><b>你好</b><small>Chinese</small></div>
   <div class="login-bg-card card-b"><span>Back</span><b>hello</b><small>English</small></div>
@@ -75,7 +78,6 @@
       <div>
         <h1>TangoNest</h1>
         <p>Your own language space.</p>
-<span id="syncStatusBadge" class="sync-status-badge">Local</span>
       </div>
     </div>
 
@@ -108,7 +110,6 @@
     <div class="stats">
       <div class="stat"><b id="wc">0</b><span>Words</span></div><div class="stat"><b id="listCount">0</b><span>Lists</span></div><div class="stat"><b id="lc">0</b><span>Learned</span></div><div class="stat"><b id="hc">0</b><span>Hard</span></div>
       <button class="settings-btn" onclick="go('manage')">Settings</button>
-<button id="accountNavBtn" class="nav-account-btn" type="button" onclick="tn68OpenAccount()">Account</button>
     </div>
   </div>
   <div class="nav">
@@ -270,6 +271,33 @@
   <select id="audioMode"><option value="frontBack">frontBack</option></select>
   <select id="cardDirection"><option value="front">front</option></select>
 </div>
+
+
+<script id="tn73EmergencyScript">
+(function(){
+const E="tangonest_sync_email_v1",H="tangonest_sync_hash_v1",M="tangonest_sync_mode_v1";
+const $=id=>document.getElementById(id);
+const has=()=>{try{return !!(localStorage.getItem(E)&&localStorage.getItem(H))}catch(e){return false}};
+const message=(t,c="info")=>{const m=$("tn73Msg");if(m){m.textContent=t;m.className="tn73-msg "+c}};
+const busy=v=>["tn73Login","tn73Create","tn73Guest"].forEach(id=>{const b=$(id);if(b)b.disabled=!!v});
+async function hash(email,pw){const data=new TextEncoder().encode((email||"").trim().toLowerCase()+"::"+(pw||""));const d=await crypto.subtle.digest("SHA-256",data);return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("")}
+function supa(){try{if(window.supabaseClient?.rpc)return window.supabaseClient;if(window.sb?.rpc)return window.sb;if(typeof supabaseClient!=="undefined"&&supabaseClient.rpc)return supabaseClient;if(typeof sb!=="undefined"&&sb.rpc)return sb;if(typeof client!=="undefined"&&client.rpc)return client}catch(e){}return null}
+function data(){try{if(typeof db!=="undefined"&&db)return db}catch(e){}try{if(typeof KEY!=="undefined")return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}return {}}
+async function rpc(n,a){const s=supa();if(!s)throw new Error("Cloud sync is not ready. Reload once, then try again.");const r=await s.rpc(n,a);if(r.error)throw r.error;return r.data}
+function sess(email,h){localStorage.setItem(E,email.trim().toLowerCase());localStorage.setItem(H,h);localStorage.setItem(M,"no-email-sync")}
+function apply(d){if(!d)return;try{if(typeof db!=="undefined"){Object.assign(db,d);if(typeof KEY!=="undefined")localStorage.setItem(KEY,JSON.stringify(db))}}catch(e){}}
+function oldOff(){const o=$("loginGate");if(o){o.style.setProperty("display","none","important");o.style.setProperty("pointer-events","none","important");o.setAttribute("inert","")}}
+function status(){const p=$("tn73Pill");if(p)p.textContent=has()?"Synced ✓":"Local";let b=$("syncStatusBadge");if(b){b.textContent=has()?"Synced ✓":"Local";b.classList.toggle("synced",has());b.classList.toggle("local",!has())}}
+function showApp(){document.documentElement.classList.add("tn73-ready","tn-authenticated");document.documentElement.classList.remove("tn-logged-out","tn-needs-auth");document.body?.classList.add("tn-logged-in");document.body?.classList.remove("tn-auth-open");const a=$("tn73Auth");if(a){a.style.setProperty("display","none","important");a.style.setProperty("pointer-events","none","important")}try{if(typeof go==="function")go("home")}catch(e){}status();oldOff()}
+function showAuth(){document.documentElement.classList.remove("tn73-ready","tn-authenticated");document.documentElement.classList.add("tn-logged-out");document.body?.classList.add("tn-auth-open");const a=$("tn73Auth");if(a){a.style.setProperty("display","flex","important");a.style.setProperty("pointer-events","auto","important")}setTimeout(()=>$("tn73Email")?.focus(),50);status();oldOff()}
+async function login(){const email=($("tn73Email")?.value||"").trim().toLowerCase(),pw=$("tn73Password")?.value||"";if(!email||!pw)return message("Email and password are required.","error");if(pw.length<6)return message("Password must be at least 6 characters.","error");busy(true);message("Logging in...");try{const h=await hash(email,pw),res=await rpc("tn_login",{p_email:email,p_password_hash:h});if(!res||res.ok===false)throw new Error(res?.error||"Login failed.");sess(email,h);apply(res.data);message("Logged in.","success");setTimeout(showApp,200)}catch(e){console.error(e);message(e.message||"Login failed.","error")}finally{busy(false)}}
+async function create(){const email=($("tn73Email")?.value||"").trim().toLowerCase(),pw=$("tn73Password")?.value||"";if(!email||!pw)return message("Email and password are required.","error");if(pw.length<6)return message("Password must be at least 6 characters.","error");busy(true);message("Creating account...");try{const h=await hash(email,pw),res=await rpc("tn_signup",{p_email:email,p_password_hash:h,p_data:data()});if(!res||res.ok===false)throw new Error(res?.error||"Create account failed.");sess(email,h);apply(res.data);message("Account created. Logged in.","success");setTimeout(showApp,200)}catch(e){console.error(e);message(e.message||"Create account failed.","error")}finally{busy(false)}}
+function bind(){const em=$("tn73Email"),pw=$("tn73Password");if(em&&!em.value)em.value=localStorage.getItem(E)||"";const l=$("tn73Login"),c=$("tn73Create"),g=$("tn73Guest");if(l)l.onclick=login;if(c)c.onclick=create;if(g)g.onclick=showApp;if(pw&&!pw.__tn73){pw.addEventListener("keydown",e=>{if(e.key==="Enter")login()});pw.__tn73=1}if(em&&!em.__tn73){em.addEventListener("keydown",e=>{if(e.key==="Enter")pw?.focus()});em.__tn73=1}}
+function boot(){bind();oldOff();has()?showApp():showAuth()}
+window.tn73ShowAuth=showAuth;window.tn73ShowApp=showApp;window.logoutTangoNest=async()=>{localStorage.removeItem(E);localStorage.removeItem(H);localStorage.removeItem(M);showAuth()};window.tnOpenLoginGate=showAuth;window.tnShowLogin=showAuth;window.tnNoEmailShowLogin=showAuth;window.tnShowApp=showApp;window.tnNoEmailShowApp=showApp;
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();setTimeout(boot,100);setTimeout(boot,500);setInterval(()=>{bind();status();oldOff()},1000);
+})();
+</script>
 
 </body>
 </html>
