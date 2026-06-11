@@ -1,13 +1,14 @@
-# TangoNest Beta68 Instagram-Style Login
+# TangoNest Beta69 Account Position Fix
 
-## Main behavior
-- First time: login screen.
-- After login/signup: the login screen closes and Home opens.
-- Next reload: Home opens directly because the saved session is detected before first paint.
-- Logout: login screen appears again.
+## Fix
+- Account button is not removed.
+- It is moved away from the top-right counters.
+- New position: navigation row after Settings.
+- Old top-right Account/Login button is removed.
 
 ## Included
+- Beta68 Instagram-style login
 - Beta66 overlay click-block fix
 - Beta64 Add Word critical fix
 - English -> Japanese default language fix
-- PWA icon files
+- PWA icons

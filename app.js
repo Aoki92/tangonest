@@ -4019,3 +4019,50 @@ setInterval(()=>{
   }
   tn68UpdateAccountButton();
 },1200);
+
+
+
+/* =========================================================
+   Beta69 Account Position Fix
+   Account stays, but is moved away from the top-right counters.
+========================================================= */
+
+function tn69RemoveBadAccountPositions(){
+  document.querySelectorAll("#accountBtn,#topSyncBtn,.account-link-fixed,.tn-sync-floating").forEach(el=>el.remove());
+}
+
+function tn69UpdateAccountNav(){
+  tn69RemoveBadAccountPositions();
+  const btn=document.getElementById("accountNavBtn");
+  if(!btn)return;
+  const email=localStorage.getItem("tangonest_sync_email_v1") || "";
+  btn.textContent=email ? "Account" : "Login";
+  btn.onclick=function(){
+    if(typeof tn68OpenAccount==="function")tn68OpenAccount();
+  };
+}
+
+// Override Beta68 header button updater so it won't recreate top-right Account.
+function tn68UpdateAccountButton(){
+  tn69UpdateAccountNav();
+}
+
+// Account action remains same: logged in -> confirm logout.
+// But it is now called from nav position.
+function tn68OpenAccount(){
+  const email=localStorage.getItem("tangonest_sync_email_v1") || "";
+  const ok=confirm(email ? "Logged in as " + email + "\\n\\nLog out?" : "Open login screen?");
+  if(ok){
+    if(email){
+      if(typeof tn68Logout==="function")tn68Logout();
+      else if(typeof logoutTangoNest==="function")logoutTangoNest();
+    }else{
+      if(typeof tn68SetLoggedOutUI==="function")tn68SetLoggedOutUI();
+    }
+  }
+}
+
+setTimeout(tn69UpdateAccountNav,0);
+setTimeout(tn69UpdateAccountNav,300);
+setTimeout(tn69UpdateAccountNav,1200);
+setInterval(tn69UpdateAccountNav,1200);
