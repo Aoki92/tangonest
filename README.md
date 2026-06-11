@@ -1,11 +1,19 @@
-# TangoNest Beta70 Final Login Sync Status
+# TangoNest Beta72 Rebuilt Login Screen
 
-## Final login fixes
-- When "Logged in." appears, login panel closes automatically.
-- App goes to Home after login/signup success.
-- On reload, saved session opens Home directly.
-- A visible "Synced ✓" badge shows that login/sync is active.
-- Account button stays in nav area, away from top-right counters.
+## Critical fix
+The old login screen is fully bypassed.
+A new independent login screen is created by JavaScript:
+- Email input works
+- Password input works
+- Login button works
+- Create account button works
+- Guest button works
+
+## Login behavior
+- First visit: login screen
+- After login/create: Home
+- Reload after login: Home
+- Logout: login screen
 
 ## Included
 - Add Word critical fix

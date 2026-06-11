@@ -4327,3 +4327,306 @@ setInterval(()=>{
     tn70HardCloseLoginGoHome();
   }
 },700);
+
+
+
+/* =========================================================
+   Beta72 Rebuilt Login Screen
+   The old login screen is fully bypassed.
+   A new independent login screen handles input and clicks.
+========================================================= */
+
+const TN72_EMAIL_KEY="tangonest_sync_email_v1";
+const TN72_HASH_KEY="tangonest_sync_hash_v1";
+const TN72_MODE_KEY="tangonest_sync_mode_v1";
+
+function tn72HasSession(){
+  try{return !!(localStorage.getItem(TN72_EMAIL_KEY)&&localStorage.getItem(TN72_HASH_KEY));}catch(e){return false;}
+}
+function tn72Email(){try{return localStorage.getItem(TN72_EMAIL_KEY)||"";}catch(e){return "";}}
+function tn72SetSession(email,hash){
+  localStorage.setItem(TN72_EMAIL_KEY,(email||"").trim().toLowerCase());
+  localStorage.setItem(TN72_HASH_KEY,hash||"");
+  localStorage.setItem(TN72_MODE_KEY,"no-email-sync");
+}
+function tn72ClearSession(){
+  localStorage.removeItem(TN72_EMAIL_KEY);
+  localStorage.removeItem(TN72_HASH_KEY);
+  localStorage.removeItem(TN72_MODE_KEY);
+}
+async function tn72HashPassword(email,password){
+  const raw=(email||"").trim().toLowerCase()+"::"+(password||"");
+  if(typeof sha256==="function"){
+    return await sha256(raw);
+  }
+  if(typeof tnSha256==="function"){
+    return await tnSha256(raw);
+  }
+  const data=new TextEncoder().encode(raw);
+  const digest=await crypto.subtle.digest("SHA-256",data);
+  return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function tn72Supabase(){
+  if(typeof supabaseClient!=="undefined" && supabaseClient)return supabaseClient;
+  if(typeof sb!=="undefined" && sb)return sb;
+  if(typeof client!=="undefined" && client?.rpc)return client;
+  if(window.supabaseClient)return window.supabaseClient;
+  if(window.sb)return window.sb;
+  return null;
+}
+function tn72CurrentData(){
+  try{
+    if(typeof db!=="undefined" && db)return db;
+  }catch(e){}
+  try{
+    if(typeof KEY!=="undefined"){
+      return JSON.parse(localStorage.getItem(KEY)||"{}");
+    }
+  }catch(e){}
+  return {};
+}
+async function tn72Rpc(name,args){
+  const s=tn72Supabase();
+  if(!s || !s.rpc)throw new Error("Cloud sync is not ready. Supabase client not found.");
+  const {data,error}=await s.rpc(name,args);
+  if(error)throw error;
+  return data;
+}
+function tn72Message(text,type="info"){
+  const el=document.getElementById("tn72AuthMessage");
+  if(!el)return;
+  el.textContent=text;
+  el.className="tn72-auth-message "+type;
+}
+function tn72HideOldLoginGate(){
+  const old=document.getElementById("loginGate");
+  if(old){
+    old.classList.add("hidden");
+    old.style.setProperty("display","none","important");
+    old.style.setProperty("pointer-events","none","important");
+    old.style.setProperty("visibility","hidden","important");
+    old.style.setProperty("opacity","0","important");
+    old.style.setProperty("z-index","-1","important");
+    old.setAttribute("inert","");
+    old.setAttribute("aria-hidden","true");
+  }
+}
+function tn72BuildAuthScreen(){
+  if(document.getElementById("tn72AuthScreen"))return;
+  const screen=document.createElement("div");
+  screen.id="tn72AuthScreen";
+  screen.className="tn72-auth-screen";
+  screen.innerHTML=`
+    <div class="tn72-auth-bg-card tn72-bg-left">
+      <div class="tn72-label">FRONT</div>
+      <div class="tn72-word">你好</div>
+      <div class="tn72-lang">Chinese</div>
+    </div>
+    <div class="tn72-auth-bg-card tn72-bg-right">
+      <div class="tn72-label">BACK</div>
+      <div class="tn72-word">hello</div>
+      <div class="tn72-lang">English</div>
+    </div>
+    <div class="tn72-auth-card" role="dialog" aria-label="TangoNest login">
+      <div class="tn72-brand-row">
+        <div class="tn72-logo">TN</div>
+        <div>
+          <div class="tn72-title">TangoNest</div>
+          <div class="tn72-subtitle">Your own language space.</div>
+        </div>
+      </div>
+      <div id="tn72StatusPill" class="tn72-status-pill">Local</div>
+      <div class="tn72-kicker">WELCOME BACK</div>
+      <h1 class="tn72-heading">You’re already halfway there.</h1>
+      <p class="tn72-copy">Login once to keep your words, playlists, and study space synced across PC and phone.</p>
+
+      <label class="tn72-label-form" for="tn72Email">Email</label>
+      <input id="tn72Email" class="tn72-input" type="email" autocomplete="email" placeholder="you@example.com">
+
+      <label class="tn72-label-form" for="tn72Password">Password</label>
+      <input id="tn72Password" class="tn72-input" type="password" autocomplete="current-password" placeholder="At least 6 characters">
+
+      <div id="tn72AuthMessage" class="tn72-auth-message info">No email confirmation needed.</div>
+
+      <div class="tn72-actions">
+        <button id="tn72LoginBtn" class="tn72-btn primary" type="button">Login</button>
+        <button id="tn72CreateBtn" class="tn72-btn secondary" type="button">Create account</button>
+      </div>
+
+      <button id="tn72GuestBtn" class="tn72-guest" type="button">Continue as guest</button>
+    </div>
+  `;
+  document.body.appendChild(screen);
+
+  const savedEmail=tn72Email();
+  if(savedEmail)document.getElementById("tn72Email").value=savedEmail;
+
+  document.getElementById("tn72LoginBtn").addEventListener("click",tn72Login);
+  document.getElementById("tn72CreateBtn").addEventListener("click",tn72Create);
+  document.getElementById("tn72GuestBtn").addEventListener("click",tn72Guest);
+  document.getElementById("tn72Password").addEventListener("keydown",(e)=>{if(e.key==="Enter")tn72Login();});
+  document.getElementById("tn72Email").addEventListener("keydown",(e)=>{if(e.key==="Enter")document.getElementById("tn72Password").focus();});
+}
+function tn72ShowAuth(){
+  tn72BuildAuthScreen();
+  tn72HideOldLoginGate();
+  document.documentElement.classList.add("tn72-logged-out");
+  document.documentElement.classList.remove("tn72-logged-in","tn-authenticated");
+  document.body?.classList.add("tn72-auth-open");
+  const screen=document.getElementById("tn72AuthScreen");
+  if(screen){
+    screen.style.display="flex";
+    screen.style.pointerEvents="auto";
+  }
+  setTimeout(()=>document.getElementById("tn72Email")?.focus(),80);
+  tn72UpdateStatus();
+}
+function tn72GoHome(){
+  tn72HideOldLoginGate();
+  document.documentElement.classList.add("tn72-logged-in","tn-authenticated");
+  document.documentElement.classList.remove("tn72-logged-out","tn-logged-out","tn-needs-auth");
+  document.body?.classList.remove("tn72-auth-open","tn-auth-open");
+  document.body?.classList.add("tn-logged-in");
+  const screen=document.getElementById("tn72AuthScreen");
+  if(screen){
+    screen.style.display="none";
+    screen.style.pointerEvents="none";
+  }
+  try{ if(typeof go==="function")go("home"); }catch(e){}
+  tn72UpdateStatus();
+}
+function tn72UpdateStatus(){
+  let badge=document.getElementById("syncStatusBadge");
+  if(!badge){
+    badge=document.createElement("span");
+    badge.id="syncStatusBadge";
+    badge.className="sync-status-badge sync-status-fixed";
+    document.body.appendChild(badge);
+  }
+  const email=tn72Email();
+  if(tn72HasSession()){
+    badge.textContent="Synced ✓";
+    badge.title=email;
+    badge.classList.add("synced");
+    badge.classList.remove("local");
+  }else{
+    badge.textContent="Local";
+    badge.title="";
+    badge.classList.add("local");
+    badge.classList.remove("synced");
+  }
+  const pill=document.getElementById("tn72StatusPill");
+  if(pill)pill.textContent=tn72HasSession()?"Synced ✓":"Local";
+}
+function tn72SetBusy(busy){
+  ["tn72LoginBtn","tn72CreateBtn","tn72GuestBtn"].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b)b.disabled=!!busy;
+  });
+}
+async function tn72Login(){
+  const email=(document.getElementById("tn72Email")?.value||"").trim().toLowerCase();
+  const password=document.getElementById("tn72Password")?.value||"";
+  if(!email || !password){tn72Message("Email and password are required.","error");return;}
+  if(password.length<6){tn72Message("Password must be at least 6 characters.","error");return;}
+  tn72SetBusy(true);
+  tn72Message("Logging in...","info");
+  try{
+    const hash=await tn72HashPassword(email,password);
+    const res=await tn72Rpc("tn_login",{p_email:email,p_password_hash:hash});
+    if(!res || res.ok===false)throw new Error(res?.error||"Login failed.");
+    tn72SetSession(email,hash);
+    if(res.data){
+      try{
+        if(typeof db!=="undefined"){
+          Object.assign(db,res.data);
+          if(typeof KEY!=="undefined")localStorage.setItem(KEY,JSON.stringify(db));
+        }
+      }catch(e){console.warn("cloud data apply skipped",e);}
+    }
+    tn72Message("Logged in.","success");
+    setTimeout(tn72GoHome,250);
+  }catch(e){
+    console.error(e);
+    tn72Message(e.message||"Login failed.","error");
+  }finally{
+    tn72SetBusy(false);
+  }
+}
+async function tn72Create(){
+  const email=(document.getElementById("tn72Email")?.value||"").trim().toLowerCase();
+  const password=document.getElementById("tn72Password")?.value||"";
+  if(!email || !password){tn72Message("Email and password are required.","error");return;}
+  if(password.length<6){tn72Message("Password must be at least 6 characters.","error");return;}
+  tn72SetBusy(true);
+  tn72Message("Creating account...","info");
+  try{
+    const hash=await tn72HashPassword(email,password);
+    const res=await tn72Rpc("tn_signup",{p_email:email,p_password_hash:hash,p_data:tn72CurrentData()});
+    if(!res || res.ok===false)throw new Error(res?.error||"Create account failed.");
+    tn72SetSession(email,hash);
+    if(res.data){
+      try{
+        if(typeof db!=="undefined"){
+          Object.assign(db,res.data);
+          if(typeof KEY!=="undefined")localStorage.setItem(KEY,JSON.stringify(db));
+        }
+      }catch(e){console.warn("cloud data apply skipped",e);}
+    }
+    tn72Message("Account created. Logged in.","success");
+    setTimeout(tn72GoHome,250);
+  }catch(e){
+    console.error(e);
+    tn72Message(e.message||"Create account failed.","error");
+  }finally{
+    tn72SetBusy(false);
+  }
+}
+function tn72Guest(){
+  try{localStorage.setItem("tangonest_guest_mode","1");}catch(e){}
+  tn72GoHome();
+}
+function tn72Logout(){
+  tn72ClearSession();
+  tn72ShowAuth();
+}
+
+// Override old auth API so nothing fights this screen.
+function tnOpenLoginGate(){tn72ShowAuth();}
+function tnCloseLoginGate(){if(tn72HasSession())tn72GoHome();else tn72ShowAuth();}
+function tnShowLogin(){tn72ShowAuth();}
+function tnNoEmailShowLogin(){tn72ShowAuth();}
+function tnShowApp(){tn72GoHome();}
+function tnNoEmailShowApp(){tn72GoHome();}
+function tn68SetLoggedInUI(){tn72GoHome();}
+function tn68SetLoggedOutUI(){tn72ShowAuth();}
+function tn70HardCloseLoginGoHome(){tn72GoHome();}
+function tn70ShowLoggedOut(){tn72ShowAuth();}
+logoutTangoNest=async function(){tn72Logout();};
+
+function tn72Boot(){
+  tn72BuildAuthScreen();
+  tn72HideOldLoginGate();
+  if(tn72HasSession()){
+    tn72GoHome();
+    try{
+      if(typeof tnNoEmailLoadCloud==="function"){
+        tnNoEmailLoadCloud().then(tn72GoHome).catch(()=>{});
+      }
+    }catch(e){}
+  }else{
+    tn72ShowAuth();
+  }
+  tn72UpdateStatus();
+}
+
+setTimeout(tn72Boot,0);
+setTimeout(tn72Boot,200);
+setTimeout(tn72Boot,800);
+setInterval(()=>{
+  tn72HideOldLoginGate();
+  if(tn72HasSession() && document.body?.classList.contains("tn72-auth-open")){
+    tn72GoHome();
+  }
+  tn72UpdateStatus();
+},1000);
