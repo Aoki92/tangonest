@@ -2442,3 +2442,119 @@ body,
   color:#c2410c!important;
   border-color:rgba(251,146,60,.30)!important;
 }
+
+
+/* =========================================================
+   Beta77 Logout Button
+========================================================= */
+.tn77-logout-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:34px;
+  padding:0 12px;
+  border-radius:999px;
+  border:1px solid rgba(239,68,68,.22);
+  background:#fff;
+  color:#dc2626;
+  font-size:13px;
+  font-weight:900;
+  cursor:pointer;
+  margin-left:8px;
+  box-shadow:0 8px 22px rgba(15,23,42,.05);
+}
+.tn77-logout-btn:hover{
+  background:#fef2f2;
+}
+
+
+/* =========================================================
+   Beta78 Cloud Status Visible
+========================================================= */
+.tn78-cloud-box{
+  margin:18px 0;
+  padding:18px;
+  border-radius:24px;
+  background:#fff;
+  border:1px solid rgba(148,163,184,.20);
+  box-shadow:0 14px 38px rgba(15,23,42,.07);
+}
+.tn78-cloud-title{
+  font-size:20px;
+  font-weight:950;
+  color:#0f172a;
+  margin-bottom:6px;
+}
+.tn78-cloud-sub{
+  color:#64748b;
+  font-weight:700;
+  margin-bottom:14px;
+}
+.tn78-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.tn78-item{
+  padding:12px;
+  border-radius:16px;
+  background:#f8fafc;
+  border:1px solid rgba(148,163,184,.16);
+}
+.tn78-item.wide{
+  grid-column:1 / -1;
+}
+.tn78-item span{
+  display:block;
+  color:#64748b;
+  font-size:12px;
+  font-weight:850;
+  margin-bottom:4px;
+}
+.tn78-item strong{
+  display:block;
+  color:#0f172a;
+  font-size:14px;
+  word-break:break-word;
+}
+.tn78-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+.tn78-actions button,
+.tn78-mini-cloud{
+  min-height:36px;
+  border:0;
+  border-radius:999px;
+  padding:0 13px;
+  font-weight:900;
+  cursor:pointer;
+  background:#2563eb;
+  color:#fff;
+}
+.tn78-actions button:nth-child(2){
+  background:#ecfdf5;
+  color:#047857;
+  border:1px solid rgba(16,185,129,.25);
+}
+.tn78-actions button:nth-child(3){
+  background:#fff7ed;
+  color:#c2410c;
+  border:1px solid rgba(251,146,60,.28);
+}
+.tn78-mini-cloud{
+  margin-left:8px;
+  height:34px;
+  min-height:34px;
+  background:#eff6ff;
+  color:#1d4ed8;
+  border:1px solid rgba(59,130,246,.20);
+  box-shadow:0 8px 22px rgba(15,23,42,.05);
+}
+@media(max-width:640px){
+  .tn78-grid{
+    grid-template-columns:1fr;
+  }
+}

@@ -4166,3 +4166,287 @@ setInterval(()=>{
 
 window.tn76CloudSave=tn76CloudSave;
 window.tn76CloudLoad=tn76CloudLoad;
+
+
+
+/* =========================================================
+   Beta77 Logout Button
+   Adds a clear logout button.
+========================================================= */
+
+function tn77HasSession(){
+  try{
+    return !!(
+      localStorage.getItem("tangonest_sync_email_v1") &&
+      localStorage.getItem("tangonest_sync_hash_v1")
+    );
+  }catch(e){return false;}
+}
+
+function tn77Logout(){
+  if(!confirm("Log out of TangoNest?")) return;
+
+  try{
+    localStorage.removeItem("tangonest_sync_email_v1");
+    localStorage.removeItem("tangonest_sync_hash_v1");
+    localStorage.removeItem("tangonest_sync_mode_v1");
+    localStorage.removeItem("tangonest_last_cloud_updated_at_v1");
+    localStorage.removeItem("tangonest_guest_mode");
+  }catch(e){}
+
+  // Return to the emergency login screen if available.
+  if(typeof tn73ShowAuth==="function"){
+    tn73ShowAuth();
+  }else if(typeof tnOpenLoginGate==="function"){
+    tnOpenLoginGate();
+  }else{
+    location.reload();
+  }
+}
+
+function tn77AddLogoutButton(){
+  let btn=document.getElementById("tn77LogoutBtn");
+  if(!btn){
+    btn=document.createElement("button");
+    btn.id="tn77LogoutBtn";
+    btn.className="tn77-logout-btn";
+    btn.type="button";
+    btn.textContent="Log out";
+    btn.onclick=tn77Logout;
+
+    const badge=document.getElementById("syncStatusBadge");
+    if(badge && badge.parentElement){
+      badge.insertAdjacentElement("afterend", btn);
+    }else{
+      document.body.appendChild(btn);
+    }
+  }
+
+  btn.style.display = tn77HasSession() ? "inline-flex" : "none";
+}
+
+function tn77UpdateLogoutButton(){
+  tn77AddLogoutButton();
+  const btn=document.getElementById("tn77LogoutBtn");
+  if(btn)btn.style.display = tn77HasSession() ? "inline-flex" : "none";
+}
+
+setTimeout(tn77UpdateLogoutButton,0);
+setTimeout(tn77UpdateLogoutButton,500);
+setTimeout(tn77UpdateLogoutButton,1500);
+setInterval(tn77UpdateLogoutButton,1200);
+
+window.tn77Logout=tn77Logout;
+
+
+
+/* =========================================================
+   Beta78 Cloud Status Visible
+   Shows whether PC and phone are using the same cloud account.
+========================================================= */
+
+function tn78Email(){
+  try{return localStorage.getItem("tangonest_sync_email_v1")||"";}catch(e){return "";}
+}
+function tn78Hash(){
+  try{return localStorage.getItem("tangonest_sync_hash_v1")||"";}catch(e){return "";}
+}
+function tn78HasSession(){
+  return !!(tn78Email() && tn78Hash());
+}
+function tn78DeviceId(){
+  let id=localStorage.getItem("tangonest_device_id_v1");
+  if(!id){
+    id="device_"+Math.random().toString(36).slice(2,8)+"_"+Date.now().toString(36).slice(-4);
+    localStorage.setItem("tangonest_device_id_v1",id);
+  }
+  return id;
+}
+function tn78Supabase(){
+  try{ if(window.tn74GetSupabase){const x=window.tn74GetSupabase(); if(x&&x.rpc)return x;} }catch(e){}
+  try{ if(window.tnSupabaseClient?.rpc)return window.tnSupabaseClient; }catch(e){}
+  try{ if(window.supabaseClient?.rpc)return window.supabaseClient; }catch(e){}
+  try{ if(window.sb?.rpc)return window.sb; }catch(e){}
+  try{ if(typeof supabaseClient!=="undefined"&&supabaseClient.rpc)return supabaseClient; }catch(e){}
+  try{ if(typeof sb!=="undefined"&&sb.rpc)return sb; }catch(e){}
+  return null;
+}
+function tn78LocalWords(){
+  try{
+    if(typeof db!=="undefined" && db && Array.isArray(db.words))return db.words.length;
+  }catch(e){}
+  return 0;
+}
+function tn78LocalLists(){
+  try{
+    if(typeof db!=="undefined" && db && Array.isArray(db.lists))return db.lists.length;
+  }catch(e){}
+  return 0;
+}
+function tn78FormatTime(s){
+  if(!s)return "-";
+  try{
+    const d=new Date(s);
+    return d.toLocaleString();
+  }catch(e){return s;}
+}
+function tn78CloudBox(){
+  let box=document.getElementById("tn78CloudBox");
+  if(box)return box;
+
+  box=document.createElement("div");
+  box.id="tn78CloudBox";
+  box.className="tn78-cloud-box";
+  box.innerHTML=`
+    <div class="tn78-cloud-title">Cloud Status</div>
+    <div class="tn78-cloud-sub">PCとスマホが同じクラウドを見ているか確認できます。</div>
+    <div class="tn78-grid">
+      <div class="tn78-item"><span>Account</span><strong id="tn78Account">-</strong></div>
+      <div class="tn78-item"><span>Device</span><strong id="tn78Device">-</strong></div>
+      <div class="tn78-item"><span>Local words</span><strong id="tn78LocalWords">0</strong></div>
+      <div class="tn78-item"><span>Cloud words</span><strong id="tn78CloudWords">-</strong></div>
+      <div class="tn78-item"><span>Local lists</span><strong id="tn78LocalLists">0</strong></div>
+      <div class="tn78-item"><span>Cloud lists</span><strong id="tn78CloudLists">-</strong></div>
+      <div class="tn78-item wide"><span>Cloud updated</span><strong id="tn78CloudUpdated">-</strong></div>
+      <div class="tn78-item wide"><span>Status</span><strong id="tn78Status">Not checked</strong></div>
+    </div>
+    <div class="tn78-actions">
+      <button id="tn78CheckBtn" type="button">Check cloud</button>
+      <button id="tn78PullBtn" type="button">Load cloud now</button>
+      <button id="tn78PushBtn" type="button">Save this device now</button>
+    </div>
+  `;
+
+  const host =
+    document.getElementById("pageSettings") ||
+    document.getElementById("settings") ||
+    document.querySelector("[data-page='settings']") ||
+    document.querySelector("main") ||
+    document.body;
+
+  host.appendChild(box);
+
+  document.getElementById("tn78CheckBtn").onclick=()=>tn78CheckCloud(false);
+  document.getElementById("tn78PullBtn").onclick=()=>tn78LoadCloudVisible();
+  document.getElementById("tn78PushBtn").onclick=()=>tn78SaveCloudVisible();
+
+  return box;
+}
+function tn78Set(id,text){
+  const el=document.getElementById(id);
+  if(el)el.textContent=text;
+}
+function tn78UpdateLocalView(){
+  tn78CloudBox();
+  tn78Set("tn78Account", tn78Email() || "Not logged in");
+  tn78Set("tn78Device", tn78DeviceId());
+  tn78Set("tn78LocalWords", String(tn78LocalWords()));
+  tn78Set("tn78LocalLists", String(tn78LocalLists()));
+}
+async function tn78CheckCloud(silent=true){
+  tn78UpdateLocalView();
+  if(!tn78HasSession()){
+    tn78Set("tn78Status","Not logged in");
+    return false;
+  }
+  const s=tn78Supabase();
+  if(!s){
+    tn78Set("tn78Status","Cloud client not ready");
+    return false;
+  }
+  tn78Set("tn78Status","Checking...");
+  try{
+    const {data,error}=await s.rpc("tn_login",{
+      p_email:tn78Email(),
+      p_password_hash:tn78Hash()
+    });
+    if(error)throw error;
+    if(!data || data.ok===false)throw new Error(data?.error||"Cloud check failed");
+
+    const cloud=data.data||{};
+    const words=Array.isArray(cloud.words)?cloud.words.length:0;
+    const lists=Array.isArray(cloud.lists)?cloud.lists.length:0;
+
+    tn78Set("tn78CloudWords",String(words));
+    tn78Set("tn78CloudLists",String(lists));
+    tn78Set("tn78CloudUpdated",tn78FormatTime(data.updated_at));
+    tn78Set("tn78Status","Same cloud account ✓");
+
+    localStorage.setItem("tangonest_last_cloud_updated_at_v1",data.updated_at||new Date().toISOString());
+
+    if(!silent){
+      try{tn75Toast?.("Cloud checked ✓");}catch(e){}
+    }
+    return true;
+  }catch(e){
+    console.error(e);
+    tn78Set("tn78Status",e.message||"Cloud check failed");
+    return false;
+  }
+}
+async function tn78LoadCloudVisible(){
+  tn78Set("tn78Status","Loading cloud...");
+  try{
+    if(typeof tn76CloudLoad==="function"){
+      await tn76CloudLoad({silent:false,force:true});
+    }else if(typeof tn75CloudLoad==="function"){
+      await tn75CloudLoad();
+    }
+    tn78UpdateLocalView();
+    await tn78CheckCloud(true);
+    try{tn75Toast?.("Loaded cloud ✓");}catch(e){}
+  }catch(e){
+    console.error(e);
+    tn78Set("tn78Status",e.message||"Load failed");
+  }
+}
+async function tn78SaveCloudVisible(){
+  tn78Set("tn78Status","Saving this device...");
+  try{
+    if(typeof tn76CloudSave==="function"){
+      await tn76CloudSave("manual-visible");
+    }else if(typeof tn75CloudSave==="function"){
+      await tn75CloudSave();
+    }
+    await tn78CheckCloud(true);
+    try{tn75Toast?.("Saved to cloud ✓");}catch(e){}
+  }catch(e){
+    console.error(e);
+    tn78Set("tn78Status",e.message||"Save failed");
+  }
+}
+function tn78AddHeaderSmall(){
+  let mini=document.getElementById("tn78MiniCloud");
+  if(!mini){
+    mini=document.createElement("button");
+    mini.id="tn78MiniCloud";
+    mini.className="tn78-mini-cloud";
+    mini.type="button";
+    mini.textContent="Cloud";
+    mini.onclick=()=>{
+      try{ if(typeof go==="function")go("settings"); }catch(e){}
+      setTimeout(()=>document.getElementById("tn78CloudBox")?.scrollIntoView({behavior:"smooth",block:"center"}),200);
+      setTimeout(()=>tn78CheckCloud(false),300);
+    };
+    const badge=document.getElementById("syncStatusBadge");
+    if(badge && badge.parentElement)badge.insertAdjacentElement("afterend",mini);
+    else document.body.appendChild(mini);
+  }
+}
+function tn78Boot(){
+  tn78CloudBox();
+  tn78UpdateLocalView();
+  tn78AddHeaderSmall();
+  if(tn78HasSession()){
+    setTimeout(()=>tn78CheckCloud(true),1200);
+  }
+}
+setTimeout(tn78Boot,0);
+setTimeout(tn78Boot,800);
+setTimeout(tn78Boot,1800);
+setInterval(()=>{
+  tn78UpdateLocalView();
+  tn78AddHeaderSmall();
+},2500);
+
+window.tn78CheckCloud=tn78CheckCloud;

@@ -1,16 +1,17 @@
-# TangoNest Beta76 Auto Sync Final
+# TangoNest Beta78 Cloud Status Visible
 
-## Sync behavior
-Manual sync is no longer the main flow.
+## Purpose
+Make it obvious whether PC and phone are using the same cloud account.
 
-- Phone adds a word -> cloud save starts immediately.
-- PC checks cloud automatically every 4 seconds while the page is open/visible.
-- If cloud data is newer, PC loads it and Library updates automatically.
-- Same for PC -> phone.
-- Sync now remains as a backup/manual refresh.
-
-## Included
-- Playlist rename
-- Immediate Library reflection
-- English -> Japanese defaults
-- Login/cloud direct fixes from previous versions
+## Added
+- Cloud Status panel
+- Account email
+- Device ID
+- Local word count
+- Cloud word count
+- Local list count
+- Cloud list count
+- Cloud updated time
+- Check cloud
+- Load cloud now
+- Save this device now
