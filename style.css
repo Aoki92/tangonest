@@ -2286,3 +2286,61 @@ body.tn-logged-in .login-gate{
   display:inline-block;
   max-width:420px;
 }
+
+
+/* =========================================================
+   Beta62 True Login Gate
+   Default: login screen is hidden.
+   It appears only when html.tn-needs-auth is present.
+========================================================= */
+
+.login-gate{
+  display:none!important;
+}
+
+html.tn-needs-auth .login-gate{
+  display:grid!important;
+  opacity:1!important;
+  visibility:visible!important;
+  pointer-events:auto!important;
+}
+
+html.tn-has-session .login-gate,
+body.tn-logged-in .login-gate,
+.login-gate.hidden{
+  display:none!important;
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+
+/* App background unified */
+html,
+body,
+.app{
+  background:#f6f8fb!important;
+}
+
+.page,
+#pageList,
+#pageWords,
+#pageAdd,
+#pageQuiz,
+#pageStudy,
+#pageAudio,
+#pageManage,
+#pageAccount{
+  background:transparent!important;
+}
+
+.card,
+.table-wrap,
+.word-card,
+.playlist-card{
+  background:#fff!important;
+}
+
+#pageList .card,
+#pageWords .card{
+  background:linear-gradient(180deg,#ffffff,#fbfdff)!important;
+}

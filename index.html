@@ -5,6 +5,22 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>TangoNest — Your own language space.</title>
 <link rel="stylesheet" href="./style.css">
+
+<script>
+(function(){
+  try{
+    var email=localStorage.getItem("tangonest_sync_email_v1");
+    var hash=localStorage.getItem("tangonest_sync_hash_v1");
+    var guest=localStorage.getItem("tangonest_guest_mode")==="1";
+    if(email&&hash){document.documentElement.classList.add("tn-has-session");}
+    else if(guest){document.documentElement.classList.add("tn-has-session");}
+    else{document.documentElement.classList.add("tn-needs-auth");}
+  }catch(e){
+    document.documentElement.classList.add("tn-needs-auth");
+  }
+})();
+</script>
+
 </head>
 <body>
 

@@ -3281,3 +3281,100 @@ function tnBindAddWordButtonStable(){
 setTimeout(tnBindAddWordButtonStable,50);
 setTimeout(tnBindAddWordButtonStable,500);
 setTimeout(tnBindAddWordButtonStable,1500);
+
+
+
+/* =========================================================
+   Beta62 True Login Gate
+   Login screen is not a normal layer anymore.
+   It appears only when there is no remembered sync account / guest mode.
+========================================================= */
+
+function tnHasSavedSession(){
+  try{
+    return !!(
+      localStorage.getItem("tangonest_sync_email_v1") &&
+      localStorage.getItem("tangonest_sync_hash_v1")
+    );
+  }catch(e){return false;}
+}
+
+function tnIsGuestMode(){
+  try{return localStorage.getItem("tangonest_guest_mode")==="1";}catch(e){return false;}
+}
+
+function tnGateApplyState(){
+  const has=tnHasSavedSession() || tnIsGuestMode();
+  document.documentElement.classList.toggle("tn-has-session",has);
+  document.documentElement.classList.toggle("tn-needs-auth",!has);
+  document.body?.classList.toggle("tn-logged-in",has);
+  const gate=document.getElementById("loginGate");
+  if(gate){
+    gate.classList.toggle("hidden",has);
+    gate.setAttribute("aria-hidden",has?"true":"false");
+  }
+}
+
+function tnShowApp(){
+  document.documentElement.classList.add("tn-has-session");
+  document.documentElement.classList.remove("tn-needs-auth");
+  document.body?.classList.add("tn-logged-in");
+  const gate=document.getElementById("loginGate");
+  if(gate){
+    gate.classList.add("hidden");
+    gate.setAttribute("aria-hidden","true");
+  }
+}
+
+function tnShowLogin(){
+  document.documentElement.classList.remove("tn-has-session");
+  document.documentElement.classList.add("tn-needs-auth");
+  document.body?.classList.remove("tn-logged-in");
+  const gate=document.getElementById("loginGate");
+  if(gate){
+    gate.classList.remove("hidden");
+    gate.setAttribute("aria-hidden","false");
+  }
+}
+
+function tnNoEmailShowApp(){tnShowApp();}
+function tnNoEmailShowLogin(){tnShowLogin();}
+
+// Override the maintenance function from older builds.
+function tnMaintainNoEmailGate(){
+  if(tnHasSavedSession() || tnIsGuestMode()) tnShowApp();
+  else tnShowLogin();
+}
+
+// Strong boot behavior.
+function tnBootGateOnly(){
+  tnGateApplyState();
+}
+setTimeout(tnBootGateOnly,0);
+setTimeout(tnBootGateOnly,100);
+setTimeout(tnBootGateOnly,600);
+
+// After login/signup, old functions call tnRememberAccount. Ensure it hides login immediately.
+if(typeof tnRememberAccount==="function" && !tnRememberAccount.__beta62Wrapped){
+  const oldRememberBeta62=tnRememberAccount;
+  tnRememberAccount=function(email,hash){
+    oldRememberBeta62(email,hash);
+    tnShowApp();
+  };
+  tnRememberAccount.__beta62Wrapped=true;
+}
+
+// After logout, force login page.
+if(typeof logoutTangoNest==="function" && !logoutTangoNest.__beta62Wrapped){
+  const oldLogoutBeta62=logoutTangoNest;
+  logoutTangoNest=async function(){
+    try{await oldLogoutBeta62();}catch(e){console.warn(e);}
+    tnShowLogin();
+  };
+  logoutTangoNest.__beta62Wrapped=true;
+}
+
+// If the user is remembered, do not let older Supabase Auth listeners bring the login gate back.
+setInterval(()=>{
+  if(tnHasSavedSession() || tnIsGuestMode()) tnShowApp();
+},1000);

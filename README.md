@@ -1,13 +1,18 @@
-# TangoNest Beta61 Add Register Fix
+# TangoNest Beta62 True Login Gate
 
-## Critical fix
-Add Word + Register now uses an isolated stable function:
-- Reads form
-- Adds word to db
-- Saves directly to localStorage
-- Updates counters safely
-- Cloud saves in background
-- Does not depend on old save()/render() chain
+## Fix
+The login screen is no longer treated like a normal overlay.
+By default it is hidden at CSS level.
 
-## Deploy
-Upload the whole folder to Netlify.
+It appears only when there is no remembered TangoNest sync account or guest mode.
+
+## Result
+After logging in once, reload should keep you on the app/home screen instead of showing the login screen again.
+
+## Upload
+Upload these files to GitHub root:
+- index.html
+- style.css
+- app.js
+- README.md
+- SUPABASE_SQL_RUN_ONCE.sql
