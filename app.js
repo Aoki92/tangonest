@@ -4450,3 +4450,112 @@ setInterval(()=>{
 },2500);
 
 window.tn78CheckCloud=tn78CheckCloud;
+
+
+
+/* =========================================================
+   Beta79 Cloud Status Top Fix
+   Cloud Status must be visible immediately at the top of Settings.
+========================================================= */
+
+function tn79FindSettingsPage(){
+  return (
+    document.getElementById("pageSettings") ||
+    document.getElementById("settings") ||
+    document.querySelector("[data-page='settings']") ||
+    [...document.querySelectorAll(".page,section,main,div")].find(el=>{
+      const txt=(el.textContent||"").slice(0,500).toLowerCase();
+      return txt.includes("manage") && txt.includes("data transfer");
+    }) ||
+    document.querySelector(".page.active") ||
+    document.body
+  );
+}
+
+function tn79MoveCloudBoxToTop(){
+  let box=document.getElementById("tn78CloudBox");
+
+  // If Beta78 failed to create it, call it.
+  try{
+    if(!box && typeof tn78CloudBox==="function"){
+      box=tn78CloudBox();
+    }
+  }catch(e){}
+
+  if(!box)return;
+
+  const host=tn79FindSettingsPage();
+  if(!host)return;
+
+  box.classList.add("tn79-cloud-top");
+
+  // Insert near the top of Settings, before Data Transfer.
+  const dataTransfer=[...host.querySelectorAll("h1,h2,h3,div,section")].find(el=>{
+    return (el.textContent||"").trim().toLowerCase().startsWith("data transfer");
+  });
+
+  if(dataTransfer && dataTransfer.parentElement){
+    dataTransfer.parentElement.insertBefore(box, dataTransfer);
+  }else{
+    // Put after first heading area if possible, otherwise first.
+    const firstCard=host.querySelector(".card");
+    if(firstCard && firstCard !== box){
+      host.insertBefore(box, firstCard);
+    }else{
+      host.insertBefore(box, host.firstChild);
+    }
+  }
+
+  box.style.display="block";
+  box.style.visibility="visible";
+  box.style.opacity="1";
+}
+
+function tn79AddCloudButtonTop(){
+  let btn=document.getElementById("tn79CloudTopBtn");
+  if(!btn){
+    btn=document.createElement("button");
+    btn.id="tn79CloudTopBtn";
+    btn.className="tn79-cloud-top-btn";
+    btn.type="button";
+    btn.textContent="Cloud";
+    btn.onclick=()=>{
+      try{ if(typeof go==="function")go("settings"); }catch(e){}
+      setTimeout(()=>{
+        tn79MoveCloudBoxToTop();
+        const box=document.getElementById("tn78CloudBox");
+        if(box)box.scrollIntoView({behavior:"smooth",block:"start"});
+        try{ if(typeof tn78CheckCloud==="function")tn78CheckCloud(false); }catch(e){}
+      },200);
+    };
+
+    const settingsBtn=[...document.querySelectorAll("button,a")].find(el=>(el.textContent||"").trim().toLowerCase()==="settings");
+    if(settingsBtn && settingsBtn.parentElement){
+      settingsBtn.insertAdjacentElement("afterend",btn);
+    }else{
+      document.body.appendChild(btn);
+    }
+  }
+}
+
+function tn79Boot(){
+  tn79AddCloudButtonTop();
+  try{
+    if(typeof tn78CloudBox==="function")tn78CloudBox();
+  }catch(e){}
+  tn79MoveCloudBoxToTop();
+  try{
+    if(typeof tn78UpdateLocalView==="function")tn78UpdateLocalView();
+    if(typeof tn78CheckCloud==="function")tn78CheckCloud(true);
+  }catch(e){}
+}
+
+setTimeout(tn79Boot,0);
+setTimeout(tn79Boot,500);
+setTimeout(tn79Boot,1500);
+setInterval(()=>{
+  tn79AddCloudButtonTop();
+  if(document.querySelector(".active") || location.href){
+    tn79MoveCloudBoxToTop();
+  }
+},2000);

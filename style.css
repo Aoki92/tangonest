@@ -2558,3 +2558,32 @@ body,
     grid-template-columns:1fr;
   }
 }
+
+
+/* =========================================================
+   Beta79 Cloud Status Top Fix
+========================================================= */
+.tn79-cloud-top{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  margin:0 0 18px!important;
+  order:-999!important;
+}
+
+.tn79-cloud-top-btn{
+  min-height:38px;
+  border:0;
+  border-radius:999px;
+  padding:0 14px;
+  font-weight:900;
+  cursor:pointer;
+  background:#eff6ff;
+  color:#1d4ed8;
+  border:1px solid rgba(59,130,246,.22);
+  margin-left:8px;
+}
+
+.tn79-cloud-top-btn:hover{
+  background:#dbeafe;
+}
