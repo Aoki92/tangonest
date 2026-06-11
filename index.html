@@ -291,29 +291,7 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
 <div id="detailModal" class="modal-backdrop"><div class="modal"><div class="actions" style="justify-content:flex-end;margin-top:0"><button class="btn" onclick="closeDetail()">Close</button></div><div id="detailContent"></div></div></div><div id="toast" class="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script id="tn74SupabaseBootstrap">
-(function(){
-  window.TN_SUPABASE_URL = "https://bkbteylavujkfiwuqwdq.supabase.co";
-  window.TN_SUPABASE_KEY = "sb_publishable_UKX5qCXkbIRac4cc62_LXw_yEGDG6BZ";
-  window.tn74GetSupabase = function(){
-    try{
-      if(window.tnSupabaseClient && window.tnSupabaseClient.rpc)return window.tnSupabaseClient;
-      if(window.supabase && window.supabase.createClient){
-        window.tnSupabaseClient = window.supabase.createClient(window.TN_SUPABASE_URL, window.TN_SUPABASE_KEY);
-        window.sb = window.tnSupabaseClient;
-        window.supabaseClient = window.tnSupabaseClient;
-        return window.tnSupabaseClient;
-      }
-    }catch(e){ console.error("Supabase bootstrap failed", e); }
-    return null;
-  };
-  window.tn74GetSupabase();
-})();
-</script>
-
-<script src="./app.js"></script>
-
-<!-- TangoNest Beta56 compatibility nodes for legacy render/session references -->
+<!-- Compatibility nodes used by older TangoNest render/session helpers. -->
 <div id="tnCompatNodes" style="display:none!important">
 <select id="quizOrder"><option value="random">Random</option><option value="added">Added order</option><option value="az">A → Z</option></select>
   <span id="totalWords"></span>
@@ -341,12 +319,35 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
   <select id="cardDirection"><option value="front">front</option></select>
 </div>
 
+<script id="tn74SupabaseBootstrap">
+(function(){
+  window.TN_SUPABASE_URL = "https://bkbteylavujkfiwuqwdq.supabase.co";
+  window.TN_SUPABASE_KEY = "sb_publishable_UKX5qCXkbIRac4cc62_LXw_yEGDG6BZ";
+  window.tn74GetSupabase = function(){
+    try{
+      if(window.tnSupabaseClient && window.tnSupabaseClient.rpc)return window.tnSupabaseClient;
+      if(window.supabase && window.supabase.createClient){
+        window.tnSupabaseClient = window.supabase.createClient(window.TN_SUPABASE_URL, window.TN_SUPABASE_KEY);
+        window.sb = window.tnSupabaseClient;
+        window.supabaseClient = window.tnSupabaseClient;
+        return window.tnSupabaseClient;
+      }
+    }catch(e){ console.error("Supabase bootstrap failed", e); }
+    return null;
+  };
+  window.tn74GetSupabase();
+})();
+</script>
+
+<script src="./app.js"></script>
+<script src="./tn-fixes.js"></script>
+
 
 <script id="tn73EmergencyScript">
 (function(){
 const E="tangonest_sync_email_v1",H="tangonest_sync_hash_v1",M="tangonest_sync_mode_v1";
 const $=id=>document.getElementById(id);
-const has=()=>{try{return !!(localStorage.getItem(E)&&localStorage.getItem(H))}catch(e){return false}};
+const has=()=>{try{return !!(localStorage.getItem(E)&&localStorage.getItem(H))||localStorage.getItem("tangonest_guest_mode")==="1"}catch(e){return false}};
 const message=(t,c="info")=>{const m=$("tn73Msg");if(m){m.textContent=t;m.className="tn73-msg "+c}};
 const busy=v=>["tn73Login","tn73Create","tn73Guest"].forEach(id=>{const b=$(id);if(b)b.disabled=!!v});
 async function hash(email,pw){const data=new TextEncoder().encode((email||"").trim().toLowerCase()+"::"+(pw||""));const d=await crypto.subtle.digest("SHA-256",data);return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("")}
@@ -357,11 +358,11 @@ function sess(email,h){localStorage.setItem(E,email.trim().toLowerCase());localS
 function apply(d){if(!d)return;try{if(typeof db!=="undefined"){Object.assign(db,d);if(typeof KEY!=="undefined")localStorage.setItem(KEY,JSON.stringify(db))}}catch(e){}}
 function oldOff(){const o=$("loginGate");if(o){o.style.setProperty("display","none","important");o.style.setProperty("pointer-events","none","important");o.setAttribute("inert","")}}
 function status(){const p=$("tn73Pill");if(p)p.textContent=has()?"Synced ✓":"Local";let b=$("syncStatusBadge");if(b){b.textContent=has()?"Synced ✓":"Local";b.classList.toggle("synced",has());b.classList.toggle("local",!has())}}
-function showApp(){document.documentElement.classList.add("tn73-ready","tn-authenticated");document.documentElement.classList.remove("tn-logged-out","tn-needs-auth");document.body?.classList.add("tn-logged-in");document.body?.classList.remove("tn-auth-open");const a=$("tn73Auth");if(a){a.style.setProperty("display","none","important");a.style.setProperty("pointer-events","none","important")}try{if(typeof go==="function")go("home")}catch(e){}status();oldOff()}
+function showApp(){document.documentElement.classList.add("tn73-ready","tn-authenticated");document.documentElement.classList.remove("tn-logged-out","tn-needs-auth");document.body?.classList.add("tn-logged-in");document.body?.classList.remove("tn-auth-open");const a=$("tn73Auth");if(a){a.style.setProperty("display","none","important");a.style.setProperty("pointer-events","none","important")}try{if(typeof go==="function"){const saved=localStorage.getItem("tangonest_last_page_v2")||localStorage.getItem("tangonest_last_page_v1")||"home";const map={create:"add",library:"words",cards:"study",listen:"audio",settings:"manage"};go(map[saved]||saved)}}catch(e){}status();oldOff()}
 function showAuth(){document.documentElement.classList.remove("tn73-ready","tn-authenticated");document.documentElement.classList.add("tn-logged-out");document.body?.classList.add("tn-auth-open");const a=$("tn73Auth");if(a){a.style.setProperty("display","flex","important");a.style.setProperty("pointer-events","auto","important")}setTimeout(()=>$("tn73Email")?.focus(),50);status();oldOff()}
 async function login(){const email=($("tn73Email")?.value||"").trim().toLowerCase(),pw=$("tn73Password")?.value||"";if(!email||!pw)return message("Email and password are required.","error");if(pw.length<6)return message("Password must be at least 6 characters.","error");busy(true);message("Logging in...");try{const h=await hash(email,pw),res=await rpc("tn_login",{p_email:email,p_password_hash:h});if(!res||res.ok===false)throw new Error(res?.error||"Login failed.");sess(email,h);apply(res.data);message("Logged in.","success");setTimeout(showApp,200)}catch(e){console.error(e);message(e.message||"Login failed.","error")}finally{busy(false)}}
 async function create(){const email=($("tn73Email")?.value||"").trim().toLowerCase(),pw=$("tn73Password")?.value||"";if(!email||!pw)return message("Email and password are required.","error");if(pw.length<6)return message("Password must be at least 6 characters.","error");busy(true);message("Creating account...");try{const h=await hash(email,pw),res=await rpc("tn_signup",{p_email:email,p_password_hash:h,p_data:data()});if(!res||res.ok===false)throw new Error(res?.error||"Create account failed.");sess(email,h);apply(res.data);message("Account created. Logged in.","success");setTimeout(showApp,200)}catch(e){console.error(e);message(e.message||"Create account failed.","error")}finally{busy(false)}}
-function bind(){const em=$("tn73Email"),pw=$("tn73Password");if(em&&!em.value)em.value=localStorage.getItem(E)||"";const l=$("tn73Login"),c=$("tn73Create"),g=$("tn73Guest");if(l)l.onclick=login;if(c)c.onclick=create;if(g)g.onclick=showApp;if(pw&&!pw.__tn73){pw.addEventListener("keydown",e=>{if(e.key==="Enter")login()});pw.__tn73=1}if(em&&!em.__tn73){em.addEventListener("keydown",e=>{if(e.key==="Enter")pw?.focus()});em.__tn73=1}}
+function bind(){const em=$("tn73Email"),pw=$("tn73Password");if(em&&!em.value)em.value=localStorage.getItem(E)||"";const l=$("tn73Login"),c=$("tn73Create"),g=$("tn73Guest");if(l)l.onclick=login;if(c)c.onclick=create;if(g)g.onclick=()=>{localStorage.setItem("tangonest_guest_mode","1");showApp()};if(pw&&!pw.__tn73){pw.addEventListener("keydown",e=>{if(e.key==="Enter")login()});pw.__tn73=1}if(em&&!em.__tn73){em.addEventListener("keydown",e=>{if(e.key==="Enter")pw?.focus()});em.__tn73=1}}
 function boot(){bind();oldOff();has()?showApp():showAuth()}
 window.tn73ShowAuth=showAuth;window.tn73ShowApp=showApp;window.logoutTangoNest=async()=>{localStorage.removeItem(E);localStorage.removeItem(H);localStorage.removeItem(M);showAuth()};window.tnOpenLoginGate=showAuth;window.tnShowLogin=showAuth;window.tnNoEmailShowLogin=showAuth;window.tnShowApp=showApp;window.tnNoEmailShowApp=showApp;
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();setTimeout(boot,100);setTimeout(boot,500);setInterval(()=>{bind();status();oldOff()},1000);
