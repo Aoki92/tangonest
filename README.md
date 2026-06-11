@@ -1,18 +1,15 @@
-# TangoNest Beta62 True Login Gate
+# TangoNest Beta65 No Login On Reload
 
-## Fix
-The login screen is no longer treated like a normal overlay.
-By default it is hidden at CSS level.
+## Critical reload fix
+The app no longer opens the login screen automatically on reload.
 
-It appears only when there is no remembered TangoNest sync account or guest mode.
+New behavior:
+- App/home opens first
+- If saved sync account exists, cloud sync runs in background
+- Login screen opens only when the user clicks Login / Sync
+- Logout keeps the app usable in local mode
 
-## Result
-After logging in once, reload should keep you on the app/home screen instead of showing the login screen again.
-
-## Upload
-Upload these files to GitHub root:
-- index.html
-- style.css
-- app.js
-- README.md
-- SUPABASE_SQL_RUN_ONCE.sql
+## Also included
+- Beta64 Add Word critical fix
+- English -> Japanese default language fix
+- PWA icon files from Beta63

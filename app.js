@@ -3378,3 +3378,346 @@ if(typeof logoutTangoNest==="function" && !logoutTangoNest.__beta62Wrapped){
 setInterval(()=>{
   if(tnHasSavedSession() || tnIsGuestMode()) tnShowApp();
 },1000);
+
+
+
+/* =========================================================
+   Beta64 CRITICAL Add Word + Default Language Fix
+   This is the final Add Word path. It does not depend on old addWord/save/render.
+========================================================= */
+
+function tn64$(id){ return document.getElementById(id); }
+function tn64Val(id){ return (tn64$(id)?.value ?? "").trim(); }
+function tn64SetValue(id,val){
+  const el=tn64$(id);
+  if(!el)return;
+  if(el.tagName==="SELECT"){
+    const opt=[...el.options].find(o=>o.value===val);
+    if(opt)el.value=val;
+  }else{
+    el.value=val;
+  }
+}
+function tn64Toast(msg){
+  const t=tn64$("toast");
+  if(t){
+    t.textContent=msg;
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"),1700);
+  }else{
+    console.log("[TangoNest]",msg);
+  }
+}
+function tn64Id(){ return "w_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2); }
+function tn64TodayPlus(n){
+  const d=new Date();
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+function tn64Persist(){
+  try{
+    if(typeof KEY!=="undefined") localStorage.setItem(KEY, JSON.stringify(db));
+    else localStorage.setItem("tangonest_data", JSON.stringify(db));
+  }catch(e){
+    console.error("localStorage save failed",e);
+    throw new Error("Local save failed");
+  }
+}
+function tn64UpdateCounts(){
+  const words=db.words||[];
+  const lists=db.lists||[];
+  const learned=words.filter(w=>w.status==="learned").length;
+  const hard=words.filter(w=>w.status==="hard").length;
+  const set=(id,val)=>{ const el=tn64$(id); if(el)el.textContent=val; };
+  ["wc","totalWords","dashTotal","heroWords"].forEach(id=>set(id,words.length));
+  ["listCount","totalLists","heroLists"].forEach(id=>set(id,lists.length));
+  ["lc","totalLearned","heroLearned"].forEach(id=>set(id,learned));
+  ["hc","totalHard","dashHard"].forEach(id=>set(id,hard));
+}
+function tn64EnsureEnglishJapaneseDefaults(){
+  // Only default form selectors. Existing words/playlists are not touched.
+  if(db){
+    db.prefs=db.prefs||{};
+    db.prefs.frontLang="en-US";
+    db.prefs.backLang="ja-JP";
+  }
+  tn64SetValue("frontLang","en-US");
+  tn64SetValue("backLang","ja-JP");
+  tn64SetValue("bulkFrontLang","en-US");
+  tn64SetValue("bulkBackLang","ja-JP");
+  const front=tn64$("front"); if(front)front.placeholder="apple";
+  const back=tn64$("back"); if(back)back.placeholder="りんご";
+  const memo=tn64$("memo"); if(memo)memo.placeholder="I eat an apple.";
+  const bulk=tn64$("bulkText");
+  if(bulk)bulk.placeholder="apple\tりんご\tnoun\tnone\tI eat an apple.\nteacher\t先生\tnoun\tnone\tI am a teacher.";
+  try{ tn64Persist(); }catch(e){}
+}
+function tn64ClearAddFields(){
+  ["front","back","memo","tags"].forEach(id=>{ const el=tn64$(id); if(el)el.value=""; });
+  const pos=tn64$("pos"); if(pos)pos.value="";
+  const gender=tn64$("gender"); if(gender)gender.value="";
+  tn64EnsureEnglishJapaneseDefaults();
+}
+function tn64MakeWord(){
+  const front=tn64Val("front");
+  const back=tn64Val("back");
+  if(!front || !back){
+    throw new Error("Front and Back are required.");
+  }
+  let listId=tn64$("addList")?.value;
+  if(!listId){
+    listId=(db.lists&&db.lists[0]&&db.lists[0].id) || "starter";
+  }
+  if(!db.lists || !db.lists.length){
+    db.lists=[{id:"starter",name:"New Playlist"}];
+    listId="starter";
+  }
+  return {
+    id:tn64Id(),
+    front,
+    back,
+    frontLang:"en-US",
+    backLang:"ja-JP",
+    listId,
+    pos:tn64$("pos")?.value || "",
+    gender:tn64$("gender")?.value || "",
+    tags:tn64Val("tags"),
+    memo:tn64Val("memo"),
+    saved:false,
+    status:"new",
+    seen:0,
+    level:1,
+    nextReview:tn64TodayPlus(1),
+    createdAt:new Date().toISOString()
+  };
+}
+async function tn64CloudSaveNonBlocking(){
+  try{
+    if(typeof tnScheduleCloudSave==="function"){
+      tnScheduleCloudSave();
+      return;
+    }
+    if(typeof tnNoEmailSaveCloud==="function"){
+      const ok=await tnNoEmailSaveCloud();
+      if(ok)tn64Toast("Saved to cloud");
+      return;
+    }
+  }catch(e){
+    console.warn("cloud save skipped",e);
+  }
+}
+function tnRegisterWordCritical(ev){
+  if(ev && ev.preventDefault)ev.preventDefault();
+  try{
+    if(!db)throw new Error("Data is not ready");
+    db.words=db.words||[];
+    db.lists=db.lists&&db.lists.length?db.lists:[{id:"starter",name:"New Playlist"}];
+
+    const word=tn64MakeWord();
+    db.words.push(word);
+
+    // Direct local save first. This is the critical part.
+    tn64Persist();
+    tn64UpdateCounts();
+
+    // Try safe visual refresh, but do not depend on it.
+    try{ if(typeof renderSelect==="function")renderSelect("wordListSelect",true); }catch(e){}
+    try{ if(typeof renderWords==="function")renderWords(); }catch(e){ console.warn("renderWords skipped",e); }
+    try{ if(typeof renderHome==="function")renderHome(); }catch(e){ console.warn("renderHome skipped",e); tn64UpdateCounts(); }
+
+    tn64ClearAddFields();
+    tn64Toast("1 word added");
+    tn64CloudSaveNonBlocking();
+    return false;
+  }catch(e){
+    console.error("CRITICAL Add Word error:",e);
+    tn64Toast(e.message || "Add Word error");
+    let box=tn64$("addWordError");
+    if(!box){
+      box=document.createElement("div");
+      box.id="addWordError";
+      box.className="gate-message error add-error";
+      const btn=tn64$("addWordBtn") || [...document.querySelectorAll("button")].find(b=>(b.textContent||"").includes("Register"));
+      (btn?.parentElement || document.body).appendChild(box);
+    }
+    box.textContent=e.message || "Add Word error";
+    return false;
+  }
+}
+
+// Force old function names and inline handlers to the critical path.
+window.tnRegisterWordCritical=tnRegisterWordCritical;
+window.addWord=tnRegisterWordCritical;
+window.registerWord=tnRegisterWordCritical;
+
+function tn64BindCriticalAddButton(){
+  const btn=tn64$("addWordBtn") || [...document.querySelectorAll("button")].find(b=>(b.textContent||"").trim()==="＋ Register" || (b.textContent||"").trim()==="+ Register");
+  if(btn){
+    btn.id="addWordBtn";
+    btn.type="button";
+    btn.onclick=tnRegisterWordCritical;
+  }
+}
+function tn64BootDefaultsAndButtons(){
+  tn64EnsureEnglishJapaneseDefaults();
+  tn64BindCriticalAddButton();
+}
+setTimeout(tn64BootDefaultsAndButtons,0);
+setTimeout(tn64BootDefaultsAndButtons,200);
+setTimeout(tn64BootDefaultsAndButtons,900);
+setTimeout(tn64BootDefaultsAndButtons,1800);
+
+// If render/fillLangSelects resets the selectors, put them back to English/Japanese.
+if(typeof fillLangSelects==="function" && !fillLangSelects.__beta64Wrapped){
+  const oldFillLangSelects64=fillLangSelects;
+  fillLangSelects=function(){
+    oldFillLangSelects64();
+    tn64EnsureEnglishJapaneseDefaults();
+  };
+  fillLangSelects.__beta64Wrapped=true;
+}
+if(typeof render==="function" && !render.__beta64DefaultWrapped){
+  const oldRender64=render;
+  render=function(){
+    oldRender64();
+    tn64EnsureEnglishJapaneseDefaults();
+    tn64BindCriticalAddButton();
+  };
+  render.__beta64DefaultWrapped=true;
+}
+
+
+
+/* =========================================================
+   Beta65 No Login On Reload
+   New rule:
+   - Reload NEVER opens the login gate automatically.
+   - App opens first.
+   - If a sync account exists, cloud loads in background.
+   - Login gate opens only when the user clicks Login / Sync.
+========================================================= */
+
+function tn65HasSavedSync(){
+  try{
+    return !!(
+      localStorage.getItem("tangonest_sync_email_v1") &&
+      localStorage.getItem("tangonest_sync_hash_v1")
+    );
+  }catch(e){return false;}
+}
+
+function tn65AppFirst(){
+  document.documentElement.classList.add("tn-app-first");
+  document.documentElement.classList.add("tn-has-session");
+  document.documentElement.classList.remove("tn-needs-auth");
+  document.body?.classList.add("tn-logged-in");
+  document.body?.classList.remove("tn-auth-open");
+  const gate=document.getElementById("loginGate");
+  if(gate){
+    gate.classList.add("hidden");
+    gate.setAttribute("aria-hidden","true");
+  }
+}
+
+function tnOpenLoginGate(){
+  document.body?.classList.add("tn-auth-open");
+  const gate=document.getElementById("loginGate");
+  if(gate){
+    gate.classList.remove("hidden");
+    gate.setAttribute("aria-hidden","false");
+  }
+  const email=document.getElementById("gateEmail");
+  setTimeout(()=>email?.focus(),80);
+}
+
+function tnCloseLoginGate(){
+  document.body?.classList.remove("tn-auth-open");
+  const gate=document.getElementById("loginGate");
+  if(gate){
+    gate.classList.add("hidden");
+    gate.setAttribute("aria-hidden","true");
+  }
+}
+
+// Override all older show-login functions. They must not fire on reload.
+function tnShowLogin(){ tn65AppFirst(); }
+function tnNoEmailShowLogin(){ tn65AppFirst(); }
+function tnShowApp(){ tn65AppFirst(); }
+function tnNoEmailShowApp(){ tn65AppFirst(); }
+
+refreshTangoNestSession = async function(){
+  tn65AppFirst();
+  try{
+    if(tn65HasSavedSync() && typeof tnNoEmailLoadCloud==="function"){
+      await tnNoEmailLoadCloud();
+      tn65AppFirst();
+    }
+  }catch(e){
+    console.warn("Background cloud load skipped:",e);
+  }
+};
+
+async function tn65Boot(){
+  tn65AppFirst();
+  try{
+    if(tn65HasSavedSync() && typeof tnNoEmailLoadCloud==="function"){
+      await tnNoEmailLoadCloud();
+      tn65AppFirst();
+    }
+  }catch(e){
+    console.warn("Boot cloud sync skipped:",e);
+  }
+  try{ updateAuthUI?.(); }catch(e){}
+}
+
+if(typeof gateLogin==="function" && !gateLogin.__beta65Wrapped){
+  const oldGateLogin65=gateLogin;
+  gateLogin=async function(){
+    await oldGateLogin65();
+    if(tn65HasSavedSync())tnCloseLoginGate();
+  };
+  gateLogin.__beta65Wrapped=true;
+}
+
+if(typeof gateSignUp==="function" && !gateSignUp.__beta65Wrapped){
+  const oldGateSignUp65=gateSignUp;
+  gateSignUp=async function(){
+    await oldGateSignUp65();
+    if(tn65HasSavedSync())tnCloseLoginGate();
+  };
+  gateSignUp.__beta65Wrapped=true;
+}
+
+logoutTangoNest = async function(){
+  try{
+    if(typeof tnForgetAccount==="function")tnForgetAccount();
+    else{
+      localStorage.removeItem("tangonest_sync_email_v1");
+      localStorage.removeItem("tangonest_sync_hash_v1");
+    }
+  }catch(e){}
+  tn65AppFirst();
+  try{ updateAuthUI?.(); }catch(e){}
+  try{ tn64Toast?.("Logged out. Local mode."); }catch(e){}
+};
+
+function tn65UpdateTopSyncButton(){
+  const btn=document.getElementById("topSyncBtn");
+  if(!btn)return;
+  const email=localStorage.getItem("tangonest_sync_email_v1");
+  btn.textContent=email ? "Synced" : "Login / Sync";
+  btn.onclick=tnOpenLoginGate;
+}
+
+setTimeout(tn65Boot,0);
+setTimeout(tn65Boot,250);
+setTimeout(tn65Boot,1000);
+setTimeout(tn65UpdateTopSyncButton,300);
+
+// Strong guard: no old listener can reopen login gate on reload.
+setInterval(()=>{
+  if(!document.body?.classList.contains("tn-auth-open")){
+    tn65AppFirst();
+  }
+  tn65UpdateTopSyncButton();
+},1000);

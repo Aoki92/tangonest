@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>TangoNest — Your own language space.</title>
+<title>TangoNest</title>
 <link rel="stylesheet" href="./style.css">
 
 <script>
@@ -21,8 +21,32 @@
 })();
 </script>
 
+
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TangoNest">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+
+<script>
+(function(){
+  try{
+    document.documentElement.classList.add("tn-app-first");
+    document.documentElement.classList.remove("tn-needs-auth");
+    document.documentElement.classList.add("tn-has-session");
+  }catch(e){}
+})();
+</script>
+
 </head>
 <body>
+<button id="topSyncBtn" class="tn-sync-floating" type="button" onclick="tnOpenLoginGate()">Login / Sync</button>
+
 
 <div id="loginGate" class="login-gate">
   <div class="login-bg-card card-a"><span>Front</span><b>你好</b><small>Chinese</small></div>
@@ -116,17 +140,17 @@
   <section id="pageAdd" class="page">
     <div class="grid2">
       <div class="card"><h2>Add Word</h2><p class="desc">Add words to the selected playlist. POS, gender, tags, and examples are optional.</p>
-        <div class="row"><div><label>Front</label><input id="front" placeholder="pomme" oninput="autoDetectFront()"></div><div><label>Back</label><input id="back" placeholder="apple" oninput="autoDetectBack()"></div></div>
+        <div class="row"><div><label>Front</label><input id="front" placeholder="apple" oninput="autoDetectFront()"></div><div><label>Back</label><input id="back" placeholder="りんご" oninput="autoDetectBack()"></div></div>
         <div class="row3"><div><label>Front language</label><select id="frontLang"></select></div><div><label>Back language</label><select id="backLang"></select></div><div><label>Save to list</label><select id="addList"></select></div></div>
         <div class="row3"><div><label>POS <span class="optional">optional</span></label><select id="pos"><option value="">—</option><option>noun</option><option>verb</option><option>adjective</option><option>adverb</option><option>phrase</option><option>preposition</option><option>conjunction</option></select></div><div><label>Gender <span class="optional">optional</span></label><select id="gender"><option value="">—</option><option value="masculine">masculine</option><option value="feminine">feminine</option><option value="neutral">neutral</option><option value="plural">plural</option></select></div><div><label>Tags</label><input id="tags" placeholder="A1, food"></div></div>
         <label>Memo / Example</label><textarea id="memo" placeholder="I eat an apple."></textarea>
-        <div class="actions"><button class="btn primary" onclick="addWord()">＋ Register</button><button class="btn blue" onclick="speak($('front').value,$('frontLang').value)">▶ Front</button><button class="btn" onclick="clearForm()">Clear</button></div>
+        <div class="actions"><button id="addWordBtn" class="btn primary"  type="button" onclick="tnRegisterWordCritical(event)">＋ Register</button><button class="btn blue" onclick="speak($('front').value,$('frontLang').value)">▶ Front</button><button class="btn" onclick="clearForm()">Clear</button></div>
       </div>
       <div class="card"><h2>Playlist</h2><label>New list name</label><input id="newList" placeholder="English A1"><div class="actions"><button class="btn primary full" onclick="createList()">Create</button></div><label>Rename list</label><select id="renameListSelect"></select><input id="renameListInput" placeholder="New name"><div class="actions"><button class="btn blue full" onclick="renameList()">Rename</button></div></div>
     </div>
     <div class="card"><h2>Bulk Add</h2><p class="desc">Paste up to five columns from notes or spreadsheets: Front / Back / POS / Gender / Example.</p>
       <div class="row3"><div><label>Front language</label><select id="bulkFrontLang"></select></div><div><label>Back language</label><select id="bulkBackLang"></select></div><div><label>Save to list</label><select id="bulkList"></select></div></div>
-      <textarea id="bulkText" placeholder="pomme	apple	noun	feminine	Je mange une pomme.&#10;mer	sea	noun	feminine	La mer est belle."></textarea>
+      <textarea id="bulkText" placeholder="apple	りんご	noun	none	I eat an apple.&#10;teacher	先生	noun	none	I am a teacher."></textarea>
       <div class="actions"><button class="btn blue" onclick="previewBulk()">Preview</button><button class="btn primary" onclick="bulkImport()">Bulk Register</button><button class="btn" onclick="$('bulkText').value='';clearBulkPreview()">Clear</button></div><div id="bulkPreview" class="sync-box" style="display:none"></div><div id="bulkDuplicatePanel" class="dup-panel"></div>
     </div>
   </section>
