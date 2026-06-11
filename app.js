@@ -3797,3 +3797,124 @@ document.addEventListener("pointerdown", function(){
     tn66KillLoginOverlay();
   }
 }, true);
+
+
+
+/* =========================================================
+   Beta67 Login UX Fix
+   - Successful login/signup closes the gate and returns to Home.
+   - Top-right Login / Sync button is removed.
+   - Sync entry moves into Settings only.
+========================================================= */
+
+function tn67GoHomeAfterLogin(){
+  try{
+    document.body?.classList.remove("tn-auth-open");
+    document.documentElement.classList.add("tn-app-first");
+    document.documentElement.classList.add("tn-has-session");
+    document.documentElement.classList.remove("tn-needs-auth");
+    const gate=document.getElementById("loginGate");
+    if(gate){
+      gate.classList.add("hidden");
+      gate.style.display="none";
+      gate.style.pointerEvents="none";
+      gate.style.visibility="hidden";
+      gate.style.opacity="0";
+      gate.style.zIndex="-1";
+      gate.setAttribute("inert","");
+      gate.setAttribute("aria-hidden","true");
+    }
+    if(typeof go==="function")go("home");
+    else{
+      document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+      const home=document.getElementById("home") || document.getElementById("pageHome") || document.querySelector("[data-page='home']");
+      if(home)home.classList.add("active");
+    }
+    try{ tn64Toast?.("Logged in."); }catch(e){}
+  }catch(e){
+    console.warn("go home after login failed",e);
+  }
+}
+
+function tn67RemoveTopSyncButton(){
+  const btn=document.getElementById("topSyncBtn");
+  if(btn)btn.remove();
+  document.querySelectorAll(".tn-sync-floating").forEach(el=>el.remove());
+}
+
+function tn67InjectSettingsSync(){
+  tn67RemoveTopSyncButton();
+  if(document.getElementById("settingsSyncBtn"))return;
+
+  const candidates=[
+    document.getElementById("pageSettings"),
+    document.getElementById("settings"),
+    document.querySelector(".page.settings"),
+    document.querySelector("[data-page='settings']"),
+    [...document.querySelectorAll("section,.page,main,div")].find(el=>{
+      const text=(el.textContent||"").slice(0,500).toLowerCase();
+      return text.includes("settings") && (el.id||el.className);
+    })
+  ].filter(Boolean);
+
+  const host=candidates[0] || document.body;
+  const box=document.createElement("div");
+  box.id="settingsSyncBox";
+  box.className="settings-sync-box card";
+  box.innerHTML=`
+    <div class="settings-sync-title">Sync</div>
+    <div class="settings-sync-text">Keep your words synced across PC and phone.</div>
+    <button id="settingsSyncBtn" class="btn primary" type="button">Login / Sync</button>
+  `;
+  box.querySelector("#settingsSyncBtn").onclick=function(){
+    if(typeof tnOpenLoginGate==="function")tnOpenLoginGate();
+  };
+  host.appendChild(box);
+}
+
+// Strongly override login/signup actions AFTER old code runs.
+// Some previous builds replace these functions, so we wrap late too.
+function tn67WrapAuthFunctions(){
+  if(typeof gateLogin==="function" && !gateLogin.__beta67Wrapped){
+    const old=gateLogin;
+    gateLogin=async function(){
+      await old();
+      setTimeout(tn67GoHomeAfterLogin,50);
+      setTimeout(tn67GoHomeAfterLogin,250);
+    };
+    gateLogin.__beta67Wrapped=true;
+  }
+  if(typeof gateSignUp==="function" && !gateSignUp.__beta67Wrapped){
+    const old=gateSignUp;
+    gateSignUp=async function(){
+      await old();
+      setTimeout(tn67GoHomeAfterLogin,50);
+      setTimeout(tn67GoHomeAfterLogin,250);
+    };
+    gateSignUp.__beta67Wrapped=true;
+  }
+  // Also catch button clicks that lead to green "Logged in." message.
+  document.querySelectorAll("#loginGate button").forEach(btn=>{
+    const txt=(btn.textContent||"").toLowerCase();
+    if((txt.includes("login") || txt.includes("create")) && !btn.__beta67ClickWrapped){
+      btn.addEventListener("click",()=>{
+        setTimeout(()=>{
+          const msg=(document.querySelector("#loginGate .gate-message")?.textContent||"").toLowerCase();
+          const saved=!!(localStorage.getItem("tangonest_sync_email_v1")&&localStorage.getItem("tangonest_sync_hash_v1"));
+          if(saved || msg.includes("logged in") || msg.includes("created")){
+            tn67GoHomeAfterLogin();
+          }
+        },700);
+      });
+      btn.__beta67ClickWrapped=true;
+    }
+  });
+}
+
+setTimeout(()=>{tn67RemoveTopSyncButton();tn67InjectSettingsSync();tn67WrapAuthFunctions();},0);
+setTimeout(()=>{tn67RemoveTopSyncButton();tn67InjectSettingsSync();tn67WrapAuthFunctions();},300);
+setTimeout(()=>{tn67RemoveTopSyncButton();tn67InjectSettingsSync();tn67WrapAuthFunctions();},1200);
+setInterval(()=>{
+  tn67RemoveTopSyncButton();
+  tn67WrapAuthFunctions();
+},1500);
