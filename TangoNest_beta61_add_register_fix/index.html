@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>TangoNest — Your own language space.</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<div id="loginGate" class="login-gate">
+  <div class="login-bg-card card-a"><span>Front</span><b>你好</b><small>Chinese</small></div>
+  <div class="login-bg-card card-b"><span>Back</span><b>hello</b><small>English</small></div>
+  <div class="login-bg-card card-c"><span>Mode</span><b>Quiz</b><small>Ready</small></div>
+
+  <div class="login-panel">
+    <div class="login-brand">
+      <div class="brand-mark">TN</div>
+      <div>
+        <h1>TangoNest</h1>
+        <p>Your own language space.</p>
+      </div>
+    </div>
+
+    <div class="login-copy">
+      <span class="eyebrow dark">WELCOME BACK</span>
+      <h2>You’re already halfway there.</h2>
+      <p>Login once to keep your words, playlists, and study space synced across PC and phone.</p>
+    </div>
+
+    <div class="login-form">
+      <label>Email</label>
+      <input id="gateEmail" type="email" placeholder="you@example.com" autocomplete="email">
+      <label>Password</label>
+      <input id="gatePassword" type="password" placeholder="At least 6 characters" autocomplete="current-password">
+      <small class="password-hint">Use at least 6 characters. Example: letters + numbers.</small>
+      <div id="gateMessage" class="gate-message">No email confirmation needed. Create an account once, then stay signed in.</div>
+      <button id="resendEmailBtn" class="resend-email-btn" onclick="resendConfirmEmail()" style="display:none">Resend confirmation email</button>
+      <div class="login-actions">
+        <button class="btn primary" onclick="gateLogin()">Login</button>
+        <button class="btn" onclick="gateSignUp()">Create account</button>
+      </div>
+      <button class="guest-btn" onclick="continueAsGuest()">Continue as guest</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="brand"><div class="brand-mark">TN</div><div><h1>TangoNest</h1><p>Your own language space.</p></div></div>
+    <div class="stats">
+      <div class="stat"><b id="wc">0</b><span>Words</span></div><div class="stat"><b id="listCount">0</b><span>Lists</span></div><div class="stat"><b id="lc">0</b><span>Learned</span></div><div class="stat"><b id="hc">0</b><span>Hard</span></div>
+      <button class="settings-btn" onclick="go('manage')">Settings</button>
+    </div>
+  </div>
+  <div class="nav">
+    <button id="navHome" class="active" onclick="go('home')">Home</button><button id="navAdd" onclick="appShow('add')">Create</button><button id="navWords" onclick="go('words')">Library</button><button id="navStudy" onclick="go('study')">Cards</button><button id="navQuiz" onclick="appShow('quiz')">Quiz</button><button id="navAudio" onclick="appShow('audio')">Listen</button><button id="navManage" onclick="go('manage')">Settings</button>
+  </div>
+
+  <section id="pageHome" class="page active">
+  <section class="hero-concept">
+
+    <div class="hero-copy">
+      <span class="eyebrow">TANGONEST</span>
+      <h2>You’re already<br>halfway there.</h2>
+      <p>Your own language space. Build your words, review your way, and keep every language in one place.</p>
+      <div class="hero-actions">
+        <button class="btn primary" onclick="appShow('add')">Add Words</button>
+        <button class="btn" onclick="appShow('quiz')">Start Quiz</button>
+        <button class="btn" onclick="appShow('audio')">Listen</button>
+      </div>
+    </div>
+
+    <div class="hero-visual" aria-hidden="true">
+      <div class="phone-mock">
+        <div class="phone-top"></div>
+        <div class="phone-appbar"><span>TangoNest</span><i></i></div>
+        <div class="phone-card main">
+          <small>Current space</small>
+          <b id="heroPhoneDeck">New Playlist</b>
+          <span id="heroPhoneMeta">Language space</span>
+        </div>
+        <div class="phone-grid">
+          <div><b>Quiz</b><span>4 choices</span></div>
+          <div><b>Audio</b><span>Listen</span></div>
+        </div>
+      </div>
+      <div class="floating-card float-one"><span>Front</span><b>bonjour</b><small>French</small></div>
+      <div class="floating-card float-two"><span>Back</span><b>hello</b><small>English</small></div>
+      <div class="floating-card float-three"><span>Mode</span><b>Quiz</b><small>Ready</small></div>
+    </div>
+  </section>
+    <div class="card"><h2>Continue learning</h2><p class="desc">Pick up where you left off and keep your language space growing.</p>
+      <div class="progress-grid"><div class="progress-card"><b id="dashTotal">0</b><span>Total</span></div><div class="progress-card"><b id="dashLearned">0%</b><span>Learned</span></div><div class="progress-card"><b id="dashDue">0</b><span>Due</span></div><div class="progress-card"><b id="dashHard">0</b><span>Hard</span></div></div>
+      <div class="actions"><button class="btn primary" onclick="appShow('add')">＋ Add Word</button><button class="btn blue" onclick="appShow('quiz')">Start Quiz</button><button class="btn purple" onclick="go('study')">Flashcards</button><button class="btn green" onclick="appShow('audio')">Listen</button></div>
+    </div>
+    <div class="card"><h2>Playlists</h2><div id="homeLists" class="quick-list"></div></div>
+  </section>
+
+  <section id="pageAdd" class="page">
+    <div class="grid2">
+      <div class="card"><h2>Add Word</h2><p class="desc">Add words to the selected playlist. POS, gender, tags, and examples are optional.</p>
+        <div class="row"><div><label>Front</label><input id="front" placeholder="pomme" oninput="autoDetectFront()"></div><div><label>Back</label><input id="back" placeholder="apple" oninput="autoDetectBack()"></div></div>
+        <div class="row3"><div><label>Front language</label><select id="frontLang"></select></div><div><label>Back language</label><select id="backLang"></select></div><div><label>Save to list</label><select id="addList"></select></div></div>
+        <div class="row3"><div><label>POS <span class="optional">optional</span></label><select id="pos"><option value="">—</option><option>noun</option><option>verb</option><option>adjective</option><option>adverb</option><option>phrase</option><option>preposition</option><option>conjunction</option></select></div><div><label>Gender <span class="optional">optional</span></label><select id="gender"><option value="">—</option><option value="masculine">masculine</option><option value="feminine">feminine</option><option value="neutral">neutral</option><option value="plural">plural</option></select></div><div><label>Tags</label><input id="tags" placeholder="A1, food"></div></div>
+        <label>Memo / Example</label><textarea id="memo" placeholder="I eat an apple."></textarea>
+        <div class="actions"><button class="btn primary" onclick="addWord()">＋ Register</button><button class="btn blue" onclick="speak($('front').value,$('frontLang').value)">▶ Front</button><button class="btn" onclick="clearForm()">Clear</button></div>
+      </div>
+      <div class="card"><h2>Playlist</h2><label>New list name</label><input id="newList" placeholder="English A1"><div class="actions"><button class="btn primary full" onclick="createList()">Create</button></div><label>Rename list</label><select id="renameListSelect"></select><input id="renameListInput" placeholder="New name"><div class="actions"><button class="btn blue full" onclick="renameList()">Rename</button></div></div>
+    </div>
+    <div class="card"><h2>Bulk Add</h2><p class="desc">Paste up to five columns from notes or spreadsheets: Front / Back / POS / Gender / Example.</p>
+      <div class="row3"><div><label>Front language</label><select id="bulkFrontLang"></select></div><div><label>Back language</label><select id="bulkBackLang"></select></div><div><label>Save to list</label><select id="bulkList"></select></div></div>
+      <textarea id="bulkText" placeholder="pomme	apple	noun	feminine	Je mange une pomme.&#10;mer	sea	noun	feminine	La mer est belle."></textarea>
+      <div class="actions"><button class="btn blue" onclick="previewBulk()">Preview</button><button class="btn primary" onclick="bulkImport()">Bulk Register</button><button class="btn" onclick="$('bulkText').value='';clearBulkPreview()">Clear</button></div><div id="bulkPreview" class="sync-box" style="display:none"></div><div id="bulkDuplicatePanel" class="dup-panel"></div>
+    </div>
+  </section>
+
+  <section id="pageWords" class="page">
+    <div class="card"><h2>Word List</h2><p class="desc">Words are shown in the order they were added. Use ↑ / ↓ to rearrange inside a playlist.</p>
+      <div class="mobile-list-actions"><button onclick="appShow('quiz')">Quiz</button><button onclick="go('study')">Cards</button><button onclick="appShow('audio')">Listen</button></div>
+      <div class="row4"><div><label>Library</label><select id="wordListSelect" onchange="renderWords()"></select></div><div><label>View</label><select id="tableView" onchange="renderWords()"><option value="both">Front + Back</option><option value="front">Front only</option><option value="back">Back only</option></select></div><div><label>Sort</label><select id="sortMode" onchange="renderWords()"><option value="added">Added order</option><option value="frontAZ">Front A-Z</option><option value="backAZ">Back A-Z</option></select></div><div><label>Filter</label><select id="statusFilter" onchange="renderWords()"><option value="all">All</option><option value="new">new</option><option value="learned">learned</option><option value="hard">hard</option><option value="due">due</option><option value="star">★ Saved</option></select></div></div>
+      <div class="row"><div><label>Audio Button</label><select id="listSpeakSide" onchange="renderWords()"><option value="front">Front</option><option value="back">Back</option><option value="both">Front → Back</option></select></div><div><label>Manual order</label><p class="desc" style="margin:8px 0 0">Use ↑ / ↓ in Added order.</p></div></div>
+      <div class="mobile-sticky-search"><label>Search</label><input id="wordSearch" oninput="renderWords()" placeholder="Search"></div>
+      <div class="actions"><button class="btn red" onclick="deleteSelected()">Delete selected</button><button class="btn" onclick="toggleSelectAll()">Select all / Clear</button></div>
+      <div id="wordsBox"></div>
+    </div>
+  </section>
+
+  <section id="pageStudy" class="page">
+    <div class="card"><h2>Flashcards</h2><p class="desc">Tap card to flip. Auto mode plays Front → flips → Back → next.</p>
+      <div class="row"><div><label>Library</label><select id="studyList" onchange="resetCard()"></select></div><div><label>Mode</label><select id="studyMode" onchange="resetCard()"><option value="front">Front → Back</option><option value="back">Back → Front</option><option value="hard">Hard only</option><option value="due">Due only</option><option value="star">★ Saved only</option></select></div></div>
+      <div class="row3"><div><label>Flash Auto</label><select id="flashAutoMode"><option value="off">Off</option><option value="on">On</option></select></div><div><label>Flip after</label><select id="flashFlipDelay"><option value="1500">1.5s</option><option value="2500" selected>2.5s</option><option value="3500">3.5s</option><option value="5000">5s</option></select></div><div><label>Next after</label><select id="flashNextDelay"><option value="1500">1.5s</option><option value="2500" selected>2.5s</option><option value="3500">3.5s</option><option value="5000">5s</option></select></div></div>
+      <div class="flip-scene"><div id="flash" class="flash" onclick="flipCard()"><div class="face front"><div><div class="flabel">Front</div><div id="frontWord" class="fword">---</div><div id="frontMemo" class="fmemo"></div></div></div><div class="face back"><div><div class="flabel">Back</div><div id="backWord" class="fword">---</div><div id="backMemo" class="fmemo"></div></div></div></div></div>
+      <div class="actions"><button class="btn primary" onclick="nextCard()">Next</button><button class="btn" onclick="flipCard()">Flip</button><button class="btn blue" onclick="speakCard()">▶ Speak</button><button class="btn purple" onclick="startFlashAuto()">▶ Auto</button><button class="btn" onclick="stopFlashAuto()">Stop</button><button class="btn green" onclick="markCard('learned')">Learned</button><button class="btn red" onclick="markCard('hard')">Hard</button><button id="studyStar" class="btn yellow" onclick="toggleCardStar()">☆ Save</button></div>
+    </div>
+  </section>
+
+  <section id="pageQuiz" class="page">
+    <div class="quiz-card"><div class="card"><h2>Quiz Mode</h2><p class="desc">Stable quiz engine: exact question count, independent audio, reliable auto-advance.</p>
+      <div id="quizSetup">
+        <div class="row3"><div><label>Library</label><select id="quizList"></select></div><div><label>Quiz Type</label><select id="quizType"><option value="choice" selected>4 Choices</option><option value="typing">Typing</option></select></div><div><label>Direction</label><select id="quizDirection"><option value="front">Front → Back</option><option value="back">Back → Front</option></select></div></div>
+        <div class="row3"><div><label>Question count</label><input id="quizCount" type="number" min="1" max="300" step="1" value="10"></div><div><label>Auto advance</label><select id="quizAutoAdvance"><option value="on" selected>On</option><option value="off">Off / manual</option></select></div><div><label>Next delay</label><input id="quizNextDelay" type="number" min="0.3" max="10" step="0.1" value="0.8"></div></div>
+        <div class="row3"><div><label>After-answer audio</label><select id="quizAudioAfter"><option value="on">On</option><option value="off">Off</option></select></div><div><label>Hard Mode</label><select id="quizHardMode"><option value="off">Off</option><option value="on">On: time limit</option></select></div><div><label>Time limit</label><input id="quizTimeLimit" type="number" min="2" max="60" step="1" value="8"></div></div>
+        <div class="row"><div><label>Scope</label><select id="quizScope"><option value="all">All</option><option value="hard">Hard only</option><option value="due">Due only</option><option value="star">★ Saved only</option></select></div><div><label>Exact count rule</label><p class="desc" style="margin:8px 0 0">If fewer words are available, the quiz clearly uses the available count.</p></div></div>
+        <div class="actions"><button class="btn primary" onclick="startQuiz()">Start Quiz</button></div>
+      </div>
+      <div id="quizRun" style="display:none">
+        <div class="quiz-top"><div class="quiz-count" id="quizProgress">1 / 10</div><div class="quiz-count" id="quizScore">0 / 10</div></div>
+        <div class="quiz-question"><div><div class="flabel" id="quizLabel">Question</div><div class="quiz-word" id="quizWord">---</div></div></div>
+        <div id="quizTimerWrap" class="quiz-timer-wrap"><div class="quiz-timer-top"><span>Time limit</span><span id="quizTimerText">0s</span></div><div class="quiz-timer-bar"><div id="quizTimerFill" class="quiz-timer-fill"></div></div></div>
+        <div id="typingArea"><input id="quizAnswer" placeholder="Type answer" onkeydown="if(event.key==='Enter')checkTypingAnswer()"><div class="actions"><button class="btn primary" onclick="checkTypingAnswer()">Check</button><button class="btn blue" onclick="speakQuizQuestion()">▶ Question</button></div></div>
+        <div id="choiceArea" class="choice-grid"></div><div id="quizResult" class="result-box"></div>
+        <div class="actions"><button class="btn" onclick="nextQuizQuestion()">Skip / Next</button><button class="btn red" onclick="endQuiz()">End</button></div>
+      </div>
+      <div id="quizEnd" style="display:none"><h2>Result</h2><p class="desc" id="quizEndText"></p><div id="quizWrongList" class="quiz-wrong-list"></div><div class="actions"><button class="btn primary" onclick="restartWrongQuiz()">Retry wrong</button><button class="btn" onclick="resetQuiz()">Back to setup</button></div></div>
+    </div></div>
+  </section>
+
+  <section id="pageAudio" class="page"><div class="audio-player"><h2>Audio Mode</h2><p class="desc">Listening practice mode.</p>
+    <div class="row3"><div><label>Library</label><select id="audioList"></select></div><div><label>Pattern</label><select id="audioPattern"><option value="frontBack">Front → Back</option><option value="backFront">Back → Front</option><option value="front">Front only</option><option value="back">Back only</option></select></div><div><label>Order</label><select id="audioOrder"><option value="random">Random</option><option value="normal">Normal</option><option value="hard">Hard first</option><option value="due">Due first</option><option value="star">★ Saved only</option></select></div></div>
+    <div class="row3"><div><label>Word interval</label><input id="audioIntervalCustom" type="number" min="0.5" max="30" step="0.1" value="5"></div><div><label>Pair gap</label><input id="pairGapCustom" type="number" min="0.1" max="10" step="0.1" value="1.8"></div><div><label>Voice speed</label><select id="audioRate"><option value="0.82">Slow</option><option value="0.92" selected>Normal</option><option value="1.05">Fast</option></select></div></div>
+    <div class="now-playing"><div class="flabel">Now Playing</div><div id="audioNow" class="now-title">---</div><div id="audioSub" class="now-sub">Start</div></div>
+    <div class="actions"><button class="btn primary" onclick="startAudio()">▶ Start</button><button class="btn" onclick="pauseAudio()">Pause</button><button class="btn red" onclick="stopAudio()">Stop</button><button class="btn blue" onclick="playAudioOnce()">▶ Once</button></div>
+  </div></section>
+
+  <section id="pageManage" class="page"><div class="card"><h2>Manage</h2><p class="desc">Settings, data transfer, and local browser data management.</p>
+    <div class="progress-grid"><div class="progress-card"><b id="mgNew">0</b><span>New</span></div><div class="progress-card"><b id="mgDue">0</b><span>Due</span></div><div class="progress-card"><b id="mgNoPOS">0</b><span>No POS</span></div><div class="progress-card"><b id="mgSaved">0</b><span>Saved</span></div></div>
+    <div class="card" style="box-shadow:none;margin-top:14px"><h2>Data Transfer</h2><p class="desc">Manual transfer between PC and phone.</p><div class="actions"><button class="btn blue" onclick="exportDataText()">Export / Copy Data</button><button class="btn yellow" onclick="downloadBackupFile()">Download Backup</button><button class="btn green" onclick="importDataText()">Import Data</button></div><div class="sync-box"><label>Export / Import Text</label><textarea id="syncDataBox" placeholder="Exported data will appear here."></textarea></div></div>
+    
+    <div class="card" style="box-shadow:none;margin-top:14px">
+      <h2>Voice Check</h2>
+      <p class="desc">Checks which browser voices are available. Google voices are used first when available.</p>
+      <div class="actions">
+        <button class="btn blue" onclick="showVoiceStatus()">Check Voices</button>
+        <button class="btn green" onclick="testAllMainVoices()">Test Main Voices</button>
+      </div>
+      <div id="voiceStatusBox" class="sync-box" style="display:none"></div>
+    </div>
+<div class="danger-zone"><h2>Danger Zone</h2><p class="desc">Delete all saved vocabulary data in this browser.</p><div class="actions"><button class="btn blue" onclick="go('words')">Edit Words</button><button class="btn red" onclick="clearAll()">Clear All Data</button></div></div>
+  </div></section>
+</div>
+<div class="mobile-tabbar"><button id="mnavHome" class="active" onclick="go('home')">Home</button><button id="mnavAdd" onclick="appShow('add')">Create</button><button id="mnavWords" onclick="go('words')">Library</button><button id="mnavQuiz" onclick="appShow('quiz')">Quiz</button><button id="mnavManage" onclick="go('manage')">Settings</button></div>
+<div id="editModal" class="modal-backdrop"><div class="modal"><h2>Edit Word</h2><input type="hidden" id="editId"><div class="row"><div><label>Front</label><input id="editFront"></div><div><label>Back</label><input id="editBack"></div></div><div class="row3"><div><label>Front language</label><select id="editFrontLang"></select></div><div><label>Back language</label><select id="editBackLang"></select></div><div><label>Library</label><select id="editList"></select></div></div><div class="row3"><div><label>POS</label><select id="editPOS"><option value="">—</option><option>noun</option><option>verb</option><option>adjective</option><option>adverb</option><option>phrase</option><option>preposition</option><option>conjunction</option></select></div><div><label>Gender</label><select id="editGender"><option value="">—</option><option value="masculine">masculine</option><option value="feminine">feminine</option><option value="neutral">neutral</option><option value="plural">plural</option></select></div><div><label>Tags</label><input id="editTags"></div></div><div class="row"><div><label>Status</label><select id="editStatus"><option value="new">new</option><option value="learned">learned</option><option value="hard">hard</option></select></div><div><label>Memory Level</label><select id="editLevel"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div></div><label>Memo / Example</label><textarea id="editMemo"></textarea><div class="actions"><button class="btn primary" onclick="saveEdit()">Save</button><button class="btn" onclick="closeEdit()">Cancel</button></div></div></div>
+<div id="detailModal" class="modal-backdrop"><div class="modal"><div class="actions" style="justify-content:flex-end;margin-top:0"><button class="btn" onclick="closeDetail()">Close</button></div><div id="detailContent"></div></div></div><div id="toast" class="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./app.js"></script>
+
+<!-- TangoNest Beta56 compatibility nodes for legacy render/session references -->
+<div id="tnCompatNodes" style="display:none!important">
+<select id="quizOrder"><option value="random">Random</option><option value="added">Added order</option><option value="az">A → Z</option></select>
+  <span id="totalWords"></span>
+  <span id="totalLists"></span>
+  <span id="totalLearned"></span>
+  <span id="totalHard"></span>
+  <span id="heroWords"></span>
+  <span id="heroLists"></span>
+  <span id="heroLearned"></span>
+  <span id="heroPlaylistName"></span>
+  <span id="heroPlaylistMeta"></span>
+  <span id="contextPlaylistName"></span>
+  <span id="contextPlaylistMeta"></span>
+  <span id="resumeMeta"></span>
+  <button id="resumeMainBtn"></button>
+  <input id="authEmail">
+  <input id="authPassword">
+  <div id="authStatus"></div>
+  <div id="authSub"></div>
+  <div id="authForm"></div>
+  <div id="authActions"></div>
+  <input id="newListName">
+  <select id="quizMode"><option value="normal">normal</option></select>
+  <select id="audioMode"><option value="frontBack">frontBack</option></select>
+  <select id="cardDirection"><option value="front">front</option></select>
+</div>
+
+</body>
+</html>

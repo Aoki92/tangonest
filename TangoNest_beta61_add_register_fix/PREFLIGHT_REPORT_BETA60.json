@@ -1,0 +1,9 @@
+{
+  "js_syntax": "ok",
+  "missing_refs_count": 0,
+  "missing_refs": [],
+  "sync_system": "no-email-rpc",
+  "requires_sql_once": true,
+  "background_unified": true,
+  "email_confirmation_used": false
+}
