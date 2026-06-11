@@ -4871,3 +4871,354 @@ window.tn80CheckCloud=tn80CheckCloud;
 window.tn80LoadCloudNow=tn80LoadCloudNow;
 window.tn80SaveThisDeviceNow=tn80SaveThisDeviceNow;
 window.tn80Logout=tn80Logout;
+
+
+
+/* =========================================================
+   Beta81 Stable Sync + Page State + Defaults
+   Fixes:
+   - Mobile logout button not responding
+   - Default language always English/Japanese
+   - Reload keeps current page instead of forcing Home
+   - Cloud panel compact
+   - Sync stability improved
+========================================================= */
+
+const TN81_PAGE_KEY="tangonest_last_page_v1";
+
+function tn81Email(){
+  try{return localStorage.getItem("tangonest_sync_email_v1")||"";}catch(e){return "";}
+}
+function tn81Hash(){
+  try{return localStorage.getItem("tangonest_sync_hash_v1")||"";}catch(e){return "";}
+}
+function tn81HasSession(){return !!(tn81Email()&&tn81Hash());}
+function tn81Key(){
+  try{if(typeof KEY!=="undefined")return KEY;}catch(e){}
+  return "tangonest_data";
+}
+function tn81EnsureDb(){
+  try{if(typeof db==="undefined" || !db)window.db={lists:[],words:[],prefs:{}};}catch(e){}
+  db.lists=db.lists||[];
+  db.words=db.words||[];
+  db.prefs=db.prefs||{};
+  if(!db.lists.length)db.lists.push({id:"starter",name:"New Playlist"});
+}
+function tn81Persist(){
+  tn81EnsureDb();
+  localStorage.setItem(tn81Key(),JSON.stringify(db));
+}
+function tn81Supabase(){
+  try{if(window.tn74GetSupabase){const x=window.tn74GetSupabase(); if(x&&x.rpc)return x;}}catch(e){}
+  try{if(window.tnSupabaseClient?.rpc)return window.tnSupabaseClient;}catch(e){}
+  try{if(window.supabaseClient?.rpc)return window.supabaseClient;}catch(e){}
+  try{if(window.sb?.rpc)return window.sb;}catch(e){}
+  try{if(typeof supabaseClient!=="undefined"&&supabaseClient.rpc)return supabaseClient;}catch(e){}
+  try{if(typeof sb!=="undefined"&&sb.rpc)return sb;}catch(e){}
+  return null;
+}
+
+/* 1) Force defaults English/Japanese, repeatedly and after render */
+function tn81SetSelect(id,value){
+  const el=document.getElementById(id);
+  if(!el || el.tagName!=="SELECT")return;
+  const found=[...el.options].some(o=>o.value===value);
+  if(found)el.value=value;
+}
+function tn81ForceDefaultLanguages(){
+  tn81EnsureDb();
+  db.prefs.frontLang="en-US";
+  db.prefs.backLang="ja-JP";
+
+  tn81SetSelect("frontLang","en-US");
+  tn81SetSelect("backLang","ja-JP");
+  tn81SetSelect("bulkFrontLang","en-US");
+  tn81SetSelect("bulkBackLang","ja-JP");
+
+  const front=document.getElementById("front");
+  const back=document.getElementById("back");
+  const memo=document.getElementById("memo");
+  if(front)front.placeholder="apple";
+  if(back)back.placeholder="りんご";
+  if(memo)memo.placeholder="I eat an apple.";
+
+  try{tn81Persist();}catch(e){}
+}
+
+/* 2) Preserve current page across reload */
+function tn81NormalizePage(page){
+  const map={
+    "add":"create",
+    "words":"library",
+    "manage":"settings",
+    "study":"cards",
+    "audio":"listen"
+  };
+  return map[page]||page||"home";
+}
+function tn81RememberPage(page){
+  page=tn81NormalizePage(page);
+  localStorage.setItem(TN81_PAGE_KEY,page);
+}
+function tn81CurrentPageFromDom(){
+  const activeNav=[...document.querySelectorAll("button,a")].find(el=>{
+    const cls=String(el.className||"").toLowerCase();
+    return cls.includes("active") && ["home","create","library","cards","quiz","listen","settings"].includes((el.textContent||"").trim().toLowerCase());
+  });
+  if(activeNav)return tn81NormalizePage((activeNav.textContent||"").trim().toLowerCase());
+
+  const activePage=document.querySelector(".page.active,[data-page].active");
+  if(activePage){
+    const id=(activePage.id||"").toLowerCase();
+    const data=(activePage.dataset?.page||"").toLowerCase();
+    return tn81NormalizePage(data || id.replace(/^page/,""));
+  }
+  return localStorage.getItem(TN81_PAGE_KEY)||"home";
+}
+function tn81GoSavedPage(){
+  const page=tn81NormalizePage(localStorage.getItem(TN81_PAGE_KEY)||"home");
+  try{
+    if(typeof go==="function")go(page);
+  }catch(e){}
+}
+function tn81WrapGo(){
+  if(typeof window.go==="function" && !window.go.__tn81Wrapped){
+    const old=window.go;
+    window.go=function(page){
+      tn81RememberPage(page);
+      const result=old(page);
+      setTimeout(tn81ForceDefaultLanguages,50);
+      return result;
+    };
+    window.go.__tn81Wrapped=true;
+  }
+  document.querySelectorAll("button,a").forEach(el=>{
+    const txt=(el.textContent||"").trim().toLowerCase();
+    if(["home","create","library","cards","quiz","listen","settings"].includes(txt) && !el.__tn81Remember){
+      el.addEventListener("click",()=>tn81RememberPage(txt),true);
+      el.__tn81Remember=true;
+    }
+  });
+}
+
+/* Override old Home-forcing login close functions to saved page */
+function tn81ShowAppSavedPage(){
+  document.documentElement.classList.add("tn73-ready","tn-authenticated");
+  document.documentElement.classList.remove("tn-logged-out","tn-needs-auth");
+  document.body?.classList.add("tn-logged-in");
+  document.body?.classList.remove("tn-auth-open");
+  const auth=document.getElementById("tn73Auth");
+  if(auth){
+    auth.style.setProperty("display","none","important");
+    auth.style.setProperty("pointer-events","none","important");
+  }
+  setTimeout(tn81GoSavedPage,20);
+  setTimeout(tn81ForceDefaultLanguages,60);
+}
+window.tnShowApp=tn81ShowAppSavedPage;
+window.tnNoEmailShowApp=tn81ShowAppSavedPage;
+window.tn73ShowApp=tn81ShowAppSavedPage;
+
+/* 3) Mobile-safe logout */
+function tn81Logout(){
+  const ok=confirm("Log out of TangoNest?");
+  if(!ok)return;
+
+  try{
+    localStorage.removeItem("tangonest_sync_email_v1");
+    localStorage.removeItem("tangonest_sync_hash_v1");
+    localStorage.removeItem("tangonest_sync_mode_v1");
+    localStorage.removeItem("tangonest_last_cloud_updated_at_v1");
+    localStorage.removeItem("tangonest_guest_mode");
+  }catch(e){}
+
+  document.documentElement.classList.remove("tn73-ready","tn-authenticated");
+  document.documentElement.classList.add("tn-logged-out");
+  document.body?.classList.remove("tn-logged-in");
+  document.body?.classList.add("tn-auth-open");
+
+  const auth=document.getElementById("tn73Auth");
+  if(auth){
+    auth.style.setProperty("display","flex","important");
+    auth.style.setProperty("pointer-events","auto","important");
+    auth.style.setProperty("visibility","visible","important");
+    auth.style.setProperty("opacity","1","important");
+    setTimeout(()=>document.getElementById("tn73Email")?.focus(),100);
+  }else if(typeof tnOpenLoginGate==="function"){
+    tnOpenLoginGate();
+  }else{
+    location.reload();
+  }
+}
+window.tn81Logout=tn81Logout;
+window.tn80Logout=tn81Logout;
+window.tn77Logout=tn81Logout;
+window.logoutTangoNest=async function(){tn81Logout();};
+
+function tn81BindLogoutButtons(){
+  const ids=["tn80LogoutBtn","tn77LogoutBtn"];
+  ids.forEach(id=>{
+    const btn=document.getElementById(id);
+    if(btn){
+      btn.type="button";
+      btn.onclick=tn81Logout;
+      btn.style.pointerEvents="auto";
+      btn.style.cursor="pointer";
+      btn.style.display=tn81HasSession() ? "inline-flex" : "none";
+    }
+  });
+  document.querySelectorAll("button").forEach(btn=>{
+    const txt=(btn.textContent||"").trim().toLowerCase();
+    if(txt==="log out" && !btn.__tn81Logout){
+      btn.type="button";
+      btn.addEventListener("click",(e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        tn81Logout();
+      },true);
+      btn.__tn81Logout=true;
+    }
+  });
+}
+
+/* 4) Compact Cloud panel */
+function tn81CompactCloudPanel(){
+  const panel=document.getElementById("tn80CloudPanel") || document.getElementById("tn78CloudBox");
+  if(!panel)return;
+
+  panel.classList.add("tn81-compact-cloud");
+
+  // Prefer closed by default; user can open when checking.
+  if(panel.tagName==="DETAILS"){
+    if(!panel.__tn81Initialized){
+      panel.open=false;
+      panel.__tn81Initialized=true;
+    }
+  }
+
+  // Keep panel at top but compact.
+  const page=document.getElementById("pageManage") || document.getElementById("settings");
+  const card=page?.querySelector(".card");
+  if(card && panel.parentElement!==card){
+    card.insertBefore(panel,card.firstChild);
+  }
+}
+
+/* 5) More stable sync: save on add, load on focus, avoid Home jumps */
+let tn81SyncTimer=null;
+let tn81Loading=false;
+let tn81Saving=false;
+function tn81RenderAll(){
+  try{if(typeof tn75SafeRender==="function")tn75SafeRender();}catch(e){}
+  try{if(typeof renderSelect==="function"){renderSelect("addList",false);renderSelect("wordListSelect",true);renderSelect("quizList",true);renderSelect("audioList",true);}}catch(e){}
+  try{if(typeof renderWords==="function")renderWords();}catch(e){}
+  try{if(typeof renderHome==="function")renderHome();}catch(e){}
+  try{if(typeof tn75RenderLibraryNow==="function")tn75RenderLibraryNow();}catch(e){}
+  try{if(typeof tn80UpdatePanelLocal==="function")tn80UpdatePanelLocal();}catch(e){}
+  tn81ForceDefaultLanguages();
+}
+async function tn81CloudSave(){
+  if(!tn81HasSession() || tn81Saving)return false;
+  const s=tn81Supabase();
+  if(!s)return false;
+  tn81Saving=true;
+  try{
+    tn81EnsureDb();
+    db.meta=db.meta||{};
+    db.meta.lastDeviceId=localStorage.getItem("tangonest_device_id_v1")||"device";
+    db.meta.lastSaveAt=new Date().toISOString();
+    tn81Persist();
+    const {data,error}=await s.rpc("tn_save",{p_email:tn81Email(),p_password_hash:tn81Hash(),p_data:db});
+    if(error)throw error;
+    localStorage.setItem("tangonest_last_cloud_updated_at_v1",data?.updated_at||new Date().toISOString());
+    return true;
+  }catch(e){
+    console.error("tn81 cloud save failed",e);
+    return false;
+  }finally{
+    tn81Saving=false;
+  }
+}
+async function tn81CloudLoad(){
+  if(!tn81HasSession() || tn81Loading || tn81Saving)return false;
+  const s=tn81Supabase();
+  if(!s)return false;
+  tn81Loading=true;
+  const current=tn81CurrentPageFromDom();
+  try{
+    const {data,error}=await s.rpc("tn_login",{p_email:tn81Email(),p_password_hash:tn81Hash()});
+    if(error)throw error;
+    if(data && data.ok!==false && data.data){
+      Object.assign(db,data.data);
+      tn81Persist();
+      tn81RenderAll();
+      tn81RememberPage(current);
+      try{if(typeof go==="function")go(current);}catch(e){}
+      return true;
+    }
+    return false;
+  }catch(e){
+    console.error("tn81 cloud load failed",e);
+    return false;
+  }finally{
+    tn81Loading=false;
+  }
+}
+function tn81CloudSaveSoon(){
+  clearTimeout(tn81SyncTimer);
+  tn81SyncTimer=setTimeout(()=>tn81CloudSave(),500);
+}
+function tn81WrapMutations(){
+  const original=window.tnRegisterWordCritical || window.addWord || window.registerWord;
+  if(typeof original==="function" && !original.__tn81Wrapped){
+    const wrapped=function(ev){
+      const page=tn81CurrentPageFromDom();
+      const result=original(ev);
+      setTimeout(()=>{
+        tn81RememberPage(page);
+        tn81Persist();
+        tn81RenderAll();
+        tn81CloudSaveSoon();
+      },80);
+      return result;
+    };
+    wrapped.__tn81Wrapped=true;
+    window.tnRegisterWordCritical=wrapped;
+    window.addWord=wrapped;
+    window.registerWord=wrapped;
+    const btn=document.getElementById("addWordBtn") || [...document.querySelectorAll("button")].find(b=>(b.textContent||"").includes("Register"));
+    if(btn)btn.onclick=wrapped;
+  }
+}
+
+function tn81Boot(){
+  tn81WrapGo();
+  tn81BindLogoutButtons();
+  tn81ForceDefaultLanguages();
+  tn81CompactCloudPanel();
+  tn81WrapMutations();
+
+  // On reload, restore current page after old scripts finish.
+  setTimeout(tn81GoSavedPage,700);
+  setTimeout(tn81ForceDefaultLanguages,900);
+
+  if(tn81HasSession()){
+    setTimeout(tn81CloudLoad,1200);
+  }
+}
+setTimeout(tn81Boot,0);
+setTimeout(tn81Boot,500);
+setTimeout(tn81Boot,1500);
+setInterval(()=>{
+  tn81WrapGo();
+  tn81BindLogoutButtons();
+  tn81ForceDefaultLanguages();
+  tn81CompactCloudPanel();
+  tn81WrapMutations();
+},1500);
+
+window.addEventListener("focus",()=>{ if(tn81HasSession())tn81CloudLoad(); });
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && tn81HasSession())tn81CloudLoad(); });
+
+window.tn81CloudSave=tn81CloudSave;
+window.tn81CloudLoad=tn81CloudLoad;

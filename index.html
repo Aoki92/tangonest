@@ -225,7 +225,7 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
 
   <section id="pageManage" class="page"><div class="card">
 
-<div id="tn80CloudPanel" class="tn80-cloud-panel">
+<details id="tn80CloudPanel" class="tn80-cloud-panel tn81-compact-cloud"><summary class="tn81-cloud-summary">Cloud / Account Status</summary>
   <div class="tn80-panel-head">
     <div>
       <div class="tn80-kicker">ACCOUNT / CLOUD SYNC</div>
@@ -259,7 +259,8 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
 </div>
 <h2>Manage</h2><p class="desc">Settings, data transfer, and local browser data management.</p>
     <div class="progress-grid"><div class="progress-card"><b id="mgNew">0</b><span>New</span></div><div class="progress-card"><b id="mgDue">0</b><span>Due</span></div><div class="progress-card"><b id="mgNoPOS">0</b><span>No POS</span></div><div class="progress-card"><b id="mgSaved">0</b><span>Saved</span></div></div>
-    <div class="card" style="box-shadow:none;margin-top:14px"><h2>Data Transfer</h2><p class="desc">Manual transfer between PC and phone.</p><div class="actions"><button class="btn blue" onclick="exportDataText()">Export / Copy Data</button><button class="btn yellow" onclick="downloadBackupFile()">Download Backup</button><button class="btn green" onclick="importDataText()">Import Data</button></div><div class="sync-box"><label>Export / Import Text</label><textarea id="syncDataBox" placeholder="Exported data will appear here."></textarea></div></div>
+    <div class="card" style="box-shadow:none;margin-top:14px"></details>
+<h2>Data Transfer</h2><p class="desc">Manual transfer between PC and phone.</p><div class="actions"><button class="btn blue" onclick="exportDataText()">Export / Copy Data</button><button class="btn yellow" onclick="downloadBackupFile()">Download Backup</button><button class="btn green" onclick="importDataText()">Import Data</button></div><div class="sync-box"><label>Export / Import Text</label><textarea id="syncDataBox" placeholder="Exported data will appear here."></textarea></div></div>
     
     <div class="card" style="box-shadow:none;margin-top:14px">
       <h2>Voice Check</h2>

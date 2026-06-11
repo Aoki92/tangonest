@@ -2728,3 +2728,82 @@ body,
   .tn80-cloud-actions{flex-direction:column!important;}
   .tn80-cloud-actions button{width:100%!important;}
 }
+
+
+/* =========================================================
+   Beta81 Stable Sync + Page State + Defaults
+========================================================= */
+
+/* Mobile-safe logout */
+#tn80LogoutBtn,
+#tn77LogoutBtn,
+button[onclick*="Logout"],
+button[onclick*="logout"]{
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  position:relative!important;
+  z-index:20!important;
+  touch-action:manipulation!important;
+}
+
+/* Compact cloud status */
+.tn81-compact-cloud{
+  padding:0!important;
+  margin:0 0 14px!important;
+  border-radius:20px!important;
+  overflow:hidden!important;
+  background:#fff!important;
+  border:1px solid rgba(148,163,184,.22)!important;
+  box-shadow:0 10px 28px rgba(15,23,42,.05)!important;
+}
+
+.tn81-cloud-summary{
+  cursor:pointer!important;
+  list-style:none!important;
+  padding:14px 16px!important;
+  font-weight:950!important;
+  color:#0f172a!important;
+  background:#f8fafc!important;
+  border-radius:20px!important;
+}
+
+.tn81-cloud-summary::-webkit-details-marker{
+  display:none!important;
+}
+
+.tn81-cloud-summary::after{
+  content:"Check / logout";
+  float:right;
+  color:#64748b;
+  font-size:12px;
+  font-weight:850;
+}
+
+.tn81-compact-cloud[open] .tn81-cloud-summary{
+  border-bottom:1px solid rgba(148,163,184,.18)!important;
+  border-radius:20px 20px 0 0!important;
+}
+
+.tn81-compact-cloud .tn80-panel-head,
+.tn81-compact-cloud .tn80-cloud-grid,
+.tn81-compact-cloud .tn80-cloud-actions,
+.tn81-compact-cloud .tn80-note{
+  margin-left:14px!important;
+  margin-right:14px!important;
+}
+
+.tn81-compact-cloud .tn80-panel-head{
+  margin-top:14px!important;
+}
+
+.tn81-compact-cloud .tn80-note{
+  margin-bottom:14px!important;
+}
+
+/* Keep header cloud subtle */
+.tn80-header-cloud,
+.tn79-cloud-top-btn,
+.tn78-mini-cloud{
+  transform:scale(.92)!important;
+  opacity:.86!important;
+}

@@ -1,24 +1,16 @@
-# TangoNest Beta80 Account / Cloud Sync Final
+# TangoNest Beta81 Stable Sync + Page State + Defaults
 
-## Final account-sync module
-This version directly inserts the Cloud Status panel into Settings in index.html.
-It does not depend on unstable dynamic insertion.
+## Fixes
+- Mobile Log out button click/tap binding.
+- Default Add Word languages forced to English -> Japanese.
+- Reload keeps current page:
+  - Create reload -> Create
+  - Quiz reload -> Quiz
+  - Cards reload -> Cards
+  - etc.
+- Cloud Status is compact/collapsible.
+- Sync save/load improved without forcing Home.
 
-## Must appear
-Open Settings. At the very top, you should see:
-- Cloud Status
-- Login account
-- This device
-- Local words
-- Cloud words
-- Local lists
-- Cloud lists
-- Cloud updated
-- Connection
-- Check cloud
-- Load cloud now
-- Save this device now
-- Log out
-
-## Purpose
-This makes it visible whether PC and phone are using the same cloud account.
+## Sync stability
+This keeps the current custom RPC sync model.
+For a production-grade app, the more stable architecture is Supabase Auth + user_id-based tables or realtime subscriptions.
