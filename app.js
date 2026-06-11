@@ -5253,7 +5253,6 @@ let tn82LoadTimer=null;
 let tn82IsSaving=false;
 let tn82IsLoading=false;
 let tn82LastRenderedJson="";
-let tn82LastLocalChangeAt="";
 
 function tn82DataKey(){
   try{ if(typeof KEY!=="undefined" && KEY)return KEY; }catch(e){}
@@ -5269,7 +5268,6 @@ function tn82EnsureDb(){
   db.lists=Array.isArray(db.lists)?db.lists:[];
   db.words=Array.isArray(db.words)?db.words:[];
   db.prefs=db.prefs||{};
-  db.meta=db.meta||{};
   if(!db.lists.length){
     db.lists.push({id:"starter",name:"New Playlist",createdAt:new Date().toISOString()});
   }
@@ -5283,13 +5281,6 @@ function tn82EnsureDb(){
     w.createdAt=w.createdAt||new Date().toISOString();
     return w;
   });
-}
-
-function tn82TouchLocal(){
-  tn82EnsureDb();
-  tn82LastLocalChangeAt=new Date().toISOString();
-  db.meta.updatedAt=tn82LastLocalChangeAt;
-  db.meta.lastDeviceId=tn82DeviceId();
 }
 
 function tn82Persist(){
@@ -5308,7 +5299,6 @@ function tn82LoadLocal(){
     }
   }catch(e){}
   tn82EnsureDb();
-  tn82LastLocalChangeAt=db.meta?.updatedAt||"";
 }
 
 function tn82Esc(s){
@@ -5453,12 +5443,6 @@ function tn82FilteredWords(){
   if(filter && filter!=="all" && filter!==""){
     words=words.filter(w=>String(w.listId).toLowerCase()===filter || String(tn82ListName(w.listId)).toLowerCase()===filter);
   }
-  const status=document.getElementById("statusFilter")?.value||"all";
-  const q=String(document.getElementById("wordSearch")?.value||"").trim().toLowerCase();
-  if(status==="star")words=words.filter(w=>w.saved);
-  else if(status==="due")words=words.filter(w=>w.nextReview&&w.nextReview<=new Date().toISOString().slice(0,10));
-  else if(status && status!=="all")words=words.filter(w=>(w.status||"new")===status);
-  if(q)words=words.filter(w=>[w.front,w.back,w.memo,w.tags,w.pos,w.gender,tn82ListName(w.listId)].join(" ").toLowerCase().includes(q));
   return words;
 }
 
@@ -5509,41 +5493,13 @@ function tn82RenderLibrary(){
 }
 
 function tn82BindLibraryFilters(){
-  ["wordListSelect","libraryList","listFilter","filterList","statusFilter","wordSearch"].forEach(id=>{
+  ["wordListSelect","libraryList","listFilter","filterList"].forEach(id=>{
     const el=document.getElementById(id);
     if(el && !el.__tn82LibraryFilter){
-      el.addEventListener(el.tagName==="INPUT"?"input":"change",tn82RenderLibrary);
+      el.addEventListener("change",tn82RenderLibrary);
       el.__tn82LibraryFilter=true;
     }
   });
-}
-
-function tn82RenderSelect(id,{all=false,value}={}){
-  const el=document.getElementById(id);
-  if(!el)return;
-  const current=value!==undefined?value:el.value;
-  el.innerHTML="";
-  if(all){
-    const option=document.createElement("option");
-    option.value="all";
-    option.textContent="All";
-    el.appendChild(option);
-  }
-  db.lists.forEach(list=>{
-    const option=document.createElement("option");
-    option.value=list.id;
-    option.textContent=list.name||"New Playlist";
-    el.appendChild(option);
-  });
-  if([...el.options].some(option=>option.value===current))el.value=current;
-  else if(all)el.value="all";
-  else if(db.lists[0])el.value=db.lists[0].id;
-}
-
-function tn82RenderPlaylistSelects(){
-  tn82EnsureDb();
-  ["addList","bulkList","studyList","quizList","audioList","renameListSelect","editList"].forEach(id=>tn82RenderSelect(id));
-  tn82RenderSelect("wordListSelect",{all:true});
 }
 
 /* ---------- Counts ---------- */
@@ -5601,7 +5557,8 @@ function tn82AddWord(ev){
     createdAt:new Date().toISOString()
   };
   db.words.push(word);
-  tn82TouchLocal();
+  db.meta=db.meta||{};
+  db.meta.updatedAt=new Date().toISOString();
   tn82Persist();
 
   ["front","back","memo","tags"].forEach(id=>{const el=document.getElementById(id); if(el)el.value="";});
@@ -5609,7 +5566,6 @@ function tn82AddWord(ev){
   tn82ForceDefaultLanguages();
 
   tn82RenderLibrary();
-  tn82RenderPlaylistSelects();
   tn82UpdateCounts();
   tn82CloudSaveSoon();
   tn82Toast("1 word added");
@@ -5628,35 +5584,9 @@ function tn82BindAdd(){
   }
 }
 
-/* ---------- 3. Playlist Create/Rename fixed ---------- */
-function tn82CreatePlaylist(name){
-  tn82EnsureDb();
-  name=String(name||"").trim();
-  if(!name){tn82Toast("Playlist name is required");return false;}
-  const exists=db.lists.some(l=>String(l.name||"").trim().toLowerCase()===name.toLowerCase());
-  if(exists){tn82Toast("Playlist already exists");return false;}
-  const list={id:"list_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8),name,createdAt:new Date().toISOString()};
-  db.lists.push(list);
-  tn82TouchLocal();
-  tn82Persist();
-  const input=document.getElementById("newList");
-  if(input)input.value="";
-  tn82RenderPlaylistSelects();
-  tn82RenderPlaylistManager();
-  tn82RenderLibrary();
-  tn82UpdateCounts();
-  tn82CloudSaveSoon();
-  tn82Toast("Playlist created");
-  return true;
-}
-
-function tn82CreateList(){
-  return tn82CreatePlaylist(document.getElementById("newList")?.value||"");
-}
-
+/* ---------- 3. Playlist Rename fixed ---------- */
 function tn82RenderPlaylistManager(){
   tn82EnsureDb();
-  tn82RenderPlaylistSelects();
   const rows=document.getElementById("tn82PlaylistRows") || document.getElementById("tn75PlaylistRows");
   if(!rows)return;
 
@@ -5684,31 +5614,21 @@ function tn82RenderPlaylistManager(){
 
 function tn82RenamePlaylist(id,name){
   tn82EnsureDb();
-  id=id || document.getElementById("renameListSelect")?.value || db.lists[0]?.id;
-  name=String(name ?? document.getElementById("renameListInput")?.value ?? "").trim();
+  name=String(name||"").trim();
   if(!name){tn82Toast("Playlist name is required");return false;}
   const list=db.lists.find(l=>l.id===id);
   if(!list){tn82Toast("Playlist not found");return false;}
   list.name=name;
-  tn82TouchLocal();
+  db.meta=db.meta||{};
+  db.meta.updatedAt=new Date().toISOString();
   tn82Persist();
 
-  const renameInput=document.getElementById("renameListInput");
-  if(renameInput)renameInput.value="";
-  tn82RenderPlaylistSelects();
   tn82RenderPlaylistManager();
   tn82RenderLibrary();
-  try{if(typeof renderHome==="function")renderHome();}catch(e){}
   tn82CloudSaveSoon();
   tn82Toast("Playlist renamed");
   return true;
 }
-function tn82RenameList(){
-  return tn82RenamePlaylist(document.getElementById("renameListSelect")?.value,document.getElementById("renameListInput")?.value);
-}
-window.createList=tn82CreateList;
-window.renameList=tn82RenameList;
-window.tn82CreatePlaylist=tn82CreatePlaylist;
 window.tn82RenamePlaylist=tn82RenamePlaylist;
 window.tn75RenamePlaylist=tn82RenamePlaylist;
 
@@ -5746,8 +5666,9 @@ async function tn82CloudSave(){
   tn82IsSaving=true;
   try{
     tn82EnsureDb();
-    if(!db.meta.updatedAt)tn82TouchLocal();
+    db.meta=db.meta||{};
     db.meta.lastDeviceId=tn82DeviceId();
+    db.meta.updatedAt=new Date().toISOString();
     tn82Persist();
     const {data,error}=await s.rpc("tn_save",{p_email:tn82Email(),p_password_hash:tn82Hash(),p_data:db});
     if(error)throw error;
@@ -5774,16 +5695,12 @@ async function tn82CloudLoad(force=false){
     if(error)throw error;
     if(!data || data.ok===false)throw new Error(data?.error||"Cloud load failed");
     const cloud=data.data||{};
-    const cloudUpdated=data.updated_at || cloud.meta?.updatedAt || "";
-    const localUpdated=db.meta?.updatedAt || tn82LastLocalChangeAt || "";
-    const cloudIsNewer=cloudUpdated && (!localUpdated || new Date(cloudUpdated) >= new Date(localUpdated));
     const cloudJson=JSON.stringify(cloud);
     const localJson=JSON.stringify(db||{});
-    if((force || cloudJson!==localJson) && (force || cloudIsNewer)){
+    if(force || cloudJson!==localJson){
       Object.assign(db,cloud);
       tn82EnsureDb();
       tn82Persist();
-      tn82RenderPlaylistSelects();
       tn82RenderLibrary();
       tn82RenderPlaylistManager();
       tn82UpdateCounts();
@@ -5826,9 +5743,8 @@ function tn82RemoveDemoAppleIfOnlySample(){
   const front=String(w.front||"").toLowerCase();
   const back=String(w.back||"");
   const looksDemo=(front==="apple" && (back==="りんご"||back==="リンゴ"));
-  if(looksDemo){
+  if(looksDemo && !w.userCreated && !w.memo){
     db.words=[];
-    tn82TouchLocal();
     tn82Persist();
   }
 }
@@ -5841,7 +5757,6 @@ function tn82Boot(){
   tn82BindAdd();
   tn82BindLibraryFilters();
   tn82ForceDefaultLanguages();
-  tn82RenderPlaylistSelects();
   tn82RenderLibrary();
   tn82RenderPlaylistManager();
   tn82UpdateCounts();
