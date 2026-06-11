@@ -3608,3 +3608,561 @@ window.tn74GetSupabase = window.tn74GetSupabase || function(){
 };
 setTimeout(()=>window.tn74GetSupabase&&window.tn74GetSupabase(),0);
 setTimeout(()=>window.tn74GetSupabase&&window.tn74GetSupabase(),500);
+
+
+
+/* =========================================================
+   Beta75 Sync + Library + Playlist Fix
+   Fixes:
+   - Rename playlist
+   - Library updates immediately after Add Word
+   - Manual/auto cloud sync between PC and phone
+========================================================= */
+
+function tn75Key(){
+  try{ if(typeof KEY !== "undefined") return KEY; }catch(e){}
+  return "tangonest_data";
+}
+function tn75Email(){
+  try{return localStorage.getItem("tangonest_sync_email_v1")||"";}catch(e){return "";}
+}
+function tn75Hash(){
+  try{return localStorage.getItem("tangonest_sync_hash_v1")||"";}catch(e){return "";}
+}
+function tn75HasSession(){return !!(tn75Email()&&tn75Hash());}
+function tn75EnsureDb(){
+  try{
+    if(typeof db==="undefined" || !db) window.db={lists:[],words:[],prefs:{}};
+  }catch(e){}
+  db.lists=db.lists||[];
+  db.words=db.words||[];
+  db.prefs=db.prefs||{};
+  if(!db.lists.length)db.lists.push({id:"starter",name:"New Playlist"});
+}
+function tn75Persist(){
+  tn75EnsureDb();
+  localStorage.setItem(tn75Key(), JSON.stringify(db));
+}
+function tn75Toast(msg){
+  try{ if(typeof tn64Toast==="function") return tn64Toast(msg); }catch(e){}
+  const t=document.getElementById("toast");
+  if(t){t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1600);}
+  else console.log("[TangoNest]",msg);
+}
+function tn75SafeRender(){
+  try{ if(typeof renderSelect==="function"){renderSelect("addList",false);renderSelect("wordListSelect",true);renderSelect("quizList",true);renderSelect("audioList",true);} }catch(e){}
+  try{ if(typeof renderWords==="function")renderWords(); }catch(e){console.warn(e);}
+  try{ if(typeof renderHome==="function")renderHome(); }catch(e){}
+  try{ if(typeof render==="function"){} }catch(e){}
+  tn75RenderLibraryNow();
+  tn75UpdateCounts();
+}
+function tn75UpdateCounts(){
+  tn75EnsureDb();
+  const words=db.words||[], lists=db.lists||[];
+  const learned=words.filter(w=>w.status==="learned").length;
+  const hard=words.filter(w=>w.status==="hard").length;
+  const set=(id,v)=>{const el=document.getElementById(id); if(el)el.textContent=v;};
+  ["wc","totalWords","dashTotal","heroWords"].forEach(id=>set(id,words.length));
+  ["listCount","totalLists","heroLists"].forEach(id=>set(id,lists.length));
+  ["lc","totalLearned","heroLearned"].forEach(id=>set(id,learned));
+  ["hc","totalHard","dashHard"].forEach(id=>set(id,hard));
+}
+
+/* Immediate Library rendering */
+function tn75ListName(id){
+  const l=(db.lists||[]).find(x=>x.id===id);
+  return l?l.name:"New Playlist";
+}
+function tn75RenderLibraryNow(){
+  tn75EnsureDb();
+  const possible=[
+    document.getElementById("wordsTable"),
+    document.getElementById("wordTable"),
+    document.getElementById("libraryTable"),
+    document.getElementById("wordsList"),
+    document.getElementById("libraryList"),
+    document.querySelector("#pageWords table tbody"),
+    document.querySelector("#pageLibrary table tbody"),
+    document.querySelector("[data-page='library'] table tbody")
+  ].filter(Boolean);
+
+  // Do not destroy unknown layout if old renderWords handles it.
+  // But if there is a clear list/table, update it directly.
+  const target=possible[0];
+  if(!target)return;
+
+  const words=db.words||[];
+  if(target.tagName==="TBODY"){
+    target.innerHTML=words.map(w=>`
+      <tr>
+        <td><strong>${tn75Esc(w.front||"")}</strong><div class="muted">${tn75Esc(w.frontLang||"")}</div></td>
+        <td>${tn75Esc(w.back||"")}<div class="muted">${tn75Esc(w.backLang||"")}</div></td>
+        <td>${tn75Esc(tn75ListName(w.listId))}</td>
+        <td>${tn75Esc(w.pos||"")}</td>
+      </tr>
+    `).join("");
+  }else{
+    target.innerHTML=words.map(w=>`
+      <div class="tn75-word-row">
+        <div><strong>${tn75Esc(w.front||"")}</strong><div class="muted">${tn75Esc(tn75ListName(w.listId))}</div></div>
+        <div>${tn75Esc(w.back||"")}</div>
+      </div>
+    `).join("");
+  }
+}
+function tn75Esc(s){
+  return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* Playlist rename UI */
+function tn75RenderPlaylistRenameBox(){
+  tn75EnsureDb();
+  if(document.getElementById("tn75PlaylistBox")){
+    tn75RefreshPlaylistBox();
+    return;
+  }
+  const host =
+    document.getElementById("pageSettings") ||
+    document.getElementById("settings") ||
+    document.querySelector("[data-page='settings']") ||
+    document.querySelector(".page.active") ||
+    document.querySelector("main") ||
+    document.body;
+
+  const box=document.createElement("div");
+  box.id="tn75PlaylistBox";
+  box.className="tn75-playlist-box card";
+  box.innerHTML=`
+    <div class="tn75-box-title">Playlist names</div>
+    <div class="tn75-box-text">Rename your language spaces.</div>
+    <div id="tn75PlaylistRows"></div>
+  `;
+  host.appendChild(box);
+  tn75RefreshPlaylistBox();
+}
+function tn75RefreshPlaylistBox(){
+  const rows=document.getElementById("tn75PlaylistRows");
+  if(!rows)return;
+  tn75EnsureDb();
+  rows.innerHTML=db.lists.map(l=>`
+    <div class="tn75-playlist-row">
+      <input class="tn75-playlist-input" data-list-id="${tn75Esc(l.id)}" value="${tn75Esc(l.name||"New Playlist")}">
+      <button type="button" class="tn75-rename-btn" data-list-id="${tn75Esc(l.id)}">Save</button>
+    </div>
+  `).join("");
+  rows.querySelectorAll(".tn75-rename-btn").forEach(btn=>{
+    btn.onclick=()=>{
+      const id=btn.dataset.listId;
+      const input=rows.querySelector(`.tn75-playlist-input[data-list-id="${CSS.escape(id)}"]`);
+      tn75RenamePlaylist(id,input?.value||"");
+    };
+  });
+  rows.querySelectorAll(".tn75-playlist-input").forEach(input=>{
+    input.addEventListener("keydown",e=>{
+      if(e.key==="Enter")tn75RenamePlaylist(input.dataset.listId,input.value);
+    });
+  });
+}
+function tn75RenamePlaylist(id,name){
+  tn75EnsureDb();
+  name=(name||"").trim();
+  if(!name){tn75Toast("Playlist name is required");return;}
+  const list=db.lists.find(l=>l.id===id);
+  if(!list){tn75Toast("Playlist not found");return;}
+  list.name=name;
+  tn75Persist();
+  tn75SafeRender();
+  tn75CloudSaveSoon();
+  tn75Toast("Playlist renamed");
+}
+
+/* Cloud sync */
+function tn75Supabase(){
+  try{ if(window.tn74GetSupabase){const x=window.tn74GetSupabase(); if(x&&x.rpc)return x;} }catch(e){}
+  try{ if(window.tnSupabaseClient?.rpc)return window.tnSupabaseClient; }catch(e){}
+  try{ if(window.supabaseClient?.rpc)return window.supabaseClient; }catch(e){}
+  try{ if(window.sb?.rpc)return window.sb; }catch(e){}
+  try{ if(typeof supabaseClient!=="undefined"&&supabaseClient.rpc)return supabaseClient; }catch(e){}
+  try{ if(typeof sb!=="undefined"&&sb.rpc)return sb; }catch(e){}
+  return null;
+}
+async function tn75CloudSave(){
+  if(!tn75HasSession())return false;
+  const s=tn75Supabase();
+  if(!s){tn75Toast("Cloud is loading. Try again in 2 seconds."); return false;}
+  tn75EnsureDb();
+  const {data,error}=await s.rpc("tn_save",{p_email:tn75Email(),p_password_hash:tn75Hash(),p_data:db});
+  if(error){console.error(error);tn75Toast("Cloud save failed");return false;}
+  tn75Toast("Synced ✓");
+  return true;
+}
+async function tn75CloudLoad(){
+  if(!tn75HasSession())return false;
+  const s=tn75Supabase();
+  if(!s){tn75Toast("Cloud is loading. Try again in 2 seconds.");return false;}
+  const {data,error}=await s.rpc("tn_login",{p_email:tn75Email(),p_password_hash:tn75Hash()});
+  if(error || !data || data.ok===false){console.error(error||data);tn75Toast("Cloud load failed");return false;}
+  if(data.data){
+    Object.assign(db,data.data);
+    tn75Persist();
+    tn75SafeRender();
+    tn75Toast("Loaded from cloud ✓");
+    return true;
+  }
+  return false;
+}
+let tn75CloudTimer=null;
+function tn75CloudSaveSoon(){
+  clearTimeout(tn75CloudTimer);
+  tn75CloudTimer=setTimeout(()=>tn75CloudSave().catch(console.error),700);
+}
+function tn75AddSyncButton(){
+  if(document.getElementById("tn75SyncBtn"))return;
+  const nav=document.querySelector("nav")||document.querySelector(".tabs")||document.querySelector("header")||document.body;
+  const btn=document.createElement("button");
+  btn.id="tn75SyncBtn";
+  btn.className="tn75-sync-btn";
+  btn.type="button";
+  btn.textContent="Sync now";
+  btn.onclick=()=>tn75CloudLoad();
+  nav.appendChild(btn);
+}
+
+/* Wrap Add Word so Library updates instantly and cloud saves */
+function tn75WrapAdd(){
+  const old = window.tnRegisterWordCritical || window.addWord || window.registerWord;
+  if(typeof old==="function" && !old.__tn75Wrapped){
+    const wrapped=function(ev){
+      const res=old(ev);
+      setTimeout(()=>{
+        tn75Persist();
+        tn75SafeRender();
+        tn75CloudSaveSoon();
+      },50);
+      setTimeout(tn75SafeRender,300);
+      return res;
+    };
+    wrapped.__tn75Wrapped=true;
+    window.tnRegisterWordCritical=wrapped;
+    window.addWord=wrapped;
+    window.registerWord=wrapped;
+    const btn=document.getElementById("addWordBtn") || [...document.querySelectorAll("button")].find(b=>(b.textContent||"").includes("Register"));
+    if(btn)btn.onclick=wrapped;
+  }
+}
+
+/* Defaults fixed again */
+function tn75ForceDefaults(){
+  const set=(id,v)=>{const el=document.getElementById(id); if(el && [...el.options||[]].some(o=>o.value===v))el.value=v;};
+  set("frontLang","en-US");
+  set("backLang","ja-JP");
+  set("bulkFrontLang","en-US");
+  set("bulkBackLang","ja-JP");
+  try{db.prefs=db.prefs||{};db.prefs.frontLang="en-US";db.prefs.backLang="ja-JP";}catch(e){}
+}
+
+function tn75Boot(){
+  tn75EnsureDb();
+  tn75WrapAdd();
+  tn75ForceDefaults();
+  tn75SafeRender();
+  tn75AddSyncButton();
+  tn75RenderPlaylistRenameBox();
+  if(tn75HasSession()){
+    setTimeout(()=>tn75CloudLoad().catch(console.error),800);
+  }
+}
+setTimeout(tn75Boot,0);
+setTimeout(tn75Boot,500);
+setTimeout(tn75Boot,1500);
+setInterval(()=>{
+  tn75WrapAdd();
+  tn75ForceDefaults();
+  tn75AddSyncButton();
+},2000);
+window.tn75CloudSave=tn75CloudSave;
+window.tn75CloudLoad=tn75CloudLoad;
+window.tn75RenamePlaylist=tn75RenamePlaylist;
+
+
+
+/* =========================================================
+   Beta76 Auto Sync Final
+   Goal:
+   - Phone Add Word -> cloud save immediately.
+   - PC automatically detects newer cloud data.
+   - Library updates without pressing Sync now.
+   - Conflict rule: latest updated_at wins.
+========================================================= */
+
+const TN76_SYNC_POLL_MS = 4000;
+let tn76LastCloudUpdatedAt = localStorage.getItem("tangonest_last_cloud_updated_at_v1") || "";
+let tn76Saving = false;
+let tn76Loading = false;
+let tn76PendingSaveTimer = null;
+
+function tn76Email(){
+  try{return localStorage.getItem("tangonest_sync_email_v1")||"";}catch(e){return "";}
+}
+function tn76Hash(){
+  try{return localStorage.getItem("tangonest_sync_hash_v1")||"";}catch(e){return "";}
+}
+function tn76HasSession(){return !!(tn76Email()&&tn76Hash());}
+function tn76Key(){
+  try{ if(typeof KEY !== "undefined")return KEY; }catch(e){}
+  return "tangonest_data";
+}
+function tn76EnsureDb(){
+  try{ if(typeof db==="undefined" || !db) window.db={lists:[],words:[],prefs:{}}; }catch(e){}
+  db.lists=db.lists||[];
+  db.words=db.words||[];
+  db.prefs=db.prefs||{};
+  if(!db.lists.length)db.lists.push({id:"starter",name:"New Playlist"});
+}
+function tn76Persist(){
+  tn76EnsureDb();
+  localStorage.setItem(tn76Key(),JSON.stringify(db));
+}
+function tn76Supabase(){
+  try{ if(window.tn74GetSupabase){const x=window.tn74GetSupabase(); if(x&&x.rpc)return x;} }catch(e){}
+  try{ if(window.tnSupabaseClient?.rpc)return window.tnSupabaseClient; }catch(e){}
+  try{ if(window.supabaseClient?.rpc)return window.supabaseClient; }catch(e){}
+  try{ if(window.sb?.rpc)return window.sb; }catch(e){}
+  try{ if(typeof supabaseClient!=="undefined"&&supabaseClient.rpc)return supabaseClient; }catch(e){}
+  try{ if(typeof sb!=="undefined"&&sb.rpc)return sb; }catch(e){}
+  return null;
+}
+function tn76Toast(msg){
+  try{ if(typeof tn75Toast==="function")return tn75Toast(msg); }catch(e){}
+  try{ if(typeof tn64Toast==="function")return tn64Toast(msg); }catch(e){}
+  const t=document.getElementById("toast");
+  if(t){t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1500);}
+  else console.log("[TangoNest]",msg);
+}
+function tn76UpdateStatus(text){
+  let badge=document.getElementById("syncStatusBadge");
+  if(!badge){
+    badge=document.createElement("span");
+    badge.id="syncStatusBadge";
+    badge.className="sync-status-badge sync-status-fixed";
+    document.body.appendChild(badge);
+  }
+  if(tn76HasSession()){
+    badge.textContent=text || "Synced ✓";
+    badge.classList.add("synced");
+    badge.classList.remove("local");
+    badge.title=tn76Email();
+  }else{
+    badge.textContent="Local";
+    badge.classList.add("local");
+    badge.classList.remove("synced");
+    badge.title="";
+  }
+}
+function tn76RenderEverywhere(){
+  tn76EnsureDb();
+  try{ if(typeof tn75SafeRender==="function")tn75SafeRender(); }catch(e){}
+  try{ if(typeof renderSelect==="function"){renderSelect("addList",false);renderSelect("wordListSelect",true);renderSelect("quizList",true);renderSelect("audioList",true);} }catch(e){}
+  try{ if(typeof renderWords==="function")renderWords(); }catch(e){}
+  try{ if(typeof renderHome==="function")renderHome(); }catch(e){}
+  try{ if(typeof tn75RenderLibraryNow==="function")tn75RenderLibraryNow(); }catch(e){}
+  try{ if(typeof tn75UpdateCounts==="function")tn75UpdateCounts(); }catch(e){}
+  tn76UpdateStatus();
+}
+
+/* Save local device changes to cloud immediately */
+async function tn76CloudSave(reason="save"){
+  if(!tn76HasSession())return false;
+  if(tn76Saving)return false;
+  const s=tn76Supabase();
+  if(!s){tn76UpdateStatus("Cloud loading...");return false;}
+  tn76Saving=true;
+  tn76UpdateStatus("Saving...");
+  try{
+    tn76EnsureDb();
+    db.meta=db.meta||{};
+    db.meta.lastLocalSaveAt=new Date().toISOString();
+    db.meta.lastDevice="browser";
+    tn76Persist();
+
+    const {data,error}=await s.rpc("tn_save",{
+      p_email:tn76Email(),
+      p_password_hash:tn76Hash(),
+      p_data:db
+    });
+    if(error)throw error;
+
+    const now=new Date().toISOString();
+    tn76LastCloudUpdatedAt = data?.updated_at || now;
+    localStorage.setItem("tangonest_last_cloud_updated_at_v1",tn76LastCloudUpdatedAt);
+    tn76UpdateStatus("Synced ✓");
+    return true;
+  }catch(e){
+    console.error("Auto cloud save failed",e);
+    tn76UpdateStatus("Sync error");
+    return false;
+  }finally{
+    tn76Saving=false;
+  }
+}
+function tn76CloudSaveSoon(reason="change"){
+  clearTimeout(tn76PendingSaveTimer);
+  tn76PendingSaveTimer=setTimeout(()=>tn76CloudSave(reason),350);
+}
+
+/* Load cloud if newer/different */
+async function tn76CloudLoad({silent=true, force=false}={}){
+  if(!tn76HasSession())return false;
+  if(tn76Loading || tn76Saving)return false;
+  const s=tn76Supabase();
+  if(!s){tn76UpdateStatus("Cloud loading...");return false;}
+  tn76Loading=true;
+  if(!silent)tn76UpdateStatus("Loading...");
+  try{
+    const {data,error}=await s.rpc("tn_login",{
+      p_email:tn76Email(),
+      p_password_hash:tn76Hash()
+    });
+    if(error)throw error;
+    if(!data || data.ok===false)throw new Error(data?.error||"Cloud login failed");
+
+    const cloudUpdated=data.updated_at || "";
+    const shouldApply = force || (cloudUpdated && cloudUpdated !== tn76LastCloudUpdatedAt);
+
+    if(shouldApply && data.data){
+      const localJson=JSON.stringify(db||{});
+      const cloudJson=JSON.stringify(data.data||{});
+      if(force || localJson !== cloudJson){
+        Object.assign(db,data.data);
+        tn76Persist();
+        tn76RenderEverywhere();
+        if(!silent)tn76Toast("Loaded from cloud ✓");
+      }
+      tn76LastCloudUpdatedAt=cloudUpdated || new Date().toISOString();
+      localStorage.setItem("tangonest_last_cloud_updated_at_v1",tn76LastCloudUpdatedAt);
+    }
+    tn76UpdateStatus("Synced ✓");
+    return true;
+  }catch(e){
+    console.error("Auto cloud load failed",e);
+    tn76UpdateStatus("Sync error");
+    return false;
+  }finally{
+    tn76Loading=false;
+  }
+}
+
+/* Wrap all likely mutation points */
+function tn76WrapAddWord(){
+  const original = window.tnRegisterWordCritical || window.addWord || window.registerWord;
+  if(typeof original==="function" && !original.__tn76Wrapped){
+    const wrapped=function(ev){
+      const res=original(ev);
+      setTimeout(()=>{
+        tn76Persist();
+        tn76RenderEverywhere();
+        tn76CloudSaveSoon("add-word");
+      },50);
+      setTimeout(tn76RenderEverywhere,250);
+      return res;
+    };
+    wrapped.__tn76Wrapped=true;
+    window.tnRegisterWordCritical=wrapped;
+    window.addWord=wrapped;
+    window.registerWord=wrapped;
+    const btn=document.getElementById("addWordBtn") || [...document.querySelectorAll("button")].find(b=>(b.textContent||"").includes("Register"));
+    if(btn)btn.onclick=wrapped;
+  }
+}
+function tn76WrapPlaylistRename(){
+  if(typeof window.tn75RenamePlaylist==="function" && !window.tn75RenamePlaylist.__tn76Wrapped){
+    const old=window.tn75RenamePlaylist;
+    window.tn75RenamePlaylist=function(id,name){
+      const res=old(id,name);
+      setTimeout(()=>{
+        tn76Persist();
+        tn76RenderEverywhere();
+        tn76CloudSaveSoon("playlist-rename");
+      },50);
+      return res;
+    };
+    window.tn75RenamePlaylist.__tn76Wrapped=true;
+  }
+}
+
+/* Detect localStorage changes in another tab, and refresh */
+window.addEventListener("storage",(e)=>{
+  if(e.key===tn76Key()){
+    try{
+      Object.assign(db,JSON.parse(e.newValue||"{}"));
+      tn76RenderEverywhere();
+    }catch(err){}
+  }
+});
+
+/* Auto polling for phone -> PC and PC -> phone */
+function tn76StartAutoSync(){
+  if(window.__tn76AutoSyncStarted)return;
+  window.__tn76AutoSyncStarted=true;
+
+  // First load after login/reload.
+  setTimeout(()=>tn76CloudLoad({silent:true,force:true}),1000);
+
+  setInterval(()=>{
+    if(document.visibilityState==="visible" && tn76HasSession()){
+      tn76CloudLoad({silent:true,force:false});
+    }
+  },TN76_SYNC_POLL_MS);
+
+  window.addEventListener("focus",()=>{
+    if(tn76HasSession())tn76CloudLoad({silent:true,force:false});
+  });
+
+  document.addEventListener("visibilitychange",()=>{
+    if(document.visibilityState==="visible" && tn76HasSession()){
+      tn76CloudLoad({silent:true,force:false});
+    }
+  });
+
+  // Before leaving, try to save recent changes.
+  window.addEventListener("beforeunload",()=>{
+    try{
+      if(tn76HasSession()){
+        tn76Persist();
+        // Async may not finish, but normal add already saved earlier.
+        tn76CloudSaveSoon("beforeunload");
+      }
+    }catch(e){}
+  });
+}
+
+/* Manual button remains, but auto sync is primary */
+function tn76AddAutoSyncLabel(){
+  const btn=document.getElementById("tn75SyncBtn");
+  if(btn){
+    btn.textContent="Sync now";
+    btn.onclick=()=>tn76CloudLoad({silent:false,force:true});
+  }
+}
+
+function tn76Boot(){
+  tn76EnsureDb();
+  tn76WrapAddWord();
+  tn76WrapPlaylistRename();
+  tn76RenderEverywhere();
+  tn76StartAutoSync();
+  tn76AddAutoSyncLabel();
+  tn76UpdateStatus();
+}
+setTimeout(tn76Boot,0);
+setTimeout(tn76Boot,500);
+setTimeout(tn76Boot,1500);
+setInterval(()=>{
+  tn76WrapAddWord();
+  tn76WrapPlaylistRename();
+  tn76AddAutoSyncLabel();
+},2000);
+
+window.tn76CloudSave=tn76CloudSave;
+window.tn76CloudLoad=tn76CloudLoad;

@@ -1,11 +1,16 @@
-# TangoNest Beta74 Cloud Sync Direct Fix
+# TangoNest Beta76 Auto Sync Final
 
-## Fix
-- Keeps Beta73 clickable login screen.
-- Adds Supabase SDK directly in index.html.
-- Creates the Supabase client directly before login.
-- Fixes: Cloud sync is not ready.
+## Sync behavior
+Manual sync is no longer the main flow.
+
+- Phone adds a word -> cloud save starts immediately.
+- PC checks cloud automatically every 4 seconds while the page is open/visible.
+- If cloud data is newer, PC loads it and Library updates automatically.
+- Same for PC -> phone.
+- Sync now remains as a backup/manual refresh.
 
 ## Included
-- Beta64 Add Word critical fix
-- English -> Japanese default language fix
+- Playlist rename
+- Immediate Library reflection
+- English -> Japanese defaults
+- Login/cloud direct fixes from previous versions
