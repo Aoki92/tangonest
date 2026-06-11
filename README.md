@@ -1,14 +1,13 @@
-# TangoNest Beta67 Login Home + Button Move
+# TangoNest Beta68 Instagram-Style Login
 
-## Fixes
-- After successful login/signup, the login screen closes automatically.
-- The app returns to Home.
-- The top-right Login / Sync button is removed.
-- Login / Sync is moved into Settings.
+## Main behavior
+- First time: login screen.
+- After login/signup: the login screen closes and Home opens.
+- Next reload: Home opens directly because the saved session is detected before first paint.
+- Logout: login screen appears again.
 
 ## Included
-- Beta66 invisible overlay click-block fix
-- Beta65 no-login-on-reload
+- Beta66 overlay click-block fix
 - Beta64 Add Word critical fix
 - English -> Japanese default language fix
-- PWA icons
+- PWA icon files

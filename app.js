@@ -3801,120 +3801,221 @@ document.addEventListener("pointerdown", function(){
 
 
 /* =========================================================
-   Beta67 Login UX Fix
-   - Successful login/signup closes the gate and returns to Home.
-   - Top-right Login / Sync button is removed.
-   - Sync entry moves into Settings only.
+   Beta68 Instagram-Style Login Controller
+   Real behavior:
+   - First time: login screen.
+   - After successful login/signup: app home.
+   - Next reload: app home directly.
+   - Logout: login screen.
+   - No invisible overlay blocking clicks.
 ========================================================= */
 
-function tn67GoHomeAfterLogin(){
+const TN68_EMAIL_KEY="tangonest_sync_email_v1";
+const TN68_HASH_KEY="tangonest_sync_hash_v1";
+
+function tn68HasSession(){
   try{
-    document.body?.classList.remove("tn-auth-open");
-    document.documentElement.classList.add("tn-app-first");
-    document.documentElement.classList.add("tn-has-session");
-    document.documentElement.classList.remove("tn-needs-auth");
-    const gate=document.getElementById("loginGate");
-    if(gate){
-      gate.classList.add("hidden");
-      gate.style.display="none";
-      gate.style.pointerEvents="none";
-      gate.style.visibility="hidden";
-      gate.style.opacity="0";
-      gate.style.zIndex="-1";
-      gate.setAttribute("inert","");
-      gate.setAttribute("aria-hidden","true");
-    }
+    return !!(localStorage.getItem(TN68_EMAIL_KEY) && localStorage.getItem(TN68_HASH_KEY));
+  }catch(e){return false;}
+}
+
+function tn68Gate(){
+  return document.getElementById("loginGate");
+}
+
+function tn68SetLoggedInUI(){
+  document.documentElement.classList.add("tn-authenticated");
+  document.documentElement.classList.remove("tn-logged-out","tn-needs-auth","tn-app-first");
+  document.body?.classList.add("tn-logged-in");
+  document.body?.classList.remove("tn-auth-open");
+
+  const gate=tn68Gate();
+  if(gate){
+    gate.classList.add("hidden");
+    gate.style.display="none";
+    gate.style.pointerEvents="none";
+    gate.style.visibility="hidden";
+    gate.style.opacity="0";
+    gate.style.zIndex="-1";
+    gate.setAttribute("inert","");
+    gate.setAttribute("aria-hidden","true");
+  }
+
+  try{
     if(typeof go==="function")go("home");
-    else{
-      document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-      const home=document.getElementById("home") || document.getElementById("pageHome") || document.querySelector("[data-page='home']");
-      if(home)home.classList.add("active");
-    }
-    try{ tn64Toast?.("Logged in."); }catch(e){}
-  }catch(e){
-    console.warn("go home after login failed",e);
+  }catch(e){}
+  tn68UpdateAccountButton();
+}
+
+function tn68SetLoggedOutUI(){
+  document.documentElement.classList.add("tn-logged-out");
+  document.documentElement.classList.remove("tn-authenticated","tn-has-session","tn-app-first");
+  document.body?.classList.remove("tn-logged-in");
+  document.body?.classList.add("tn-auth-open");
+
+  const gate=tn68Gate();
+  if(gate){
+    gate.classList.remove("hidden");
+    gate.style.display="grid";
+    gate.style.pointerEvents="auto";
+    gate.style.visibility="visible";
+    gate.style.opacity="1";
+    gate.style.zIndex="9999";
+    gate.removeAttribute("inert");
+    gate.setAttribute("aria-hidden","false");
+  }
+  tn68UpdateAccountButton();
+}
+
+function tn68ApplyAuthState(){
+  if(tn68HasSession()) tn68SetLoggedInUI();
+  else tn68SetLoggedOutUI();
+}
+
+function tn68OpenAccount(){
+  // Account button is only for logged-in users. It opens a small confirm logout via Settings-like native confirm.
+  const email=localStorage.getItem(TN68_EMAIL_KEY) || "";
+  const ok=confirm(email ? "Logged in as " + email + "\\n\\nLog out?" : "Open login screen?");
+  if(ok){
+    tn68Logout();
   }
 }
 
-function tn67RemoveTopSyncButton(){
-  const btn=document.getElementById("topSyncBtn");
-  if(btn)btn.remove();
-  document.querySelectorAll(".tn-sync-floating").forEach(el=>el.remove());
+function tn68UpdateAccountButton(){
+  const btn=document.getElementById("accountBtn");
+  if(!btn)return;
+  const email=localStorage.getItem(TN68_EMAIL_KEY);
+  btn.textContent=email ? "Account" : "Login";
+  btn.style.display=tn68HasSession() ? "inline-flex" : "none";
 }
 
-function tn67InjectSettingsSync(){
-  tn67RemoveTopSyncButton();
-  if(document.getElementById("settingsSyncBtn"))return;
-
-  const candidates=[
-    document.getElementById("pageSettings"),
-    document.getElementById("settings"),
-    document.querySelector(".page.settings"),
-    document.querySelector("[data-page='settings']"),
-    [...document.querySelectorAll("section,.page,main,div")].find(el=>{
-      const text=(el.textContent||"").slice(0,500).toLowerCase();
-      return text.includes("settings") && (el.id||el.className);
-    })
-  ].filter(Boolean);
-
-  const host=candidates[0] || document.body;
-  const box=document.createElement("div");
-  box.id="settingsSyncBox";
-  box.className="settings-sync-box card";
-  box.innerHTML=`
-    <div class="settings-sync-title">Sync</div>
-    <div class="settings-sync-text">Keep your words synced across PC and phone.</div>
-    <button id="settingsSyncBtn" class="btn primary" type="button">Login / Sync</button>
-  `;
-  box.querySelector("#settingsSyncBtn").onclick=function(){
-    if(typeof tnOpenLoginGate==="function")tnOpenLoginGate();
-  };
-  host.appendChild(box);
+function tn68CloseGateAfterSuccess(){
+  if(tn68HasSession()){
+    tn68SetLoggedInUI();
+    try{tn64Toast?.("Logged in.");}catch(e){}
+    try{
+      if(typeof tnNoEmailLoadCloud==="function"){
+        tnNoEmailLoadCloud().then(()=>tn68SetLoggedInUI()).catch(()=>{});
+      }
+    }catch(e){}
+  }
 }
 
-// Strongly override login/signup actions AFTER old code runs.
-// Some previous builds replace these functions, so we wrap late too.
-function tn67WrapAuthFunctions(){
-  if(typeof gateLogin==="function" && !gateLogin.__beta67Wrapped){
+function tn68Logout(){
+  try{
+    localStorage.removeItem(TN68_EMAIL_KEY);
+    localStorage.removeItem(TN68_HASH_KEY);
+    localStorage.removeItem("tangonest_sync_mode_v1");
+  }catch(e){}
+  tn68SetLoggedOutUI();
+}
+
+// Override previous controllers.
+function tnOpenLoginGate(){ tn68SetLoggedOutUI(); }
+function tnCloseLoginGate(){ if(tn68HasSession())tn68SetLoggedInUI(); else tn68SetLoggedOutUI(); }
+function tnShowLogin(){ tn68SetLoggedOutUI(); }
+function tnNoEmailShowLogin(){ tn68SetLoggedOutUI(); }
+function tnShowApp(){ tn68SetLoggedInUI(); }
+function tnNoEmailShowApp(){ tn68SetLoggedInUI(); }
+
+logoutTangoNest = async function(){ tn68Logout(); };
+
+refreshTangoNestSession = async function(){
+  if(tn68HasSession()){
+    tn68SetLoggedInUI();
+    try{
+      if(typeof tnNoEmailLoadCloud==="function"){
+        await tnNoEmailLoadCloud();
+      }
+    }catch(e){console.warn("Background sync skipped",e);}
+    tn68SetLoggedInUI();
+  }else{
+    tn68SetLoggedOutUI();
+  }
+};
+
+// Wrap existing login/signup functions.
+function tn68WrapAuth(){
+  if(typeof gateLogin==="function" && !gateLogin.__beta68Wrapped){
     const old=gateLogin;
     gateLogin=async function(){
       await old();
-      setTimeout(tn67GoHomeAfterLogin,50);
-      setTimeout(tn67GoHomeAfterLogin,250);
+      setTimeout(tn68CloseGateAfterSuccess,50);
+      setTimeout(tn68CloseGateAfterSuccess,300);
+      setTimeout(tn68CloseGateAfterSuccess,900);
     };
-    gateLogin.__beta67Wrapped=true;
+    gateLogin.__beta68Wrapped=true;
   }
-  if(typeof gateSignUp==="function" && !gateSignUp.__beta67Wrapped){
+  if(typeof gateSignUp==="function" && !gateSignUp.__beta68Wrapped){
     const old=gateSignUp;
     gateSignUp=async function(){
       await old();
-      setTimeout(tn67GoHomeAfterLogin,50);
-      setTimeout(tn67GoHomeAfterLogin,250);
+      setTimeout(tn68CloseGateAfterSuccess,50);
+      setTimeout(tn68CloseGateAfterSuccess,300);
+      setTimeout(tn68CloseGateAfterSuccess,900);
     };
-    gateSignUp.__beta67Wrapped=true;
+    gateSignUp.__beta68Wrapped=true;
   }
-  // Also catch button clicks that lead to green "Logged in." message.
-  document.querySelectorAll("#loginGate button").forEach(btn=>{
-    const txt=(btn.textContent||"").toLowerCase();
-    if((txt.includes("login") || txt.includes("create")) && !btn.__beta67ClickWrapped){
-      btn.addEventListener("click",()=>{
-        setTimeout(()=>{
-          const msg=(document.querySelector("#loginGate .gate-message")?.textContent||"").toLowerCase();
-          const saved=!!(localStorage.getItem("tangonest_sync_email_v1")&&localStorage.getItem("tangonest_sync_hash_v1"));
-          if(saved || msg.includes("logged in") || msg.includes("created")){
-            tn67GoHomeAfterLogin();
-          }
-        },700);
-      });
-      btn.__beta67ClickWrapped=true;
-    }
+
+  const loginBtn=[...document.querySelectorAll("#loginGate button")].find(b=>(b.textContent||"").trim().toLowerCase()==="login");
+  const createBtn=[...document.querySelectorAll("#loginGate button")].find(b=>(b.textContent||"").trim().toLowerCase().includes("create"));
+  [loginBtn,createBtn].filter(Boolean).forEach(btn=>{
+    if(btn.__beta68Watch)return;
+    btn.addEventListener("click",()=>{
+      setTimeout(tn68CloseGateAfterSuccess,500);
+      setTimeout(tn68CloseGateAfterSuccess,1200);
+    });
+    btn.__beta68Watch=true;
   });
 }
 
-setTimeout(()=>{tn67RemoveTopSyncButton();tn67InjectSettingsSync();tn67WrapAuthFunctions();},0);
-setTimeout(()=>{tn67RemoveTopSyncButton();tn67InjectSettingsSync();tn67WrapAuthFunctions();},300);
-setTimeout(()=>{tn67RemoveTopSyncButton();tn67InjectSettingsSync();tn67WrapAuthFunctions();},1200);
+// Continue as guest should create local-mode session? Better: keep app usable, but no cloud.
+// User asked Instagram-like login, so guest remains optional and app opens.
+function tn68ContinueGuest(){
+  try{
+    localStorage.setItem("tangonest_guest_mode","1");
+  }catch(e){}
+  // Do not fake sync session; just open app locally.
+  document.documentElement.classList.add("tn-authenticated");
+  document.documentElement.classList.remove("tn-logged-out");
+  document.body?.classList.add("tn-logged-in");
+  document.body?.classList.remove("tn-auth-open");
+  const gate=tn68Gate();
+  if(gate){
+    gate.classList.add("hidden");
+    gate.style.display="none";
+    gate.style.pointerEvents="none";
+    gate.style.visibility="hidden";
+    gate.style.opacity="0";
+    gate.style.zIndex="-1";
+    gate.setAttribute("inert","");
+    gate.setAttribute("aria-hidden","true");
+  }
+  try{ if(typeof go==="function")go("home"); }catch(e){}
+}
+
+// If old guest function exists, override it.
+continueAsGuest = tn68ContinueGuest;
+
+function tn68Boot(){
+  tn68WrapAuth();
+  // If old beta65/beta66 intervals try to force app-first, this final state wins.
+  if(tn68HasSession()) tn68SetLoggedInUI();
+  else tn68SetLoggedOutUI();
+}
+
+setTimeout(tn68Boot,0);
+setTimeout(tn68Boot,150);
+setTimeout(tn68Boot,600);
+setTimeout(tn68Boot,1500);
 setInterval(()=>{
-  tn67RemoveTopSyncButton();
-  tn67WrapAuthFunctions();
-},1500);
+  tn68WrapAuth();
+  if(tn68HasSession()){
+    // Keep app visible, but do not interrupt user.
+    const gate=tn68Gate();
+    if(gate && !document.body?.classList.contains("tn-auth-open")){
+      tn68SetLoggedInUI();
+    }
+  }
+  tn68UpdateAccountButton();
+},1200);

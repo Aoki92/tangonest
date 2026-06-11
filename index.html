@@ -43,9 +43,29 @@
 })();
 </script>
 
+
+<script>
+(function(){
+  try{
+    var email=localStorage.getItem("tangonest_sync_email_v1");
+    var hash=localStorage.getItem("tangonest_sync_hash_v1");
+    if(email && hash){
+      document.documentElement.classList.add("tn-authenticated");
+      document.documentElement.classList.remove("tn-logged-out");
+    }else{
+      document.documentElement.classList.add("tn-logged-out");
+      document.documentElement.classList.remove("tn-authenticated");
+    }
+  }catch(e){
+    document.documentElement.classList.add("tn-logged-out");
+  }
+})();
+</script>
+
 </head>
 <body>
-<div id="loginGate" class="login-gate" inert aria-hidden="true">
+<button id="accountBtn" class="account-link account-link-fixed" type="button" onclick="tn68OpenAccount()">Account</button>
+<div id="loginGate" class="login-gate">
   <div class="login-bg-card card-a"><span>Front</span><b>你好</b><small>Chinese</small></div>
   <div class="login-bg-card card-b"><span>Back</span><b>hello</b><small>English</small></div>
   <div class="login-bg-card card-c"><span>Mode</span><b>Quiz</b><small>Ready</small></div>
