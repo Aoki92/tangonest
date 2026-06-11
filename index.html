@@ -242,6 +242,27 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
 <div id="editModal" class="modal-backdrop"><div class="modal"><h2>Edit Word</h2><input type="hidden" id="editId"><div class="row"><div><label>Front</label><input id="editFront"></div><div><label>Back</label><input id="editBack"></div></div><div class="row3"><div><label>Front language</label><select id="editFrontLang"></select></div><div><label>Back language</label><select id="editBackLang"></select></div><div><label>Library</label><select id="editList"></select></div></div><div class="row3"><div><label>POS</label><select id="editPOS"><option value="">—</option><option>noun</option><option>verb</option><option>adjective</option><option>adverb</option><option>phrase</option><option>preposition</option><option>conjunction</option></select></div><div><label>Gender</label><select id="editGender"><option value="">—</option><option value="masculine">masculine</option><option value="feminine">feminine</option><option value="neutral">neutral</option><option value="plural">plural</option></select></div><div><label>Tags</label><input id="editTags"></div></div><div class="row"><div><label>Status</label><select id="editStatus"><option value="new">new</option><option value="learned">learned</option><option value="hard">hard</option></select></div><div><label>Memory Level</label><select id="editLevel"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div></div><label>Memo / Example</label><textarea id="editMemo"></textarea><div class="actions"><button class="btn primary" onclick="saveEdit()">Save</button><button class="btn" onclick="closeEdit()">Cancel</button></div></div></div>
 <div id="detailModal" class="modal-backdrop"><div class="modal"><div class="actions" style="justify-content:flex-end;margin-top:0"><button class="btn" onclick="closeDetail()">Close</button></div><div id="detailContent"></div></div></div><div id="toast" class="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script id="tn74SupabaseBootstrap">
+(function(){
+  window.TN_SUPABASE_URL = "https://bkbteylavujkfiwuqwdq.supabase.co";
+  window.TN_SUPABASE_KEY = "sb_publishable_UKX5qCXkbIRac4cc62_LXw_yEGDG6BZ";
+  window.tn74GetSupabase = function(){
+    try{
+      if(window.tnSupabaseClient && window.tnSupabaseClient.rpc)return window.tnSupabaseClient;
+      if(window.supabase && window.supabase.createClient){
+        window.tnSupabaseClient = window.supabase.createClient(window.TN_SUPABASE_URL, window.TN_SUPABASE_KEY);
+        window.sb = window.tnSupabaseClient;
+        window.supabaseClient = window.tnSupabaseClient;
+        return window.tnSupabaseClient;
+      }
+    }catch(e){ console.error("Supabase bootstrap failed", e); }
+    return null;
+  };
+  window.tn74GetSupabase();
+})();
+</script>
+
 <script src="./app.js"></script>
 
 <!-- TangoNest Beta56 compatibility nodes for legacy render/session references -->
@@ -281,9 +302,9 @@ const has=()=>{try{return !!(localStorage.getItem(E)&&localStorage.getItem(H))}c
 const message=(t,c="info")=>{const m=$("tn73Msg");if(m){m.textContent=t;m.className="tn73-msg "+c}};
 const busy=v=>["tn73Login","tn73Create","tn73Guest"].forEach(id=>{const b=$(id);if(b)b.disabled=!!v});
 async function hash(email,pw){const data=new TextEncoder().encode((email||"").trim().toLowerCase()+"::"+(pw||""));const d=await crypto.subtle.digest("SHA-256",data);return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("")}
-function supa(){try{if(window.supabaseClient?.rpc)return window.supabaseClient;if(window.sb?.rpc)return window.sb;if(typeof supabaseClient!=="undefined"&&supabaseClient.rpc)return supabaseClient;if(typeof sb!=="undefined"&&sb.rpc)return sb;if(typeof client!=="undefined"&&client.rpc)return client}catch(e){}return null}
+function supa(){try{if(window.tn74GetSupabase){const x=window.tn74GetSupabase();if(x&&x.rpc)return x}if(window.tnSupabaseClient?.rpc)return window.tnSupabaseClient;if(window.supabaseClient?.rpc)return window.supabaseClient;if(window.sb?.rpc)return window.sb;if(typeof supabaseClient!=="undefined"&&supabaseClient.rpc)return supabaseClient;if(typeof sb!=="undefined"&&sb.rpc)return sb;if(typeof client!=="undefined"&&client.rpc)return client}catch(e){}return null}
 function data(){try{if(typeof db!=="undefined"&&db)return db}catch(e){}try{if(typeof KEY!=="undefined")return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}return {}}
-async function rpc(n,a){const s=supa();if(!s)throw new Error("Cloud sync is not ready. Reload once, then try again.");const r=await s.rpc(n,a);if(r.error)throw r.error;return r.data}
+async function rpc(n,a){const s=supa();if(!s){if(window.tn74GetSupabase)window.tn74GetSupabase();throw new Error("Cloud sync is not ready. Supabase SDK is still loading. Wait 2 seconds and press Login again.");}const r=await s.rpc(n,a);if(r.error)throw r.error;return r.data}
 function sess(email,h){localStorage.setItem(E,email.trim().toLowerCase());localStorage.setItem(H,h);localStorage.setItem(M,"no-email-sync")}
 function apply(d){if(!d)return;try{if(typeof db!=="undefined"){Object.assign(db,d);if(typeof KEY!=="undefined")localStorage.setItem(KEY,JSON.stringify(db))}}catch(e){}}
 function oldOff(){const o=$("loginGate");if(o){o.style.setProperty("display","none","important");o.style.setProperty("pointer-events","none","important");o.setAttribute("inert","")}}

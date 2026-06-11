@@ -1,5 +1,11 @@
-# TangoNest Beta73 Emergency Click Fix
+# TangoNest Beta74 Cloud Sync Direct Fix
 
-Old loginGate is disabled. New emergency login is placed directly in index.html above all layers.
+## Fix
+- Keeps Beta73 clickable login screen.
+- Adds Supabase SDK directly in index.html.
+- Creates the Supabase client directly before login.
+- Fixes: Cloud sync is not ready.
 
-Includes Beta64 Add Word fix.
+## Included
+- Beta64 Add Word critical fix
+- English -> Japanese default language fix

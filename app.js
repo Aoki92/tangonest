@@ -3588,3 +3588,23 @@ if(typeof render==="function" && !render.__beta64DefaultWrapped){
 
 
 /* Beta73 Emergency Click Fix loaded inline in index.html */
+
+
+
+/* Beta74 Cloud Sync Direct Fix */
+window.TN_SUPABASE_URL = window.TN_SUPABASE_URL || "https://bkbteylavujkfiwuqwdq.supabase.co";
+window.TN_SUPABASE_KEY = window.TN_SUPABASE_KEY || "sb_publishable_UKX5qCXkbIRac4cc62_LXw_yEGDG6BZ";
+window.tn74GetSupabase = window.tn74GetSupabase || function(){
+  try{
+    if(window.tnSupabaseClient && window.tnSupabaseClient.rpc)return window.tnSupabaseClient;
+    if(window.supabase && window.supabase.createClient){
+      window.tnSupabaseClient = window.supabase.createClient(window.TN_SUPABASE_URL, window.TN_SUPABASE_KEY);
+      window.sb = window.tnSupabaseClient;
+      window.supabaseClient = window.tnSupabaseClient;
+      return window.tnSupabaseClient;
+    }
+  }catch(e){console.error("Supabase direct init failed",e);}
+  return null;
+};
+setTimeout(()=>window.tn74GetSupabase&&window.tn74GetSupabase(),0);
+setTimeout(()=>window.tn74GetSupabase&&window.tn74GetSupabase(),500);
