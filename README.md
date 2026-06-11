@@ -1,16 +1,15 @@
-# TangoNest Beta81 Stable Sync + Page State + Defaults
+# TangoNest Beta82 Core Function Final
 
-## Fixes
-- Mobile Log out button click/tap binding.
-- Default Add Word languages forced to English -> Japanese.
-- Reload keeps current page:
-  - Create reload -> Create
-  - Quiz reload -> Quiz
-  - Cards reload -> Cards
-  - etc.
-- Cloud Status is compact/collapsible.
-- Sync save/load improved without forcing Home.
+## Fixed
+- Library All shows every registered word.
+- Add Word immediately appears in Library.
+- Playlist Rename works with a stable manager.
+- Reload keeps the current page.
+- Default languages are always English -> Japanese.
+- Phone/PC sync saves after local changes and polls cloud.
+- Demo apple/りんご starter data is removed only if it is the only sample.
 
-## Sync stability
-This keeps the current custom RPC sync model.
-For a production-grade app, the more stable architecture is Supabase Auth + user_id-based tables or realtime subscriptions.
+## Verification
+Open Library after adding a word. It must show under All.
+Open Settings and rename a playlist. Rename must apply immediately.
+Open Create, reload, and it must stay on Create.

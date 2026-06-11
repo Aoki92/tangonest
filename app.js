@@ -5222,3 +5222,569 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==
 
 window.tn81CloudSave=tn81CloudSave;
 window.tn81CloudLoad=tn81CloudLoad;
+
+
+
+/* =========================================================
+   Beta82 Core Function Final
+   This module intentionally overrides unstable old behavior.
+   Required fixes:
+   1. Library All shows every word.
+   2. Add Word immediately appears in Library.
+   3. Playlist Rename works.
+   4. Reload keeps current page.
+   5. Default languages are always English/Japanese.
+   6. Cloud sync is stable enough for PC <-> phone.
+========================================================= */
+
+const TN82_DATA_KEY_FALLBACK="tangonest_data";
+const TN82_PAGE_KEY="tangonest_last_page_v2";
+const TN82_EMAIL_KEY="tangonest_sync_email_v1";
+const TN82_HASH_KEY="tangonest_sync_hash_v1";
+const TN82_CLOUD_TIME_KEY="tangonest_last_cloud_updated_at_v2";
+let tn82SaveTimer=null;
+let tn82LoadTimer=null;
+let tn82IsSaving=false;
+let tn82IsLoading=false;
+let tn82LastRenderedJson="";
+
+function tn82DataKey(){
+  try{ if(typeof KEY!=="undefined" && KEY)return KEY; }catch(e){}
+  return TN82_DATA_KEY_FALLBACK;
+}
+
+function tn82EnsureDb(){
+  try{
+    if(typeof db==="undefined" || !db) window.db={lists:[],words:[],prefs:{}};
+  }catch(e){
+    window.db={lists:[],words:[],prefs:{}};
+  }
+  db.lists=Array.isArray(db.lists)?db.lists:[];
+  db.words=Array.isArray(db.words)?db.words:[];
+  db.prefs=db.prefs||{};
+  if(!db.lists.length){
+    db.lists.push({id:"starter",name:"New Playlist",createdAt:new Date().toISOString()});
+  }
+  db.words=db.words.filter(Boolean).map(w=>{
+    w.id=w.id||("w_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2));
+    w.listId=w.listId||db.lists[0].id;
+    w.front=w.front??"";
+    w.back=w.back??"";
+    w.frontLang=w.frontLang||"en-US";
+    w.backLang=w.backLang||"ja-JP";
+    w.createdAt=w.createdAt||new Date().toISOString();
+    return w;
+  });
+}
+
+function tn82Persist(){
+  tn82EnsureDb();
+  localStorage.setItem(tn82DataKey(),JSON.stringify(db));
+}
+
+function tn82LoadLocal(){
+  try{
+    const raw=localStorage.getItem(tn82DataKey());
+    if(raw){
+      const parsed=JSON.parse(raw);
+      if(parsed && typeof parsed==="object"){
+        Object.assign(db,parsed);
+      }
+    }
+  }catch(e){}
+  tn82EnsureDb();
+}
+
+function tn82Esc(s){
+  return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function tn82Toast(msg){
+  try{ if(typeof tn75Toast==="function") return tn75Toast(msg); }catch(e){}
+  try{ if(typeof tn64Toast==="function") return tn64Toast(msg); }catch(e){}
+  const t=document.getElementById("toast");
+  if(t){t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1600);}
+  else console.log("[TangoNest]",msg);
+}
+
+/* ---------- 5. Default languages English/Japanese ---------- */
+function tn82SetSelect(id,value){
+  const el=document.getElementById(id);
+  if(!el || el.tagName!=="SELECT")return;
+  const exists=[...el.options].some(o=>o.value===value);
+  if(exists)el.value=value;
+}
+
+function tn82ForceDefaultLanguages(){
+  tn82EnsureDb();
+  db.prefs.frontLang="en-US";
+  db.prefs.backLang="ja-JP";
+  tn82SetSelect("frontLang","en-US");
+  tn82SetSelect("backLang","ja-JP");
+  tn82SetSelect("bulkFrontLang","en-US");
+  tn82SetSelect("bulkBackLang","ja-JP");
+
+  const front=document.getElementById("front");
+  const back=document.getElementById("back");
+  const memo=document.getElementById("memo");
+  const bulk=document.getElementById("bulkText");
+  if(front)front.placeholder="apple";
+  if(back)back.placeholder="りんご";
+  if(memo)memo.placeholder="I eat an apple.";
+  if(bulk)bulk.placeholder="apple\tりんご\tnoun\tnone\tI eat an apple.";
+}
+
+/* ---------- 4. Page state ---------- */
+function tn82NormalizePage(page){
+  page=String(page||"").toLowerCase().trim();
+  const map={add:"create",words:"library",manage:"settings",study:"cards",audio:"listen",pagehome:"home",pageadd:"create",pagewords:"library",pagemanage:"settings",pagestudy:"cards",pageaudio:"listen"};
+  return map[page]||page||"home";
+}
+
+function tn82RememberPage(page){
+  page=tn82NormalizePage(page);
+  if(["home","create","library","cards","quiz","listen","settings"].includes(page)){
+    localStorage.setItem(TN82_PAGE_KEY,page);
+  }
+}
+
+function tn82GetSavedPage(){
+  return tn82NormalizePage(localStorage.getItem(TN82_PAGE_KEY)||"home");
+}
+
+function tn82Go(page){
+  page=tn82NormalizePage(page);
+  tn82RememberPage(page);
+
+  const possibleIds={
+    home:["pageHome","home"],
+    create:["pageAdd","pageCreate","create","add"],
+    library:["pageWords","pageLibrary","library","words"],
+    cards:["pageStudy","pageCards","cards","study"],
+    quiz:["pageQuiz","quiz"],
+    listen:["pageAudio","pageListen","listen","audio"],
+    settings:["pageManage","pageSettings","settings","manage"]
+  };
+
+  if(typeof window.__tn82OldGo==="function"){
+    try{
+      const oldPage={create:"add",library:"words",cards:"study",listen:"audio",settings:"manage"}[page]||page;
+      window.__tn82OldGo(oldPage);
+    }catch(e){}
+  }
+
+  // Hard class correction after old go.
+  Object.values(possibleIds).flat().forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.classList.remove("active");
+  });
+  const targetId=(possibleIds[page]||[]).find(id=>document.getElementById(id));
+  if(targetId){
+    document.getElementById(targetId).classList.add("active");
+  }
+
+  // nav active correction by text
+  document.querySelectorAll("nav button,.tabs button,header button").forEach(btn=>{
+    const txt=(btn.textContent||"").trim().toLowerCase();
+    if(["home","create","library","cards","quiz","listen","settings"].includes(txt)){
+      btn.classList.toggle("active",txt===page);
+    }
+  });
+
+  tn82ForceDefaultLanguages();
+  if(page==="library")tn82RenderLibrary();
+  if(page==="settings")tn82RenderPlaylistManager();
+}
+
+function tn82WrapGo(){
+  if(typeof window.go==="function" && !window.go.__tn82Wrapped){
+    window.__tn82OldGo=window.go;
+    window.go=function(page){ tn82Go(page); };
+    window.go.__tn82Wrapped=true;
+  }else if(typeof window.go!=="function"){
+    window.go=function(page){ tn82Go(page); };
+  }
+
+  document.querySelectorAll("button,a").forEach(el=>{
+    const txt=(el.textContent||"").trim().toLowerCase();
+    if(["home","create","library","cards","quiz","listen","settings"].includes(txt) && !el.__tn82PageClick){
+      el.addEventListener("click",()=>tn82RememberPage(txt),true);
+      el.__tn82PageClick=true;
+    }
+  });
+}
+
+/* ---------- 1. Library All shows every word ---------- */
+function tn82ListName(id){
+  tn82EnsureDb();
+  const l=db.lists.find(x=>x.id===id);
+  return l?l.name:"New Playlist";
+}
+
+function tn82GetLibraryFilterValue(){
+  const ids=["wordListSelect","libraryList","listFilter","filterList"];
+  for(const id of ids){
+    const el=document.getElementById(id);
+    if(el && el.value)return el.value;
+  }
+  return "all";
+}
+
+function tn82FilteredWords(){
+  tn82EnsureDb();
+  const filter=String(tn82GetLibraryFilterValue()||"all").toLowerCase();
+  let words=[...db.words];
+  if(filter && filter!=="all" && filter!==""){
+    words=words.filter(w=>String(w.listId).toLowerCase()===filter || String(tn82ListName(w.listId)).toLowerCase()===filter);
+  }
+  return words;
+}
+
+function tn82RenderLibrary(){
+  tn82EnsureDb();
+  const mount=document.getElementById("tn82LibraryMount") ||
+    document.getElementById("wordsList") ||
+    document.getElementById("libraryListMount") ||
+    document.querySelector("#pageWords .word-list") ||
+    document.querySelector("#pageLibrary .word-list");
+
+  const words=tn82FilteredWords();
+  const html=`
+    <div class="tn82-library-summary">${words.length} word${words.length===1?"":"s"} shown</div>
+    <div class="tn82-word-list">
+      ${words.length?words.map((w,i)=>`
+        <div class="tn82-word-card" data-word-id="${tn82Esc(w.id)}">
+          <div class="tn82-word-main">
+            <div class="tn82-front">${tn82Esc(w.front)}</div>
+            <div class="tn82-back">${tn82Esc(w.back)}</div>
+          </div>
+          <div class="tn82-word-meta">
+            <span>${tn82Esc(tn82ListName(w.listId))}</span>
+            <span>${tn82Esc(w.frontLang||"en-US")} → ${tn82Esc(w.backLang||"ja-JP")}</span>
+            ${w.pos?`<span>${tn82Esc(w.pos)}</span>`:""}
+          </div>
+        </div>
+      `).join(""):`<div class="tn82-empty">No words yet. Add a word from Create.</div>`}
+    </div>
+  `;
+
+  if(mount)mount.innerHTML=html;
+
+  // Also fill any table body if old UI uses it.
+  const tbody=document.querySelector("#pageWords table tbody,#pageLibrary table tbody");
+  if(tbody){
+    tbody.innerHTML=words.map(w=>`
+      <tr>
+        <td><strong>${tn82Esc(w.front)}</strong></td>
+        <td>${tn82Esc(w.back)}</td>
+        <td>${tn82Esc(tn82ListName(w.listId))}</td>
+        <td>${tn82Esc(w.frontLang||"en-US")} → ${tn82Esc(w.backLang||"ja-JP")}</td>
+      </tr>
+    `).join("");
+  }
+
+  tn82UpdateCounts();
+}
+
+function tn82BindLibraryFilters(){
+  ["wordListSelect","libraryList","listFilter","filterList"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el && !el.__tn82LibraryFilter){
+      el.addEventListener("change",tn82RenderLibrary);
+      el.__tn82LibraryFilter=true;
+    }
+  });
+}
+
+/* ---------- Counts ---------- */
+function tn82UpdateCounts(){
+  tn82EnsureDb();
+  const words=db.words.length;
+  const lists=db.lists.length;
+  const learned=db.words.filter(w=>w.status==="learned").length;
+  const hard=db.words.filter(w=>w.status==="hard").length;
+  const set=(id,v)=>{const el=document.getElementById(id); if(el)el.textContent=v;};
+  ["wc","totalWords","dashTotal","heroWords"].forEach(id=>set(id,words));
+  ["listCount","totalLists","heroLists"].forEach(id=>set(id,lists));
+  ["lc","totalLearned","heroLearned"].forEach(id=>set(id,learned));
+  ["hc","totalHard","dashHard"].forEach(id=>set(id,hard));
+}
+
+/* ---------- 2. Add Word fixed + immediate Library reflection ---------- */
+function tn82Id(){
+  return "w_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8);
+}
+function tn82TodayPlus(n){
+  const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10);
+}
+function tn82AddWord(ev){
+  if(ev&&ev.preventDefault)ev.preventDefault();
+  tn82EnsureDb();
+  tn82ForceDefaultLanguages();
+
+  const front=(document.getElementById("front")?.value||"").trim();
+  const back=(document.getElementById("back")?.value||"").trim();
+  if(!front || !back){
+    tn82Toast("Front and Back are required");
+    return false;
+  }
+
+  let listId=document.getElementById("addList")?.value || db.lists[0].id;
+  if(!db.lists.some(l=>l.id===listId))listId=db.lists[0].id;
+
+  const word={
+    id:tn82Id(),
+    front,
+    back,
+    listId,
+    frontLang:"en-US",
+    backLang:"ja-JP",
+    pos:document.getElementById("pos")?.value||"",
+    gender:document.getElementById("gender")?.value||"",
+    tags:(document.getElementById("tags")?.value||"").trim(),
+    memo:(document.getElementById("memo")?.value||"").trim(),
+    saved:false,
+    status:"new",
+    seen:0,
+    level:1,
+    nextReview:tn82TodayPlus(1),
+    createdAt:new Date().toISOString()
+  };
+  db.words.push(word);
+  db.meta=db.meta||{};
+  db.meta.updatedAt=new Date().toISOString();
+  tn82Persist();
+
+  ["front","back","memo","tags"].forEach(id=>{const el=document.getElementById(id); if(el)el.value="";});
+  ["pos","gender"].forEach(id=>{const el=document.getElementById(id); if(el)el.value="";});
+  tn82ForceDefaultLanguages();
+
+  tn82RenderLibrary();
+  tn82UpdateCounts();
+  tn82CloudSaveSoon();
+  tn82Toast("1 word added");
+  return false;
+}
+
+function tn82BindAdd(){
+  window.tnRegisterWordCritical=tn82AddWord;
+  window.addWord=tn82AddWord;
+  window.registerWord=tn82AddWord;
+  const btn=document.getElementById("addWordBtn") || [...document.querySelectorAll("button")].find(b=>(b.textContent||"").includes("Register"));
+  if(btn){
+    btn.id="addWordBtn";
+    btn.type="button";
+    btn.onclick=tn82AddWord;
+  }
+}
+
+/* ---------- 3. Playlist Rename fixed ---------- */
+function tn82RenderPlaylistManager(){
+  tn82EnsureDb();
+  const rows=document.getElementById("tn82PlaylistRows") || document.getElementById("tn75PlaylistRows");
+  if(!rows)return;
+
+  rows.innerHTML=db.lists.map(l=>`
+    <div class="tn82-playlist-row">
+      <input class="tn82-playlist-input" data-list-id="${tn82Esc(l.id)}" value="${tn82Esc(l.name||"New Playlist")}">
+      <button type="button" class="tn82-rename-btn" data-list-id="${tn82Esc(l.id)}">Rename</button>
+    </div>
+  `).join("");
+
+  rows.querySelectorAll(".tn82-rename-btn").forEach(btn=>{
+    btn.onclick=function(ev){
+      ev.preventDefault();
+      const id=btn.dataset.listId;
+      const input=rows.querySelector(`.tn82-playlist-input[data-list-id="${CSS.escape(id)}"]`);
+      tn82RenamePlaylist(id,input?.value||"");
+    };
+  });
+  rows.querySelectorAll(".tn82-playlist-input").forEach(input=>{
+    input.addEventListener("keydown",e=>{
+      if(e.key==="Enter")tn82RenamePlaylist(input.dataset.listId,input.value);
+    });
+  });
+}
+
+function tn82RenamePlaylist(id,name){
+  tn82EnsureDb();
+  name=String(name||"").trim();
+  if(!name){tn82Toast("Playlist name is required");return false;}
+  const list=db.lists.find(l=>l.id===id);
+  if(!list){tn82Toast("Playlist not found");return false;}
+  list.name=name;
+  db.meta=db.meta||{};
+  db.meta.updatedAt=new Date().toISOString();
+  tn82Persist();
+
+  tn82RenderPlaylistManager();
+  tn82RenderLibrary();
+  tn82CloudSaveSoon();
+  tn82Toast("Playlist renamed");
+  return true;
+}
+window.tn82RenamePlaylist=tn82RenamePlaylist;
+window.tn75RenamePlaylist=tn82RenamePlaylist;
+
+/* ---------- 6. Cloud sync PC <-> phone ---------- */
+function tn82Email(){
+  try{return localStorage.getItem(TN82_EMAIL_KEY)||"";}catch(e){return "";}
+}
+function tn82Hash(){
+  try{return localStorage.getItem(TN82_HASH_KEY)||"";}catch(e){return "";}
+}
+function tn82HasSession(){return !!(tn82Email()&&tn82Hash());}
+function tn82Supabase(){
+  try{if(window.tn74GetSupabase){const x=window.tn74GetSupabase(); if(x&&x.rpc)return x;}}catch(e){}
+  try{if(window.tnSupabaseClient?.rpc)return window.tnSupabaseClient;}catch(e){}
+  try{if(window.supabaseClient?.rpc)return window.supabaseClient;}catch(e){}
+  try{if(window.sb?.rpc)return window.sb;}catch(e){}
+  try{if(typeof supabaseClient!=="undefined"&&supabaseClient.rpc)return supabaseClient;}catch(e){}
+  try{if(typeof sb!=="undefined"&&sb.rpc)return sb;}catch(e){}
+  return null;
+}
+
+function tn82DeviceId(){
+  let id=localStorage.getItem("tangonest_device_id_v1");
+  if(!id){
+    id="device_"+Math.random().toString(36).slice(2,8)+"_"+Date.now().toString(36).slice(-5);
+    localStorage.setItem("tangonest_device_id_v1",id);
+  }
+  return id;
+}
+
+async function tn82CloudSave(){
+  if(!tn82HasSession() || tn82IsSaving)return false;
+  const s=tn82Supabase();
+  if(!s)return false;
+  tn82IsSaving=true;
+  try{
+    tn82EnsureDb();
+    db.meta=db.meta||{};
+    db.meta.lastDeviceId=tn82DeviceId();
+    db.meta.updatedAt=new Date().toISOString();
+    tn82Persist();
+    const {data,error}=await s.rpc("tn_save",{p_email:tn82Email(),p_password_hash:tn82Hash(),p_data:db});
+    if(error)throw error;
+    localStorage.setItem(TN82_CLOUD_TIME_KEY,data?.updated_at||new Date().toISOString());
+    tn82UpdateCloudMini("Synced ✓","synced");
+    return true;
+  }catch(e){
+    console.error("tn82 cloud save failed",e);
+    tn82UpdateCloudMini("Sync error","error");
+    return false;
+  }finally{
+    tn82IsSaving=false;
+  }
+}
+
+async function tn82CloudLoad(force=false){
+  if(!tn82HasSession() || tn82IsLoading || tn82IsSaving)return false;
+  const s=tn82Supabase();
+  if(!s)return false;
+  tn82IsLoading=true;
+  const page=tn82GetSavedPage();
+  try{
+    const {data,error}=await s.rpc("tn_login",{p_email:tn82Email(),p_password_hash:tn82Hash()});
+    if(error)throw error;
+    if(!data || data.ok===false)throw new Error(data?.error||"Cloud load failed");
+    const cloud=data.data||{};
+    const cloudJson=JSON.stringify(cloud);
+    const localJson=JSON.stringify(db||{});
+    if(force || cloudJson!==localJson){
+      Object.assign(db,cloud);
+      tn82EnsureDb();
+      tn82Persist();
+      tn82RenderLibrary();
+      tn82RenderPlaylistManager();
+      tn82UpdateCounts();
+    }
+    localStorage.setItem(TN82_CLOUD_TIME_KEY,data.updated_at||new Date().toISOString());
+    tn82UpdateCloudMini("Synced ✓","synced");
+    tn82RememberPage(page);
+    setTimeout(()=>tn82Go(page),80);
+    return true;
+  }catch(e){
+    console.error("tn82 cloud load failed",e);
+    tn82UpdateCloudMini("Sync error","error");
+    return false;
+  }finally{
+    tn82IsLoading=false;
+  }
+}
+
+function tn82CloudSaveSoon(){
+  clearTimeout(tn82SaveTimer);
+  tn82SaveTimer=setTimeout(()=>tn82CloudSave(),450);
+}
+
+function tn82UpdateCloudMini(text,state){
+  const btn=document.getElementById("tn80HeaderCloud") || document.getElementById("tn79CloudTopBtn") || document.getElementById("tn78MiniCloud");
+  if(btn){
+    btn.textContent="Cloud: "+(text|| (tn82HasSession()?"Synced ✓":"Local"));
+    btn.classList.toggle("synced",state==="synced");
+  }
+}
+
+/* ---------- Initial sample/りんご cleanup ----------
+   Do not delete user's real word "りんご" if they already have more data.
+   Only remove one sample if it is the only word and appears to be starter/demo.
+*/
+function tn82RemoveDemoAppleIfOnlySample(){
+  tn82EnsureDb();
+  if(db.words.length!==1)return;
+  const w=db.words[0];
+  const front=String(w.front||"").toLowerCase();
+  const back=String(w.back||"");
+  const looksDemo=(front==="apple" && (back==="りんご"||back==="リンゴ"));
+  if(looksDemo && !w.userCreated && !w.memo){
+    db.words=[];
+    tn82Persist();
+  }
+}
+
+/* ---------- Boot ---------- */
+function tn82Boot(){
+  tn82LoadLocal();
+  tn82RemoveDemoAppleIfOnlySample();
+  tn82WrapGo();
+  tn82BindAdd();
+  tn82BindLibraryFilters();
+  tn82ForceDefaultLanguages();
+  tn82RenderLibrary();
+  tn82RenderPlaylistManager();
+  tn82UpdateCounts();
+
+  const saved=tn82GetSavedPage();
+  setTimeout(()=>tn82Go(saved),300);
+
+  if(tn82HasSession()){
+    setTimeout(()=>tn82CloudLoad(true),900);
+  }
+}
+
+setTimeout(tn82Boot,0);
+setTimeout(tn82Boot,400);
+setTimeout(tn82Boot,1200);
+setInterval(()=>{
+  tn82WrapGo();
+  tn82BindAdd();
+  tn82BindLibraryFilters();
+  tn82ForceDefaultLanguages();
+  tn82RenderLibrary();
+  tn82RenderPlaylistManager();
+},2000);
+
+setInterval(()=>{
+  if(document.visibilityState==="visible" && tn82HasSession()){
+    tn82CloudLoad(false);
+  }
+},5000);
+
+window.addEventListener("focus",()=>{if(tn82HasSession())tn82CloudLoad(false);});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&tn82HasSession())tn82CloudLoad(false);});
+
+window.tn82CloudSave=tn82CloudSave;
+window.tn82CloudLoad=tn82CloudLoad;
+window.tn82RenderLibrary=tn82RenderLibrary;
+window.tn82ForceDefaultLanguages=tn82ForceDefaultLanguages;

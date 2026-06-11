@@ -176,7 +176,8 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
   </section>
 
   <section id="pageWords" class="page">
-    <div class="card"><h2>Word List</h2><p class="desc">Words are shown in the order they were added. Use ↑ / ↓ to rearrange inside a playlist.</p>
+    <div class="card"><h2>Word List</h2>
+<div id="tn82LibraryMount" class="tn82-library-mount"></div><p class="desc">Words are shown in the order they were added. Use ↑ / ↓ to rearrange inside a playlist.</p>
       <div class="mobile-list-actions"><button onclick="appShow('quiz')">Quiz</button><button onclick="go('study')">Cards</button><button onclick="appShow('audio')">Listen</button></div>
       <div class="row4"><div><label>Library</label><select id="wordListSelect" onchange="renderWords()"></select></div><div><label>View</label><select id="tableView" onchange="renderWords()"><option value="both">Front + Back</option><option value="front">Front only</option><option value="back">Back only</option></select></div><div><label>Sort</label><select id="sortMode" onchange="renderWords()"><option value="added">Added order</option><option value="frontAZ">Front A-Z</option><option value="backAZ">Back A-Z</option></select></div><div><label>Filter</label><select id="statusFilter" onchange="renderWords()"><option value="all">All</option><option value="new">new</option><option value="learned">learned</option><option value="hard">hard</option><option value="due">due</option><option value="star">★ Saved</option></select></div></div>
       <div class="row"><div><label>Audio Button</label><select id="listSpeakSide" onchange="renderWords()"><option value="front">Front</option><option value="back">Back</option><option value="both">Front → Back</option></select></div><div><label>Manual order</label><p class="desc" style="margin:8px 0 0">Use ↑ / ↓ in Added order.</p></div></div>
@@ -260,6 +261,17 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
 <h2>Manage</h2><p class="desc">Settings, data transfer, and local browser data management.</p>
     <div class="progress-grid"><div class="progress-card"><b id="mgNew">0</b><span>New</span></div><div class="progress-card"><b id="mgDue">0</b><span>Due</span></div><div class="progress-card"><b id="mgNoPOS">0</b><span>No POS</span></div><div class="progress-card"><b id="mgSaved">0</b><span>Saved</span></div></div>
     <div class="card" style="box-shadow:none;margin-top:14px"></details>
+
+<div id="tn82PlaylistManager" class="tn82-playlist-manager">
+  <div class="tn82-mini-head">
+    <div>
+      <h3>Playlist Names</h3>
+      <p>プレイリスト名を変更できます。</p>
+    </div>
+  </div>
+  <div id="tn82PlaylistRows"></div>
+</div>
+
 <h2>Data Transfer</h2><p class="desc">Manual transfer between PC and phone.</p><div class="actions"><button class="btn blue" onclick="exportDataText()">Export / Copy Data</button><button class="btn yellow" onclick="downloadBackupFile()">Download Backup</button><button class="btn green" onclick="importDataText()">Import Data</button></div><div class="sync-box"><label>Export / Import Text</label><textarea id="syncDataBox" placeholder="Exported data will appear here."></textarea></div></div>
     
     <div class="card" style="box-shadow:none;margin-top:14px">
