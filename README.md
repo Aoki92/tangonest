@@ -1,14 +1,13 @@
-# TangoNest Beta69 Account Position Fix
+# TangoNest Beta70 Final Login Sync Status
 
-## Fix
-- Account button is not removed.
-- It is moved away from the top-right counters.
-- New position: navigation row after Settings.
-- Old top-right Account/Login button is removed.
+## Final login fixes
+- When "Logged in." appears, login panel closes automatically.
+- App goes to Home after login/signup success.
+- On reload, saved session opens Home directly.
+- A visible "Synced ✓" badge shows that login/sync is active.
+- Account button stays in nav area, away from top-right counters.
 
 ## Included
-- Beta68 Instagram-style login
-- Beta66 overlay click-block fix
-- Beta64 Add Word critical fix
+- Add Word critical fix
 - English -> Japanese default language fix
 - PWA icons

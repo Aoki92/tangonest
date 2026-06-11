@@ -4066,3 +4066,264 @@ setTimeout(tn69UpdateAccountNav,0);
 setTimeout(tn69UpdateAccountNav,300);
 setTimeout(tn69UpdateAccountNav,1200);
 setInterval(tn69UpdateAccountNav,1200);
+
+
+
+/* =========================================================
+   Beta70 Final Login Sync Status
+   Goal:
+   - If "Logged in." appears, close login immediately.
+   - Always go Home after login/signup success.
+   - Show visible Synced status.
+   - Keep Account away from counters.
+========================================================= */
+
+const TN70_EMAIL_KEY="tangonest_sync_email_v1";
+const TN70_HASH_KEY="tangonest_sync_hash_v1";
+
+function tn70Email(){
+  try{return localStorage.getItem(TN70_EMAIL_KEY)||"";}catch(e){return "";}
+}
+function tn70Hash(){
+  try{return localStorage.getItem(TN70_HASH_KEY)||"";}catch(e){return "";}
+}
+function tn70HasSession(){
+  return !!(tn70Email() && tn70Hash());
+}
+function tn70Gate(){
+  return document.getElementById("loginGate");
+}
+function tn70MsgText(){
+  const gate=tn70Gate();
+  if(!gate)return "";
+  return (gate.textContent||"").toLowerCase();
+}
+function tn70LoggedInMessageVisible(){
+  const txt=tn70MsgText();
+  return txt.includes("logged in") || txt.includes("created") || txt.includes("welcome");
+}
+
+function tn70HardCloseLoginGoHome(){
+  // This is intentionally strong.
+  document.documentElement.classList.add("tn-authenticated");
+  document.documentElement.classList.remove("tn-logged-out","tn-needs-auth","tn-app-first");
+  document.body?.classList.add("tn-logged-in");
+  document.body?.classList.remove("tn-auth-open");
+
+  const gate=tn70Gate();
+  if(gate){
+    gate.classList.add("hidden");
+    gate.style.setProperty("display","none","important");
+    gate.style.setProperty("visibility","hidden","important");
+    gate.style.setProperty("opacity","0","important");
+    gate.style.setProperty("pointer-events","none","important");
+    gate.style.setProperty("z-index","-1","important");
+    gate.style.setProperty("position","absolute","important");
+    gate.style.setProperty("width","0","important");
+    gate.style.setProperty("height","0","important");
+    gate.style.setProperty("overflow","hidden","important");
+    gate.style.setProperty("transform","translate(-99999px,-99999px)","important");
+    gate.setAttribute("inert","");
+    gate.setAttribute("aria-hidden","true");
+  }
+
+  try{
+    if(typeof go==="function")go("home");
+  }catch(e){
+    try{
+      document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+      (document.getElementById("home")||document.getElementById("pageHome"))?.classList.add("active");
+    }catch(_){}
+  }
+  tn70UpdateStatus();
+}
+
+function tn70ShowLoggedOut(){
+  document.documentElement.classList.add("tn-logged-out");
+  document.documentElement.classList.remove("tn-authenticated","tn-has-session","tn-app-first");
+  document.body?.classList.remove("tn-logged-in");
+  document.body?.classList.add("tn-auth-open");
+
+  const gate=tn70Gate();
+  if(gate){
+    gate.classList.remove("hidden");
+    gate.style.setProperty("display","grid","important");
+    gate.style.setProperty("visibility","visible","important");
+    gate.style.setProperty("opacity","1","important");
+    gate.style.setProperty("pointer-events","auto","important");
+    gate.style.setProperty("z-index","9999","important");
+    gate.style.setProperty("position","fixed","important");
+    gate.style.setProperty("inset","0","important");
+    gate.style.setProperty("width","100vw","important");
+    gate.style.setProperty("height","100vh","important");
+    gate.style.setProperty("overflow","auto","important");
+    gate.style.setProperty("transform","none","important");
+    gate.removeAttribute("inert");
+    gate.setAttribute("aria-hidden","false");
+  }
+  tn70UpdateStatus();
+}
+
+function tn70UpdateStatus(){
+  // remove old intrusive header buttons
+  document.querySelectorAll("#accountBtn,#topSyncBtn,.account-link-fixed,.tn-sync-floating").forEach(el=>el.remove());
+
+  let badge=document.getElementById("syncStatusBadge");
+  if(!badge){
+    badge=document.createElement("span");
+    badge.id="syncStatusBadge";
+    badge.className="sync-status-badge";
+    const nav=document.querySelector("nav") || document.querySelector(".tabs") || document.querySelector("header") || document.body;
+    nav.appendChild(badge);
+  }
+
+  const email=tn70Email();
+  if(tn70HasSession()){
+    badge.textContent="Synced ✓";
+    badge.title=email;
+    badge.classList.add("synced");
+    badge.classList.remove("local");
+  }else{
+    badge.textContent="Not synced";
+    badge.title="";
+    badge.classList.add("local");
+    badge.classList.remove("synced");
+  }
+
+  let account=document.getElementById("accountNavBtn");
+  if(account){
+    account.textContent=tn70HasSession() ? "Account" : "Login";
+    account.onclick=tn70OpenAccountMenu;
+  }
+}
+
+function tn70OpenAccountMenu(){
+  if(tn70HasSession()){
+    const email=tn70Email();
+    const ok=confirm("Logged in as " + email + "\\n\\nLog out?");
+    if(ok)tn70Logout();
+  }else{
+    tn70ShowLoggedOut();
+  }
+}
+
+function tn70Logout(){
+  try{
+    localStorage.removeItem(TN70_EMAIL_KEY);
+    localStorage.removeItem(TN70_HASH_KEY);
+    localStorage.removeItem("tangonest_sync_mode_v1");
+  }catch(e){}
+  tn70ShowLoggedOut();
+}
+
+// Override previous auth functions to make behavior simple.
+function tnOpenLoginGate(){ tn70ShowLoggedOut(); }
+function tnCloseLoginGate(){ if(tn70HasSession())tn70HardCloseLoginGoHome(); else tn70ShowLoggedOut(); }
+function tnShowLogin(){ tn70ShowLoggedOut(); }
+function tnNoEmailShowLogin(){ tn70ShowLoggedOut(); }
+function tnShowApp(){ tn70HardCloseLoginGoHome(); }
+function tnNoEmailShowApp(){ tn70HardCloseLoginGoHome(); }
+function tn68SetLoggedInUI(){ tn70HardCloseLoginGoHome(); }
+function tn68SetLoggedOutUI(){ tn70ShowLoggedOut(); }
+function tn68OpenAccount(){ tn70OpenAccountMenu(); }
+function tn68UpdateAccountButton(){ tn70UpdateStatus(); }
+logoutTangoNest = async function(){ tn70Logout(); };
+
+refreshTangoNestSession = async function(){
+  if(tn70HasSession()){
+    tn70HardCloseLoginGoHome();
+    try{
+      if(typeof tnNoEmailLoadCloud==="function"){
+        await tnNoEmailLoadCloud();
+      }
+    }catch(e){ console.warn("Background sync skipped",e); }
+    tn70HardCloseLoginGoHome();
+  }else{
+    tn70ShowLoggedOut();
+  }
+};
+
+function tn70WatchLoginSuccess(){
+  const gate=tn70Gate();
+  if(!gate)return;
+
+  // The exact current bug: green "Logged in." appears but gate stays.
+  if(tn70LoggedInMessageVisible()){
+    // If older code forgot to save, still close once success is visible.
+    tn70HardCloseLoginGoHome();
+    return;
+  }
+
+  if(!gate.__tn70Observer){
+    const obs=new MutationObserver(()=>{
+      if(tn70LoggedInMessageVisible() || tn70HasSession()){
+        setTimeout(tn70HardCloseLoginGoHome,50);
+        setTimeout(tn70HardCloseLoginGoHome,250);
+      }
+    });
+    obs.observe(gate,{childList:true,subtree:true,characterData:true,attributes:true});
+    gate.__tn70Observer=obs;
+  }
+}
+
+function tn70WrapAuthButtonsAndFunctions(){
+  if(typeof gateLogin==="function" && !gateLogin.__beta70Wrapped){
+    const old=gateLogin;
+    gateLogin=async function(){
+      await old();
+      setTimeout(()=>{ if(tn70LoggedInMessageVisible() || tn70HasSession())tn70HardCloseLoginGoHome(); },50);
+      setTimeout(()=>{ if(tn70LoggedInMessageVisible() || tn70HasSession())tn70HardCloseLoginGoHome(); },300);
+      setTimeout(()=>{ if(tn70LoggedInMessageVisible() || tn70HasSession())tn70HardCloseLoginGoHome(); },900);
+    };
+    gateLogin.__beta70Wrapped=true;
+  }
+  if(typeof gateSignUp==="function" && !gateSignUp.__beta70Wrapped){
+    const old=gateSignUp;
+    gateSignUp=async function(){
+      await old();
+      setTimeout(()=>{ if(tn70LoggedInMessageVisible() || tn70HasSession())tn70HardCloseLoginGoHome(); },50);
+      setTimeout(()=>{ if(tn70LoggedInMessageVisible() || tn70HasSession())tn70HardCloseLoginGoHome(); },300);
+      setTimeout(()=>{ if(tn70LoggedInMessageVisible() || tn70HasSession())tn70HardCloseLoginGoHome(); },900);
+    };
+    gateSignUp.__beta70Wrapped=true;
+  }
+
+  document.querySelectorAll("#loginGate button").forEach(btn=>{
+    const txt=(btn.textContent||"").toLowerCase();
+    if((txt.includes("login") || txt.includes("create")) && !btn.__tn70Click){
+      btn.addEventListener("click",()=>{
+        setTimeout(()=>{ if(tn70LoggedInMessageVisible() || tn70HasSession())tn70HardCloseLoginGoHome(); },400);
+        setTimeout(()=>{ if(tn70LoggedInMessageVisible() || tn70HasSession())tn70HardCloseLoginGoHome(); },1000);
+        setTimeout(()=>{ if(tn70LoggedInMessageVisible() || tn70HasSession())tn70HardCloseLoginGoHome(); },1800);
+      });
+      btn.__tn70Click=true;
+    }
+  });
+}
+
+function tn70Boot(){
+  tn70WrapAuthButtonsAndFunctions();
+  tn70WatchLoginSuccess();
+
+  if(tn70HasSession()){
+    tn70HardCloseLoginGoHome();
+  }else{
+    tn70ShowLoggedOut();
+  }
+  tn70UpdateStatus();
+}
+
+setTimeout(tn70Boot,0);
+setTimeout(tn70Boot,150);
+setTimeout(tn70Boot,600);
+setTimeout(tn70Boot,1500);
+setInterval(()=>{
+  tn70WrapAuthButtonsAndFunctions();
+  tn70WatchLoginSuccess();
+  tn70UpdateStatus();
+
+  // If success message is on screen, do not leave user stuck.
+  if(tn70LoggedInMessageVisible()){
+    tn70HardCloseLoginGoHome();
+  }
+},700);

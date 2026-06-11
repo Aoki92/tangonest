@@ -2573,3 +2573,114 @@ html.tn-authenticated .app{
     padding:9px 10px;
   }
 }
+
+
+/* =========================================================
+   Beta70 Final Login Sync Status
+========================================================= */
+
+/* logged in = login panel must be gone */
+html.tn-authenticated #loginGate,
+html.tn-authenticated .login-gate,
+body.tn-logged-in:not(.tn-auth-open) #loginGate,
+body.tn-logged-in:not(.tn-auth-open) .login-gate,
+.login-gate.hidden{
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  user-select:none!important;
+  z-index:-1!important;
+  position:absolute!important;
+  inset:auto!important;
+  width:0!important;
+  height:0!important;
+  overflow:hidden!important;
+  transform:translate(-99999px,-99999px)!important;
+}
+
+/* logged out = login is the entrance */
+html.tn-logged-out #loginGate,
+html.tn-logged-out .login-gate,
+body.tn-auth-open #loginGate,
+body.tn-auth-open .login-gate{
+  display:grid!important;
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+  z-index:9999!important;
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:100vh!important;
+  overflow:auto!important;
+  transform:none!important;
+}
+
+.sync-status-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  height:34px;
+  padding:0 12px;
+  border-radius:999px;
+  font-weight:900;
+  font-size:13px;
+  letter-spacing:.01em;
+  white-space:nowrap;
+  border:1px solid rgba(148,163,184,.22);
+  background:#fff;
+  color:#64748b;
+  box-shadow:0 8px 22px rgba(15,23,42,.05);
+  vertical-align:middle;
+}
+
+.sync-status-badge.synced{
+  background:#ecfdf5;
+  color:#047857;
+  border-color:rgba(16,185,129,.25);
+}
+
+.sync-status-badge.local{
+  background:#fff7ed;
+  color:#c2410c;
+  border-color:rgba(251,146,60,.30);
+}
+
+.sync-status-fixed{
+  position:fixed;
+  top:92px;
+  right:28px;
+  z-index:50;
+}
+
+#accountBtn,
+#topSyncBtn,
+.account-link-fixed,
+.tn-sync-floating{
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  width:0!important;
+  height:0!important;
+  overflow:hidden!important;
+}
+
+#accountNavBtn,
+.nav-account-btn{
+  border:0;
+  background:transparent;
+  color:#64748b;
+  font-weight:850;
+  padding:10px 12px;
+  border-radius:999px;
+  cursor:pointer;
+  font:inherit;
+}
+
+#accountNavBtn:hover,
+.nav-account-btn:hover{
+  background:rgba(15,23,42,.06);
+  color:#0f172a;
+}
