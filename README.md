@@ -1,7 +1,24 @@
-# TangoNest Beta79 Cloud Status Top Fix
+# TangoNest Beta80 Account / Cloud Sync Final
 
-## Fix
-Cloud Status is now moved to the top of Settings.
-A visible Cloud button is also added near Settings.
+## Final account-sync module
+This version directly inserts the Cloud Status panel into Settings in index.html.
+It does not depend on unstable dynamic insertion.
 
-This fixes the issue where Cloud Status existed but was hard to find lower on the page.
+## Must appear
+Open Settings. At the very top, you should see:
+- Cloud Status
+- Login account
+- This device
+- Local words
+- Cloud words
+- Local lists
+- Cloud lists
+- Cloud updated
+- Connection
+- Check cloud
+- Load cloud now
+- Save this device now
+- Log out
+
+## Purpose
+This makes it visible whether PC and phone are using the same cloud account.

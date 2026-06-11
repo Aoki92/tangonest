@@ -4559,3 +4559,315 @@ setInterval(()=>{
     tn79MoveCloudBoxToTop();
   }
 },2000);
+
+
+
+/* =========================================================
+   Beta80 Account / Cloud Sync Final
+   Direct, visible, fixed implementation inside Settings.
+========================================================= */
+
+function tn80Email(){
+  try{return localStorage.getItem("tangonest_sync_email_v1")||"";}catch(e){return "";}
+}
+function tn80Hash(){
+  try{return localStorage.getItem("tangonest_sync_hash_v1")||"";}catch(e){return "";}
+}
+function tn80HasSession(){return !!(tn80Email() && tn80Hash());}
+
+function tn80DeviceId(){
+  let id=localStorage.getItem("tangonest_device_id_v1");
+  if(!id){
+    id="device_"+Math.random().toString(36).slice(2,8)+"_"+Date.now().toString(36).slice(-5);
+    localStorage.setItem("tangonest_device_id_v1",id);
+  }
+  return id;
+}
+
+function tn80Key(){
+  try{if(typeof KEY!=="undefined")return KEY;}catch(e){}
+  return "tangonest_data";
+}
+function tn80EnsureDb(){
+  try{if(typeof db==="undefined" || !db)window.db={lists:[],words:[],prefs:{}};}catch(e){}
+  db.lists=db.lists||[];
+  db.words=db.words||[];
+  db.prefs=db.prefs||{};
+  if(!db.lists.length)db.lists.push({id:"starter",name:"New Playlist"});
+}
+function tn80Persist(){
+  tn80EnsureDb();
+  localStorage.setItem(tn80Key(),JSON.stringify(db));
+}
+function tn80Supabase(){
+  try{if(window.tn74GetSupabase){const x=window.tn74GetSupabase(); if(x&&x.rpc)return x;}}catch(e){}
+  try{if(window.tnSupabaseClient?.rpc)return window.tnSupabaseClient;}catch(e){}
+  try{if(window.supabaseClient?.rpc)return window.supabaseClient;}catch(e){}
+  try{if(window.sb?.rpc)return window.sb;}catch(e){}
+  try{if(typeof supabaseClient!=="undefined"&&supabaseClient.rpc)return supabaseClient;}catch(e){}
+  try{if(typeof sb!=="undefined"&&sb.rpc)return sb;}catch(e){}
+  return null;
+}
+function tn80Set(id,text){
+  const el=document.getElementById(id);
+  if(el)el.textContent=text;
+}
+function tn80LocalWords(){
+  try{return Array.isArray(db.words)?db.words.length:0;}catch(e){return 0;}
+}
+function tn80LocalLists(){
+  try{return Array.isArray(db.lists)?db.lists.length:0;}catch(e){return 0;}
+}
+function tn80FormatTime(s){
+  if(!s)return "-";
+  try{return new Date(s).toLocaleString();}catch(e){return s;}
+}
+function tn80Toast(msg){
+  try{if(typeof tn75Toast==="function")return tn75Toast(msg);}catch(e){}
+  try{if(typeof tn64Toast==="function")return tn64Toast(msg);}catch(e){}
+  console.log("[TangoNest]",msg);
+}
+function tn80RenderAll(){
+  tn80EnsureDb();
+  try{tn80Persist();}catch(e){}
+  try{if(typeof renderSelect==="function"){renderSelect("addList",false);renderSelect("wordListSelect",true);renderSelect("quizList",true);renderSelect("audioList",true);}}catch(e){}
+  try{if(typeof renderWords==="function")renderWords();}catch(e){}
+  try{if(typeof renderHome==="function")renderHome();}catch(e){}
+  try{if(typeof tn75SafeRender==="function")tn75SafeRender();}catch(e){}
+  try{if(typeof tn75RenderLibraryNow==="function")tn75RenderLibraryNow();}catch(e){}
+  try{if(typeof tn75UpdateCounts==="function")tn75UpdateCounts();}catch(e){}
+  tn80UpdatePanelLocal();
+}
+function tn80UpdatePill(state,text){
+  const pill=document.getElementById("tn80StatusPill");
+  const header=document.getElementById("tn80HeaderCloud");
+  const label=text || (tn80HasSession() ? "Synced ✓" : "Local");
+  if(pill){
+    pill.textContent=label;
+    pill.className="tn80-status-pill "+(state|| (tn80HasSession()?"synced":"local"));
+  }
+  if(header){
+    header.textContent=tn80HasSession() ? "Cloud: Synced ✓" : "Cloud: Local";
+    header.classList.toggle("synced",tn80HasSession());
+  }
+}
+function tn80UpdatePanelLocal(){
+  tn80EnsureDb();
+  tn80Set("tn80Account",tn80Email()||"Not logged in");
+  tn80Set("tn80Device",tn80DeviceId());
+  tn80Set("tn80LocalWords",String(tn80LocalWords()));
+  tn80Set("tn80LocalLists",String(tn80LocalLists()));
+  tn80UpdatePill(tn80HasSession()?"synced":"local");
+  const logout=document.getElementById("tn80LogoutBtn");
+  if(logout)logout.style.display=tn80HasSession()?"inline-flex":"none";
+}
+
+async function tn80CheckCloud(silent=false){
+  tn80UpdatePanelLocal();
+
+  if(!tn80HasSession()){
+    tn80Set("tn80Connection","Not logged in");
+    tn80Set("tn80CloudWords","-");
+    tn80Set("tn80CloudLists","-");
+    tn80Set("tn80CloudUpdated","-");
+    tn80UpdatePill("local","Local");
+    return false;
+  }
+
+  const s=tn80Supabase();
+  if(!s){
+    tn80Set("tn80Connection","Supabase client not ready");
+    tn80UpdatePill("error","Cloud error");
+    return false;
+  }
+
+  tn80Set("tn80Connection","Checking...");
+  tn80UpdatePill("checking","Checking...");
+
+  try{
+    const {data,error}=await s.rpc("tn_login",{
+      p_email:tn80Email(),
+      p_password_hash:tn80Hash()
+    });
+    if(error)throw error;
+    if(!data || data.ok===false)throw new Error(data?.error||"Cloud check failed");
+
+    const cloud=data.data||{};
+    const cloudWords=Array.isArray(cloud.words)?cloud.words.length:0;
+    const cloudLists=Array.isArray(cloud.lists)?cloud.lists.length:0;
+
+    tn80Set("tn80CloudWords",String(cloudWords));
+    tn80Set("tn80CloudLists",String(cloudLists));
+    tn80Set("tn80CloudUpdated",tn80FormatTime(data.updated_at));
+    tn80Set("tn80Connection","Same cloud account ✓");
+    tn80UpdatePill("synced","Synced ✓");
+    localStorage.setItem("tangonest_last_cloud_updated_at_v1",data.updated_at||new Date().toISOString());
+
+    if(!silent)tn80Toast("Cloud checked ✓");
+    return data;
+  }catch(e){
+    console.error(e);
+    tn80Set("tn80Connection",e.message||"Cloud check failed");
+    tn80UpdatePill("error","Cloud error");
+    return false;
+  }
+}
+
+async function tn80LoadCloudNow(){
+  if(!tn80HasSession()){
+    tn80Toast("Not logged in");
+    return false;
+  }
+  const s=tn80Supabase();
+  if(!s){
+    tn80Toast("Cloud client not ready");
+    return false;
+  }
+  tn80Set("tn80Connection","Loading cloud...");
+  tn80UpdatePill("checking","Loading...");
+  try{
+    const {data,error}=await s.rpc("tn_login",{
+      p_email:tn80Email(),
+      p_password_hash:tn80Hash()
+    });
+    if(error)throw error;
+    if(!data || data.ok===false)throw new Error(data?.error||"Cloud load failed");
+
+    if(data.data){
+      Object.assign(db,data.data);
+      tn80Persist();
+      tn80RenderAll();
+    }
+    await tn80CheckCloud(true);
+    tn80Toast("Loaded cloud ✓");
+    return true;
+  }catch(e){
+    console.error(e);
+    tn80Set("tn80Connection",e.message||"Load failed");
+    tn80UpdatePill("error","Cloud error");
+    return false;
+  }
+}
+
+async function tn80SaveThisDeviceNow(){
+  if(!tn80HasSession()){
+    tn80Toast("Not logged in");
+    return false;
+  }
+  const s=tn80Supabase();
+  if(!s){
+    tn80Toast("Cloud client not ready");
+    return false;
+  }
+  tn80EnsureDb();
+  db.meta=db.meta||{};
+  db.meta.lastDeviceId=tn80DeviceId();
+  db.meta.lastManualSaveAt=new Date().toISOString();
+  tn80Persist();
+
+  tn80Set("tn80Connection","Saving this device...");
+  tn80UpdatePill("checking","Saving...");
+
+  try{
+    const {data,error}=await s.rpc("tn_save",{
+      p_email:tn80Email(),
+      p_password_hash:tn80Hash(),
+      p_data:db
+    });
+    if(error)throw error;
+
+    localStorage.setItem("tangonest_last_cloud_updated_at_v1",data?.updated_at||new Date().toISOString());
+    await tn80CheckCloud(true);
+    tn80Toast("Saved this device ✓");
+    return true;
+  }catch(e){
+    console.error(e);
+    tn80Set("tn80Connection",e.message||"Save failed");
+    tn80UpdatePill("error","Cloud error");
+    return false;
+  }
+}
+
+function tn80Logout(){
+  if(!confirm("Log out of TangoNest?"))return;
+
+  try{
+    localStorage.removeItem("tangonest_sync_email_v1");
+    localStorage.removeItem("tangonest_sync_hash_v1");
+    localStorage.removeItem("tangonest_sync_mode_v1");
+    localStorage.removeItem("tangonest_last_cloud_updated_at_v1");
+    localStorage.removeItem("tangonest_guest_mode");
+  }catch(e){}
+
+  tn80UpdatePanelLocal();
+
+  if(typeof tn73ShowAuth==="function"){
+    tn73ShowAuth();
+  }else if(typeof tnOpenLoginGate==="function"){
+    tnOpenLoginGate();
+  }else{
+    location.reload();
+  }
+}
+
+function tn80WrapMutationsForCloud(){
+  const original=window.tnRegisterWordCritical || window.addWord || window.registerWord;
+  if(typeof original==="function" && !original.__tn80Wrapped){
+    const wrapped=function(ev){
+      const res=original(ev);
+      setTimeout(()=>{
+        tn80Persist();
+        tn80RenderAll();
+        if(tn80HasSession())tn80SaveThisDeviceNow();
+      },120);
+      return res;
+    };
+    wrapped.__tn80Wrapped=true;
+    window.tnRegisterWordCritical=wrapped;
+    window.addWord=wrapped;
+    window.registerWord=wrapped;
+    const btn=document.getElementById("addWordBtn") || [...document.querySelectorAll("button")].find(b=>(b.textContent||"").includes("Register"));
+    if(btn)btn.onclick=wrapped;
+  }
+}
+
+function tn80ForcePanelVisible(){
+  const panel=document.getElementById("tn80CloudPanel");
+  const page=document.getElementById("pageManage");
+  if(panel && page){
+    const card=page.querySelector(":scope > .card") || page.querySelector(".card");
+    if(card && panel.parentElement!==card){
+      card.insertBefore(panel,card.firstChild);
+    }else if(card && card.firstElementChild!==panel){
+      card.insertBefore(panel,card.firstChild);
+    }
+  }
+  if(panel){
+    panel.style.display="block";
+    panel.style.visibility="visible";
+    panel.style.opacity="1";
+  }
+}
+
+function tn80Boot(){
+  tn80ForcePanelVisible();
+  tn80UpdatePanelLocal();
+  tn80WrapMutationsForCloud();
+
+  if(tn80HasSession()){
+    setTimeout(()=>tn80CheckCloud(true),800);
+  }
+}
+setTimeout(tn80Boot,0);
+setTimeout(tn80Boot,500);
+setTimeout(tn80Boot,1500);
+setInterval(()=>{
+  tn80ForcePanelVisible();
+  tn80UpdatePanelLocal();
+  tn80WrapMutationsForCloud();
+},2000);
+
+window.tn80CheckCloud=tn80CheckCloud;
+window.tn80LoadCloudNow=tn80LoadCloudNow;
+window.tn80SaveThisDeviceNow=tn80SaveThisDeviceNow;
+window.tn80Logout=tn80Logout;
