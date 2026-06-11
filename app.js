@@ -3721,3 +3721,79 @@ setInterval(()=>{
   }
   tn65UpdateTopSyncButton();
 },1000);
+
+
+
+/* =========================================================
+   Beta66 Overlay Kill Fix
+   The invisible login layer must never block the app.
+========================================================= */
+
+function tn66KillLoginOverlay(){
+  const gate=document.getElementById("loginGate");
+  if(!gate)return;
+  if(document.body && document.body.classList.contains("tn-auth-open")){
+    gate.classList.remove("hidden");
+    gate.style.display="grid";
+    gate.style.pointerEvents="auto";
+    gate.style.visibility="visible";
+    gate.style.opacity="1";
+    gate.style.zIndex="9999";
+    gate.removeAttribute("inert");
+    gate.setAttribute("aria-hidden","false");
+  }else{
+    gate.classList.add("hidden");
+    gate.style.display="none";
+    gate.style.pointerEvents="none";
+    gate.style.visibility="hidden";
+    gate.style.opacity="0";
+    gate.style.zIndex="-1";
+    gate.setAttribute("inert","");
+    gate.setAttribute("aria-hidden","true");
+  }
+}
+
+function tnOpenLoginGate(){
+  document.body?.classList.add("tn-auth-open");
+  const gate=document.getElementById("loginGate");
+  if(gate){
+    gate.classList.remove("hidden");
+    gate.removeAttribute("inert");
+    gate.setAttribute("aria-hidden","false");
+  }
+  tn66KillLoginOverlay();
+  const email=document.getElementById("gateEmail");
+  setTimeout(()=>email?.focus(),80);
+}
+
+function tnCloseLoginGate(){
+  document.body?.classList.remove("tn-auth-open");
+  tn66KillLoginOverlay();
+}
+
+function tn65AppFirst(){
+  document.documentElement.classList.add("tn-app-first");
+  document.documentElement.classList.add("tn-has-session");
+  document.documentElement.classList.remove("tn-needs-auth");
+  document.body?.classList.add("tn-logged-in");
+  document.body?.classList.remove("tn-auth-open");
+  tn66KillLoginOverlay();
+}
+
+function tnShowLogin(){ tn65AppFirst(); }
+function tnNoEmailShowLogin(){ tn65AppFirst(); }
+function tnShowApp(){ tn65AppFirst(); }
+function tnNoEmailShowApp(){ tn65AppFirst(); }
+
+setTimeout(tn66KillLoginOverlay,0);
+setTimeout(tn66KillLoginOverlay,100);
+setTimeout(tn66KillLoginOverlay,500);
+setTimeout(tn66KillLoginOverlay,1500);
+setInterval(tn66KillLoginOverlay,700);
+
+// Emergency: if user clicks home area while overlay is closed, keep overlay killed.
+document.addEventListener("pointerdown", function(){
+  if(!document.body?.classList.contains("tn-auth-open")){
+    tn66KillLoginOverlay();
+  }
+}, true);

@@ -1,15 +1,19 @@
-# TangoNest Beta65 No Login On Reload
+# TangoNest Beta66 Overlay Kill Fix
 
-## Critical reload fix
-The app no longer opens the login screen automatically on reload.
+## Critical fix
+The invisible login overlay no longer blocks clicks on the home screen.
 
-New behavior:
-- App/home opens first
-- If saved sync account exists, cloud sync runs in background
-- Login screen opens only when the user clicks Login / Sync
-- Logout keeps the app usable in local mode
+Login gate is now:
+- display:none
+- pointer-events:none
+- inert
+- z-index:-1
+- moved off-screen
 
-## Also included
+It only becomes clickable when Login / Sync is opened.
+
+## Included
+- Beta65 no-login-on-reload
 - Beta64 Add Word critical fix
 - English -> Japanese default language fix
-- PWA icon files from Beta63
+- PWA icon files
