@@ -26,26 +26,26 @@ function appShow(pageId){
 
 // TangoNest Split Edition - app.js
 
-const KEY="vocabrise_production_stable_v1";
+const KEY="tangonest_production_stable_v1";
 const LEGACY_KEYS=[
-  "vocabrise_stable_reset_v32",
-  "vocabrise_beta34",
-  "vocabrise_beta33",
-  "vocabrise_beta32",
-  "vocabrise_beta31",
-  "vocabrise_beta30",
-  "vocabrise_beta29",
-  "vocabrise_beta28",
-  "vocabrise_beta27",
-  "vocabrise_beta26",
-  "vocabrise_beta25",
-  "vocabrise_beta24",
-  "vocabrise_beta23",
-  "vocabrise_beta22",
-  "vocabrise_beta21",
-  "vocabrise_beta20",
-  "vocabrise_beta19",
-  "vocabrise_beta18"
+  "tangonest_stable_reset_v32",
+  "tangonest_beta34",
+  "tangonest_beta33",
+  "tangonest_beta32",
+  "tangonest_beta31",
+  "tangonest_beta30",
+  "tangonest_beta29",
+  "tangonest_beta28",
+  "tangonest_beta27",
+  "tangonest_beta26",
+  "tangonest_beta25",
+  "tangonest_beta24",
+  "tangonest_beta23",
+  "tangonest_beta22",
+  "tangonest_beta21",
+  "tangonest_beta20",
+  "tangonest_beta19",
+  "tangonest_beta18"
 ];
 function loadTangoNestDB(){
   const current=localStorage.getItem(KEY);
@@ -56,7 +56,7 @@ function loadTangoNestDB(){
   const keys=[...LEGACY_KEYS];
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
-    if(k&&k.toLowerCase().includes("vocabrise")&&!keys.includes(k))keys.push(k);
+    if(k&&k.toLowerCase().includes("tangonest")&&!keys.includes(k))keys.push(k);
   }
   keys.forEach(k=>{
     try{
@@ -74,13 +74,13 @@ function loadTangoNestDB(){
     console.log("TangoNest migrated data from",bestKey);
     return best;
   }
-  return {ui:"en",prefs:{frontLang:"fr-FR",backLang:"en-US"},lists:[{id:"starter",name:"New Playlist"}],words:[]};
+  return {ui:"en",prefs:{frontLang:"en-US",backLang:"ja-JP"},lists:[],words:[]};
 }
 const LANGS=[
   ["fr-FR","French","pomme"],["en-US","English","apple"],["ja-JP","Japanese","りんご"],["ko-KR","Korean","사과"],["zh-CN","Chinese Simplified","苹果"],["zh-TW","Chinese Traditional","蘋果"],["es-ES","Spanish","manzana"],["ar-SA","Arabic","تفاحة"],["it-IT","Italian","mela"],["de-DE","German","Apfel"],["pt-BR","Portuguese","maçã"],["ru-RU","Russian","яблоко"],["nl-NL","Dutch","appel"],["vi-VN","Vietnamese","táo"],["th-TH","Thai","แอปเปิล"],["tr-TR","Turkish","elma"],["hi-IN","Hindi","सेब"],["id-ID","Indonesian","apel"],["el-GR","Greek","μήλο"],["he-IL","Hebrew","תפוח"]
 ];
 let db=loadTangoNestDB();
-db.prefs=db.prefs||{frontLang:"fr-FR",backLang:"en-US"};db.lists=db.lists&&db.lists.length?db.lists:[{id:"starter",name:"New Playlist"}];db.words=db.words||[];
+db.prefs=db.prefs||{frontLang:"en-US",backLang:"ja-JP"};db.lists=Array.isArray(db.lists)?db.lists:[];db.words=db.words||[];
 let current=null,flipped=false,timer=null,flashTimers=[],audioTimer=null,audioQueue=[],audioIndex=0,audioPaused=false,selectedIds=new Set();
 let quiz={queue:[],wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:"choice",direction:"front",total:0};let quizAutoTimer=null,quizTimerInterval=null,quizQuestionStartedAt=0;
 const $=id=>document.getElementById(id);
@@ -481,7 +481,7 @@ function downloadBackupFile(){
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download="vocabrise_backup_"+new Date().toISOString().slice(0,10)+".json";
+  a.download="tangonest_backup_"+new Date().toISOString().slice(0,10)+".json";
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -490,8 +490,8 @@ function downloadBackupFile(){
 }
 
 function exportDataText(){let data={app:"TangoNest",version:"stable-reset-v32",exportedAt:new Date().toISOString(),data:db},text=JSON.stringify(data),box=$("syncDataBox");box.value=text;box.focus();box.select();if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(text).then(()=>toast("Copied export data")).catch(()=>toast("Export data is ready"));else toast("Export data is ready. Copy the text.")}
-function importDataText(){let text=($("syncDataBox").value||"").trim();if(!text)return toast("Paste export data first");let parsed;try{parsed=JSON.parse(text)}catch(e){return alert("Import failed: invalid data")}let incoming=parsed.data&&parsed.data.words?parsed.data:parsed;if(!incoming.words||!incoming.lists)return alert("Import failed: this is not TangoNest data");if(!confirm(`Import ${incoming.words.length} words? Current data will be replaced.`))return;db={ui:incoming.ui||"en",prefs:incoming.prefs||{frontLang:"fr-FR",backLang:"en-US"},lists:incoming.lists.length?incoming.lists:[{id:"starter",name:"New Playlist"}],words:incoming.words};save();toast("Imported")}
-function clearAll(){if(!confirm(`Delete all vocabulary data in this browser? (${db.words.length} words)`))return;let final=prompt("Type DELETE to confirm.");if(final!=="DELETE")return toast("Cancelled");db={ui:"en",prefs:{frontLang:"fr-FR",backLang:"en-US"},lists:[{id:"starter",name:"New Playlist"}],words:[]};localStorage.setItem(KEY,JSON.stringify(db));resetCard();resetQuiz();render();toast("All data deleted")}
+function importDataText(){let text=($("syncDataBox").value||"").trim();if(!text)return toast("Paste export data first");let parsed;try{parsed=JSON.parse(text)}catch(e){return alert("Import failed: invalid data")}let incoming=parsed.data&&parsed.data.words?parsed.data:parsed;if(!incoming.words||!incoming.lists)return alert("Import failed: this is not TangoNest data");if(!confirm(`Import ${incoming.words.length} words? Current data will be replaced.`))return;db={ui:incoming.ui||"en",prefs:incoming.prefs||{frontLang:"en-US",backLang:"ja-JP"},lists:Array.isArray(incoming.lists)?incoming.lists:[],words:incoming.words};save();toast("Imported")}
+function clearAll(){if(!confirm(`Delete all vocabulary data in this browser? (${db.words.length} words)`))return;let final=prompt("Type DELETE to confirm.");if(final!=="DELETE")return toast("Cancelled");db={ui:"en",prefs:{frontLang:"en-US",backLang:"ja-JP"},lists:[],words:[]};localStorage.setItem(KEY,JSON.stringify(db));resetCard();resetQuiz();render();toast("All data deleted")}
 
 let VOICES_READY=false;
 let VOICE_CACHE=[];
@@ -636,7 +636,7 @@ function testAllMainVoices(){
     ["Bonjour, ceci est le français.","fr-FR"],
     ["こんにちは、日本語です。","ja-JP"],
     ["안녕하세요. 한국어입니다.","ko-KR"],
-    ["你好，这是中文。","zh-CN"]
+    ["Hola, esto es español.","es-ES"]
   ];
   speakQueued(tests.map(([text,lang])=>({text,lang})),1600);
 }
@@ -661,14 +661,14 @@ function attachBrandContextListeners(){
 attachBrandContextListeners();
 render();resetQuiz();
 
-const VR_SESSION_KEY="vocabrise_last_session_v1";
+const TN_SESSION_KEY="tangonest_last_session_v1";
 function getLastSession(){
-  try{return JSON.parse(localStorage.getItem(VR_SESSION_KEY)||"{}")}catch(e){return{}}
+  try{return JSON.parse(localStorage.getItem(TN_SESSION_KEY)||"{}")}catch(e){return{}}
 }
 function setLastSession(patch){
   const current=getLastSession();
   const next={...current,...patch,updatedAt:new Date().toISOString()};
-  localStorage.setItem(VR_SESSION_KEY,JSON.stringify(next));
+  localStorage.setItem(TN_SESSION_KEY,JSON.stringify(next));
   updateResumeCard();
 }
 function selectedValue(id){
@@ -731,13 +731,13 @@ function attachSessionMemory(){
 }
 function rotateHeroLanguages(){
   const sets=[
-    {front:"你好",frontLang:"Chinese",back:"hello",backLang:"English",mode:"Quiz"},
+    {front:"hello",frontLang:"English",back:"こんにちは",backLang:"Japanese",mode:"Quiz"},
     {front:"こんにちは",frontLang:"Japanese",back:"hello",backLang:"English",mode:"Cards"},
     {front:"안녕하세요",frontLang:"Korean",back:"hello",backLang:"English",mode:"Listen"},
     {front:"bonjour",frontLang:"French",back:"hello",backLang:"English",mode:"Review"},
     {front:"hola",frontLang:"Spanish",back:"hello",backLang:"English",mode:"Typing"},
     {front:"مرحبا",frontLang:"Arabic",back:"hello",backLang:"English",mode:"Audio"},
-    {front:"苹果",frontLang:"Chinese",back:"りんご",backLang:"Japanese",mode:"Quiz"}
+    {front:"bonjour",frontLang:"French",back:"hello",backLang:"English",mode:"Quiz"}
   ];
   const one=document.querySelector(".float-one");
   const two=document.querySelector(".float-two");
@@ -2085,7 +2085,7 @@ function tnApplyDefaultLanguageIfEmpty(){
   const set=(el,val)=>{
     if(!el)return;
     if([...el.options].some(o=>o.value===val)){
-      // If default is still Chinese because of old app default, correct it.
+      // Correct older defaults without blocking manual language changes.
       if(el.value==="zh-CN" || el.value==="fr-FR" || !el.value) el.value=val;
     }
   };
@@ -3643,7 +3643,6 @@ function tn75EnsureDb(){
   db.lists=db.lists||[];
   db.words=db.words||[];
   db.prefs=db.prefs||{};
-  if(!db.lists.length)db.lists.push({id:"starter",name:"New Playlist"});
 }
 function tn75Persist(){
   tn75EnsureDb();
@@ -3924,7 +3923,6 @@ function tn76EnsureDb(){
   db.lists=db.lists||[];
   db.words=db.words||[];
   db.prefs=db.prefs||{};
-  if(!db.lists.length)db.lists.push({id:"starter",name:"New Playlist"});
 }
 function tn76Persist(){
   tn76EnsureDb();
@@ -4599,7 +4597,6 @@ function tn80EnsureDb(){
   db.lists=db.lists||[];
   db.words=db.words||[];
   db.prefs=db.prefs||{};
-  if(!db.lists.length)db.lists.push({id:"starter",name:"New Playlist"});
 }
 function tn80Persist(){
   tn80EnsureDb();
@@ -4908,7 +4905,6 @@ function tn81EnsureDb(){
   db.lists=db.lists||[];
   db.words=db.words||[];
   db.prefs=db.prefs||{};
-  if(!db.lists.length)db.lists.push({id:"starter",name:"New Playlist"});
 }
 function tn81Persist(){
   tn81EnsureDb();
@@ -5253,6 +5249,7 @@ let tn82LoadTimer=null;
 let tn82IsSaving=false;
 let tn82IsLoading=false;
 let tn82LastRenderedJson="";
+let tn82LastLocalChangeAt="";
 
 function tn82DataKey(){
   try{ if(typeof KEY!=="undefined" && KEY)return KEY; }catch(e){}
@@ -5268,12 +5265,11 @@ function tn82EnsureDb(){
   db.lists=Array.isArray(db.lists)?db.lists:[];
   db.words=Array.isArray(db.words)?db.words:[];
   db.prefs=db.prefs||{};
-  if(!db.lists.length){
-    db.lists.push({id:"starter",name:"New Playlist",createdAt:new Date().toISOString()});
-  }
+  db.meta=db.meta||{};
+  if(!db.lists.length){}
   db.words=db.words.filter(Boolean).map(w=>{
     w.id=w.id||("w_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2));
-    w.listId=w.listId||db.lists[0].id;
+    w.listId=w.listId||db.lists[0]?.id||"";
     w.front=w.front??"";
     w.back=w.back??"";
     w.frontLang=w.frontLang||"en-US";
@@ -5281,6 +5277,13 @@ function tn82EnsureDb(){
     w.createdAt=w.createdAt||new Date().toISOString();
     return w;
   });
+}
+
+function tn82TouchLocal(){
+  tn82EnsureDb();
+  tn82LastLocalChangeAt=new Date().toISOString();
+  db.meta.updatedAt=tn82LastLocalChangeAt;
+  db.meta.lastDeviceId=tn82DeviceId();
 }
 
 function tn82Persist(){
@@ -5299,6 +5302,7 @@ function tn82LoadLocal(){
     }
   }catch(e){}
   tn82EnsureDb();
+  tn82LastLocalChangeAt=db.meta?.updatedAt||"";
 }
 
 function tn82Esc(s){
@@ -5443,6 +5447,12 @@ function tn82FilteredWords(){
   if(filter && filter!=="all" && filter!==""){
     words=words.filter(w=>String(w.listId).toLowerCase()===filter || String(tn82ListName(w.listId)).toLowerCase()===filter);
   }
+  const status=document.getElementById("statusFilter")?.value||"all";
+  const q=String(document.getElementById("wordSearch")?.value||"").trim().toLowerCase();
+  if(status==="star")words=words.filter(w=>w.saved);
+  else if(status==="due")words=words.filter(w=>w.nextReview&&w.nextReview<=new Date().toISOString().slice(0,10));
+  else if(status && status!=="all")words=words.filter(w=>(w.status||"new")===status);
+  if(q)words=words.filter(w=>[w.front,w.back,w.memo,w.tags,w.pos,w.gender,tn82ListName(w.listId)].join(" ").toLowerCase().includes(q));
   return words;
 }
 
@@ -5493,13 +5503,41 @@ function tn82RenderLibrary(){
 }
 
 function tn82BindLibraryFilters(){
-  ["wordListSelect","libraryList","listFilter","filterList"].forEach(id=>{
+  ["wordListSelect","libraryList","listFilter","filterList","statusFilter","wordSearch"].forEach(id=>{
     const el=document.getElementById(id);
     if(el && !el.__tn82LibraryFilter){
-      el.addEventListener("change",tn82RenderLibrary);
+      el.addEventListener(el.tagName==="INPUT"?"input":"change",tn82RenderLibrary);
       el.__tn82LibraryFilter=true;
     }
   });
+}
+
+function tn82RenderSelect(id,{all=false,value}={}){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const current=value!==undefined?value:el.value;
+  el.innerHTML="";
+  if(all){
+    const option=document.createElement("option");
+    option.value="all";
+    option.textContent="All";
+    el.appendChild(option);
+  }
+  db.lists.forEach(list=>{
+    const option=document.createElement("option");
+    option.value=list.id;
+    option.textContent=list.name||"New Playlist";
+    el.appendChild(option);
+  });
+  if([...el.options].some(option=>option.value===current))el.value=current;
+  else if(all)el.value="all";
+  else if(db.lists[0])el.value=db.lists[0].id;
+}
+
+function tn82RenderPlaylistSelects(){
+  tn82EnsureDb();
+  ["addList","bulkList","studyList","quizList","audioList","renameListSelect","editList"].forEach(id=>tn82RenderSelect(id));
+  tn82RenderSelect("wordListSelect",{all:true});
 }
 
 /* ---------- Counts ---------- */
@@ -5557,8 +5595,7 @@ function tn82AddWord(ev){
     createdAt:new Date().toISOString()
   };
   db.words.push(word);
-  db.meta=db.meta||{};
-  db.meta.updatedAt=new Date().toISOString();
+  tn82TouchLocal();
   tn82Persist();
 
   ["front","back","memo","tags"].forEach(id=>{const el=document.getElementById(id); if(el)el.value="";});
@@ -5566,6 +5603,7 @@ function tn82AddWord(ev){
   tn82ForceDefaultLanguages();
 
   tn82RenderLibrary();
+  tn82RenderPlaylistSelects();
   tn82UpdateCounts();
   tn82CloudSaveSoon();
   tn82Toast("1 word added");
@@ -5584,9 +5622,35 @@ function tn82BindAdd(){
   }
 }
 
-/* ---------- 3. Playlist Rename fixed ---------- */
+/* ---------- 3. Playlist Create/Rename fixed ---------- */
+function tn82CreatePlaylist(name){
+  tn82EnsureDb();
+  name=String(name||"").trim();
+  if(!name){tn82Toast("Playlist name is required");return false;}
+  const exists=db.lists.some(l=>String(l.name||"").trim().toLowerCase()===name.toLowerCase());
+  if(exists){tn82Toast("Playlist already exists");return false;}
+  const list={id:"list_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8),name,createdAt:new Date().toISOString()};
+  db.lists.push(list);
+  tn82TouchLocal();
+  tn82Persist();
+  const input=document.getElementById("newList");
+  if(input)input.value="";
+  tn82RenderPlaylistSelects();
+  tn82RenderPlaylistManager();
+  tn82RenderLibrary();
+  tn82UpdateCounts();
+  tn82CloudSaveSoon();
+  tn82Toast("Playlist created");
+  return true;
+}
+
+function tn82CreateList(){
+  return tn82CreatePlaylist(document.getElementById("newList")?.value||"");
+}
+
 function tn82RenderPlaylistManager(){
   tn82EnsureDb();
+  tn82RenderPlaylistSelects();
   const rows=document.getElementById("tn82PlaylistRows") || document.getElementById("tn75PlaylistRows");
   if(!rows)return;
 
@@ -5614,21 +5678,31 @@ function tn82RenderPlaylistManager(){
 
 function tn82RenamePlaylist(id,name){
   tn82EnsureDb();
-  name=String(name||"").trim();
+  id=id || document.getElementById("renameListSelect")?.value || db.lists[0]?.id;
+  name=String(name ?? document.getElementById("renameListInput")?.value ?? "").trim();
   if(!name){tn82Toast("Playlist name is required");return false;}
   const list=db.lists.find(l=>l.id===id);
   if(!list){tn82Toast("Playlist not found");return false;}
   list.name=name;
-  db.meta=db.meta||{};
-  db.meta.updatedAt=new Date().toISOString();
+  tn82TouchLocal();
   tn82Persist();
 
+  const renameInput=document.getElementById("renameListInput");
+  if(renameInput)renameInput.value="";
+  tn82RenderPlaylistSelects();
   tn82RenderPlaylistManager();
   tn82RenderLibrary();
+  try{if(typeof renderHome==="function")renderHome();}catch(e){}
   tn82CloudSaveSoon();
   tn82Toast("Playlist renamed");
   return true;
 }
+function tn82RenameList(){
+  return tn82RenamePlaylist(document.getElementById("renameListSelect")?.value,document.getElementById("renameListInput")?.value);
+}
+window.createList=tn82CreateList;
+window.renameList=tn82RenameList;
+window.tn82CreatePlaylist=tn82CreatePlaylist;
 window.tn82RenamePlaylist=tn82RenamePlaylist;
 window.tn75RenamePlaylist=tn82RenamePlaylist;
 
@@ -5666,9 +5740,8 @@ async function tn82CloudSave(){
   tn82IsSaving=true;
   try{
     tn82EnsureDb();
-    db.meta=db.meta||{};
+    if(!db.meta.updatedAt)tn82TouchLocal();
     db.meta.lastDeviceId=tn82DeviceId();
-    db.meta.updatedAt=new Date().toISOString();
     tn82Persist();
     const {data,error}=await s.rpc("tn_save",{p_email:tn82Email(),p_password_hash:tn82Hash(),p_data:db});
     if(error)throw error;
@@ -5695,12 +5768,16 @@ async function tn82CloudLoad(force=false){
     if(error)throw error;
     if(!data || data.ok===false)throw new Error(data?.error||"Cloud load failed");
     const cloud=data.data||{};
+    const cloudUpdated=data.updated_at || cloud.meta?.updatedAt || "";
+    const localUpdated=db.meta?.updatedAt || tn82LastLocalChangeAt || "";
+    const cloudIsNewer=cloudUpdated && (!localUpdated || new Date(cloudUpdated) >= new Date(localUpdated));
     const cloudJson=JSON.stringify(cloud);
     const localJson=JSON.stringify(db||{});
-    if(force || cloudJson!==localJson){
+    if((force || cloudJson!==localJson) && (force || cloudIsNewer)){
       Object.assign(db,cloud);
       tn82EnsureDb();
       tn82Persist();
+      tn82RenderPlaylistSelects();
       tn82RenderLibrary();
       tn82RenderPlaylistManager();
       tn82UpdateCounts();
@@ -5743,8 +5820,9 @@ function tn82RemoveDemoAppleIfOnlySample(){
   const front=String(w.front||"").toLowerCase();
   const back=String(w.back||"");
   const looksDemo=(front==="apple" && (back==="りんご"||back==="リンゴ"));
-  if(looksDemo && !w.userCreated && !w.memo){
+  if(looksDemo){
     db.words=[];
+    tn82TouchLocal();
     tn82Persist();
   }
 }
@@ -5757,6 +5835,7 @@ function tn82Boot(){
   tn82BindAdd();
   tn82BindLibraryFilters();
   tn82ForceDefaultLanguages();
+  tn82RenderPlaylistSelects();
   tn82RenderLibrary();
   tn82RenderPlaylistManager();
   tn82UpdateCounts();

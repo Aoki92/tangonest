@@ -2,7 +2,7 @@
   "use strict";
   document.documentElement.dataset.tnFix = "loading";
 
-  const DATA_KEY = "vocabrise_production_stable_v1";
+  const DATA_KEY = "tangonest_production_stable_v1";
   const PAGE_KEY = "tangonest_last_page_v2";
   const EMAIL_KEY = "tangonest_sync_email_v1";
   const HASH_KEY = "tangonest_sync_hash_v1";
@@ -48,12 +48,9 @@
     data.meta = data.meta || {};
     data.prefs.frontLang = "en-US";
     data.prefs.backLang = "ja-JP";
-    if(!data.lists.length){
-      data.lists.push({id:"starter",name:"New Playlist",createdAt:new Date().toISOString()});
-    }
     data.words = data.words.filter(Boolean).map(word => {
       word.id = word.id || id("w");
-      word.listId = word.listId || data.lists[0].id;
+      word.listId = word.listId || data.lists[0]?.id || "";
       word.frontLang = "en-US";
       word.backLang = "ja-JP";
       word.status = word.status || "new";
@@ -96,7 +93,7 @@
 
   function listName(listId){
     const data = ensureDb();
-    return data.lists.find(list => list.id === listId)?.name || "New Playlist";
+    return data.lists.find(list => list.id === listId)?.name || "No playlist";
   }
 
   function normalizePage(page){
@@ -135,15 +132,15 @@
 
   function forceLanguages(){
     const data = ensureDb();
-    data.prefs.frontLang = "en-US";
-    data.prefs.backLang = "ja-JP";
+    data.prefs.frontLang = data.prefs.frontLang || "en-US";
+    data.prefs.backLang = data.prefs.backLang || "ja-JP";
     ["frontLang","bulkFrontLang","editFrontLang"].forEach(id => {
       const el = $(id);
-      if(el && [...el.options].some(option => option.value === "en-US"))el.value = "en-US";
+      if(el && !el.value && [...el.options].some(option => option.value === data.prefs.frontLang))el.value = data.prefs.frontLang;
     });
     ["backLang","bulkBackLang","editBackLang"].forEach(id => {
       const el = $(id);
-      if(el && [...el.options].some(option => option.value === "ja-JP"))el.value = "ja-JP";
+      if(el && !el.value && [...el.options].some(option => option.value === data.prefs.backLang))el.value = data.prefs.backLang;
     });
     if($("front"))$("front").placeholder = "apple";
     if($("back"))$("back").placeholder = "りんご";
@@ -169,6 +166,12 @@
       option.textContent = list.name || "New Playlist";
       el.appendChild(option);
     });
+    if(!all && !data.lists.length){
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "No playlist yet";
+      el.appendChild(option);
+    }
     if([...el.options].some(option => option.value === current))el.value = current;
     else if(all)el.value = "all";
     else if(data.lists[0])el.value = data.lists[0].id;
@@ -282,6 +285,9 @@
     const front = String($("front")?.value || "").trim();
     const back = String($("back")?.value || "").trim();
     if(!front || !back){toast("Front and Back are required");return false;}
+    if(!data.lists.length){
+      data.lists.push({id:id("list"),name:"New Playlist",createdAt:new Date().toISOString()});
+    }
     let listId = $("addList")?.value || data.lists[0].id;
     if(!data.lists.some(list => list.id === listId))listId = data.lists[0].id;
     data.words.push({
@@ -376,6 +382,48 @@
     }
   }
 
+  function isCreatePlaylistButton(button){
+    const text = String(button?.textContent || "").trim().toLowerCase();
+    const attr = String(button?.getAttribute("onclick") || "").toLowerCase();
+    return text === "create" && (attr.includes("createlist") || button.closest("#pageAdd"));
+  }
+
+  function isRenamePlaylistButton(button){
+    const text = String(button?.textContent || "").trim().toLowerCase();
+    const attr = String(button?.getAttribute("onclick") || "").toLowerCase();
+    return text === "rename" && (attr.includes("renamelist") || button.closest("#pageAdd") || button.classList.contains("tn82-rename-btn"));
+  }
+
+  function bindHardClickDelegation(){
+    if(window.__tnFixHardClickBound)return;
+    window.__tnFixHardClickBound = true;
+    document.documentElement.dataset.tnFixClicks = "bound";
+    document.addEventListener("click", event => {
+      const button = event.target?.closest?.("button");
+      if(!button)return;
+      if(isCreatePlaylistButton(button)){
+        event.preventDefault();
+        event.stopPropagation();
+        createPlaylist($("newList")?.value || "");
+        return;
+      }
+      if(isRenamePlaylistButton(button)){
+        event.preventDefault();
+        event.stopPropagation();
+        const row = button.closest(".tn82-playlist-row");
+        const rowInput = row?.querySelector(".tn82-playlist-input");
+        const rowId = button.dataset?.listId || rowInput?.dataset?.listId;
+        renamePlaylist(rowId || $("renameListSelect")?.value,rowInput?.value || $("renameListInput")?.value || "");
+        return;
+      }
+      if(button.id === "addWordBtn" || String(button.getAttribute("onclick") || "").includes("tnRegisterWordCritical")){
+        event.preventDefault();
+        event.stopPropagation();
+        addWord(event);
+      }
+    },true);
+  }
+
   function supabase(){
     try{if(window.tn74GetSupabase){const client = window.tn74GetSupabase(); if(client?.rpc)return client;}}catch(e){}
     try{if(window.tnSupabaseClient?.rpc)return window.tnSupabaseClient;}catch(e){}
@@ -467,9 +515,38 @@
   function updateCloudLabel(text,synced){
     const button = $("tn80HeaderCloud");
     if(button){
-      button.textContent = "Cloud: " + text;
+      button.textContent = "Auto Sync: " + text;
       button.classList.toggle("synced",!!synced);
     }
+    const panel = $("tnFixSyncPanel");
+    if(panel){
+      panel.classList.toggle("is-synced",!!synced);
+      const status = panel.querySelector("[data-sync-status]");
+      if(status)status.textContent = hasSession() ? text : "Local only";
+      const account = panel.querySelector("[data-sync-account]");
+      if(account)account.textContent = hasSession() ? localStorage.getItem(EMAIL_KEY) : "Login to sync PC and phone";
+    }
+  }
+
+  function renderSimpleSyncPanel(){
+    const host = $("pageManage")?.querySelector(".card") || $("pageManage");
+    if(!host || $("tnFixSyncPanel"))return;
+    const panel = document.createElement("div");
+    panel.id = "tnFixSyncPanel";
+    panel.className = "tn-fix-sync-panel";
+    panel.innerHTML = `
+      <div>
+        <span class="tn-fix-kicker">AUTO SYNC</span>
+        <strong data-sync-status>${hasSession() ? "Ready" : "Local only"}</strong>
+        <p data-sync-account>${hasSession() ? esc(localStorage.getItem(EMAIL_KEY)) : "Login to sync PC and phone"}</p>
+      </div>
+      <button type="button" data-sync-now>Sync now</button>
+    `;
+    panel.querySelector("[data-sync-now]").onclick = () => {
+      updateCloudLabel("Syncing...",false);
+      cloudSave().then(() => cloudLoad(false));
+    };
+    host.prepend(panel);
   }
 
   function renderAll(){
@@ -477,6 +554,8 @@
     renderPlaylistSelects();
     renderPlaylistManager();
     renderLibrary();
+    renderSimpleSyncPanel();
+    updateCloudLabel(hasSession() ? "On" : "Local",hasSession());
     updateCounts();
     try{if(typeof renderHome === "function")renderHome();}catch(e){}
   }
@@ -487,6 +566,7 @@
       ensureDb();
       removeDemoApple();
       bind();
+      bindHardClickDelegation();
       renderAll();
       setTimeout(() => goPage(savedPage()),250);
       if(hasSession())setTimeout(() => cloudLoad(true),900);
