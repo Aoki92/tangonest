@@ -2,7 +2,7 @@
   "use strict";
 
   const PAGE_IDS = ["pageHome","pageAdd","pageWords","pageStudy","pageQuiz","pageAudio","pageManage","pagePlaylists","pageStudyHub","pageSearch"];
-  const MAIN_PAGES = new Set(["library","playlists","study","search","settings"]);
+  const MAIN_PAGES = new Set(["home","create","library","cards","quiz","listen","settings"]);
 
   const $ = id => document.getElementById(id);
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -120,15 +120,17 @@
 
   function configureNav(){
     const items = [
-      ["navHome","Home","library"],
-      ["navAdd","Playlists","playlists"],
-      ["navWords","Study","study"],
-      ["navStudy","Search","search"],
+      ["navHome","Home","home"],
+      ["navAdd","Create","create"],
+      ["navWords","Library","library"],
+      ["navStudy","Cards","cards"],
+      ["navQuiz","Quiz","quiz"],
+      ["navAudio","Listen","listen"],
       ["navManage","Settings","settings"],
-      ["mnavHome","Home","library"],
-      ["mnavAdd","Playlists","playlists"],
-      ["mnavWords","Study","study"],
-      ["mnavQuiz","Search","search"],
+      ["mnavHome","Home","home"],
+      ["mnavAdd","Create","create"],
+      ["mnavWords","Library","library"],
+      ["mnavQuiz","Quiz","quiz"],
       ["mnavManage","Settings","settings"]
     ];
     items.forEach(([id,label,page]) => {
@@ -142,7 +144,34 @@
     });
     ["navQuiz","navAudio"].forEach(id => {
       const button = $(id);
-      if(button)button.style.display = "none";
+      if(button)button.style.display = "";
+    });
+    configureMobileNav();
+  }
+
+  function configureMobileNav(){
+    const bar = document.querySelector(".mobile-tabbar");
+    if(!bar || bar.__tnStableSevenNav)return;
+    bar.__tnStableSevenNav = true;
+    bar.innerHTML = "";
+    [
+      ["Home","home"],
+      ["Create","create"],
+      ["Library","library"],
+      ["Cards","cards"],
+      ["Quiz","quiz"],
+      ["Listen","listen"],
+      ["Settings","settings"]
+    ].forEach(([label,page]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.dataset.tnPage = page;
+      button.onclick = event => {
+        event.preventDefault();
+        showPremiumPage(page);
+      };
+      bar.appendChild(button);
     });
   }
 
@@ -154,12 +183,14 @@
       if(!button)return;
       const label = String(button.textContent || "").trim().toLowerCase();
       const page = {
+        home:"home",
+        create:"create",
         library:"library",
-        playlists:"playlists",
-        study:"study",
-        search:"search",
+        cards:"cards",
+        quiz:"quiz",
+        listen:"listen",
         settings:"settings"
-      }[label];
+      }[label] || button.dataset?.tnPage;
       if(!page)return;
       event.preventDefault();
       event.stopPropagation();
@@ -170,29 +201,34 @@
 
   function targetFor(page){
     const normalized = String(page || "library").toLowerCase();
-    if(["home","library"].includes(normalized))return ["pageHome","library"];
-    if(["words","wordlist"].includes(normalized))return ["pageWords","library"];
+    if(["home"].includes(normalized))return ["pageHome","home"];
+    if(["words","wordlist","library"].includes(normalized))return ["pageWords","library"];
     if(["playlists","playlist"].includes(normalized))return ["pagePlaylists","playlists"];
     if(["study","studyhub"].includes(normalized))return ["pageStudyHub","study"];
-    if(["cards","card"].includes(normalized))return ["pageStudy","study"];
-    if(["quiz"].includes(normalized))return ["pageQuiz","study"];
-    if(["listen","audio"].includes(normalized))return ["pageAudio","study"];
+    if(["cards","card"].includes(normalized))return ["pageStudy","cards"];
+    if(["quiz"].includes(normalized))return ["pageQuiz","quiz"];
+    if(["listen","audio"].includes(normalized))return ["pageAudio","listen"];
     if(["search","dictionary"].includes(normalized))return ["pageSearch","search"];
     if(["settings","manage"].includes(normalized))return ["pageManage","settings"];
-    if(["add","create"].includes(normalized))return ["pageAdd",""];
+    if(["add","create"].includes(normalized))return ["pageAdd","create"];
     return ["pageWords","library"];
   }
 
   function setActiveNav(active){
     document.querySelectorAll(".nav button,.mobile-tabbar button").forEach(button => button.classList.remove("active"));
     const ids = {
-      library:["navHome","mnavHome"],
-      playlists:["navAdd","mnavAdd"],
-      study:["navWords","mnavWords"],
-      search:["navStudy","mnavQuiz"],
-      settings:["navManage","mnavManage"]
+      home:["navHome"],
+      create:["navAdd"],
+      library:["navWords"],
+      cards:["navStudy"],
+      quiz:["navQuiz"],
+      listen:["navAudio"],
+      settings:["navManage"]
     }[active] || [];
     ids.forEach(id => $(id)?.classList.add("active"));
+    document.querySelectorAll(".mobile-tabbar button").forEach(button => {
+      button.classList.toggle("active",button.dataset.tnPage === active);
+    });
   }
 
   function showPremiumPage(page){
@@ -202,7 +238,7 @@
     $(target)?.classList.add("active");
     if(nav)setActiveNav(nav);
     if(MAIN_PAGES.has(nav)){
-      try{ localStorage.setItem("tangonest_last_page_v2",nav === "library" ? "home" : nav); }catch(e){}
+      try{ localStorage.setItem("tangonest_last_page_v2",nav); }catch(e){}
     }
     renderPremium();
     if(target === "pageStudy"){
@@ -381,10 +417,8 @@
       if(typeof oldAppShow === "function")return oldAppShow(page);
     };
     renderPremium();
-    try{ localStorage.setItem("tangonest_last_page_v2","home"); }catch(e){}
-    setTimeout(() => showPremiumPage("library"),550);
-    setTimeout(() => showPremiumPage("library"),1700);
-    setInterval(renderPremium,1800);
+    const current = localStorage.getItem("tangonest_last_page_v2") || "home";
+    showPremiumPage(current === "search" || current === "study" ? "home" : current);
   }
 
   if(document.readyState === "loading")document.addEventListener("DOMContentLoaded",install);

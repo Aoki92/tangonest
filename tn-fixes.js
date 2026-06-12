@@ -603,10 +603,9 @@
   else boot();
   setTimeout(boot,500);
   setTimeout(boot,1500);
-  setInterval(() => { bind(); renderAll(); },2500);
-  setInterval(() => { if(document.visibilityState === "visible")cloudLoad(false); },3500);
-  window.addEventListener("focus",() => cloudLoad(false));
+  // Keep this legacy helper quiet after boot. Repeated render/cloud polling caused visible layout movement.
+  window.addEventListener("focus",() => { if(false)cloudLoad(false); });
   document.addEventListener("visibilitychange",() => {
-    if(document.visibilityState === "visible")cloudLoad(false);
+    // No automatic cloud load on visibility changes; cloud-first realtime handles sync without page jumps.
   });
 })();

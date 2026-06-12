@@ -756,7 +756,7 @@ function rotateHeroLanguages(){
     i++;
   };
   apply();
-  if(!window.__tnHeroLanguageTimer)window.__tnHeroLanguageTimer=setInterval(apply,3600);
+  // Disabled: changing hero text on a timer can shift layout while idle.
 }
 
 
@@ -3135,7 +3135,7 @@ function tnMaintainNoEmailGate(){
 setTimeout(tnNoEmailBoot,20);
 setTimeout(tnNoEmailBoot,250);
 setTimeout(tnMaintainNoEmailGate,600);
-setInterval(tnMaintainNoEmailGate,1200);
+setInterval(()=>{},1200);
 
 
 
@@ -3382,7 +3382,7 @@ if(typeof logoutTangoNest==="function" && !logoutTangoNest.__beta62Wrapped){
 
 // If the user is remembered, do not let older Supabase Auth listeners bring the login gate back.
 setInterval(()=>{
-  if(tnHasSavedSession() || tnIsGuestMode()) tnShowApp();
+  // Disabled: repeated auth gate forcing can cause visible layout flicker.
 },1000);
 
 
@@ -3882,9 +3882,7 @@ setTimeout(tn75Boot,0);
 setTimeout(tn75Boot,500);
 setTimeout(tn75Boot,1500);
 setInterval(()=>{
-  tn75WrapAdd();
-  tn75ForceDefaults();
-  tn75AddSyncButton();
+  // Disabled: legacy UI polling caused layout movement.
 },2000);
 window.tn75CloudSave=tn75CloudSave;
 window.tn75CloudLoad=tn75CloudLoad;
@@ -4114,19 +4112,15 @@ function tn76StartAutoSync(){
   setTimeout(()=>tn76CloudLoad({silent:true,force:true}),1000);
 
   setInterval(()=>{
-    if(document.visibilityState==="visible" && tn76HasSession()){
-      tn76CloudLoad({silent:true,force:false});
-    }
+    // Disabled: cloud-first realtime handles sync without polling.
   },TN76_SYNC_POLL_MS);
 
   window.addEventListener("focus",()=>{
-    if(tn76HasSession())tn76CloudLoad({silent:true,force:false});
+    // Disabled: cloud-first realtime handles sync without focus polling.
   });
 
   document.addEventListener("visibilitychange",()=>{
-    if(document.visibilityState==="visible" && tn76HasSession()){
-      tn76CloudLoad({silent:true,force:false});
-    }
+    // Disabled: cloud-first realtime handles sync without visibility polling.
   });
 
   // Before leaving, try to save recent changes.
@@ -4163,9 +4157,7 @@ setTimeout(tn76Boot,0);
 setTimeout(tn76Boot,500);
 setTimeout(tn76Boot,1500);
 setInterval(()=>{
-  tn76WrapAddWord();
-  tn76WrapPlaylistRename();
-  tn76AddAutoSyncLabel();
+  // Disabled: legacy UI polling caused layout movement.
 },2000);
 
 window.tn76CloudSave=tn76CloudSave;
@@ -4238,7 +4230,7 @@ function tn77UpdateLogoutButton(){
 setTimeout(tn77UpdateLogoutButton,0);
 setTimeout(tn77UpdateLogoutButton,500);
 setTimeout(tn77UpdateLogoutButton,1500);
-setInterval(tn77UpdateLogoutButton,1200);
+setInterval(()=>{},1200);
 
 window.tn77Logout=tn77Logout;
 
@@ -4429,7 +4421,6 @@ function tn78AddHeaderSmall(){
     mini.textContent="Cloud";
     mini.onclick=()=>{
       try{ if(typeof go==="function")go("settings"); }catch(e){}
-      setTimeout(()=>document.getElementById("tn78CloudBox")?.scrollIntoView({behavior:"smooth",block:"center"}),200);
       setTimeout(()=>tn78CheckCloud(false),300);
     };
     const badge=document.getElementById("syncStatusBadge");
@@ -4449,8 +4440,7 @@ setTimeout(tn78Boot,0);
 setTimeout(tn78Boot,800);
 setTimeout(tn78Boot,1800);
 setInterval(()=>{
-  tn78UpdateLocalView();
-  tn78AddHeaderSmall();
+  // Disabled: legacy cloud badge polling caused layout movement.
 },2500);
 
 window.tn78CheckCloud=tn78CheckCloud;
@@ -4527,8 +4517,6 @@ function tn79AddCloudButtonTop(){
       try{ if(typeof go==="function")go("settings"); }catch(e){}
       setTimeout(()=>{
         tn79MoveCloudBoxToTop();
-        const box=document.getElementById("tn78CloudBox");
-        if(box)box.scrollIntoView({behavior:"smooth",block:"start"});
         try{ if(typeof tn78CheckCloud==="function")tn78CheckCloud(false); }catch(e){}
       },200);
     };
@@ -4558,10 +4546,7 @@ setTimeout(tn79Boot,0);
 setTimeout(tn79Boot,500);
 setTimeout(tn79Boot,1500);
 setInterval(()=>{
-  tn79AddCloudButtonTop();
-  if(document.querySelector(".active") || location.href){
-    tn79MoveCloudBoxToTop();
-  }
+  // Disabled: legacy cloud box relocation caused page jumps.
 },2000);
 
 
@@ -4865,9 +4850,7 @@ setTimeout(tn80Boot,0);
 setTimeout(tn80Boot,500);
 setTimeout(tn80Boot,1500);
 setInterval(()=>{
-  tn80ForcePanelVisible();
-  tn80UpdatePanelLocal();
-  tn80WrapMutationsForCloud();
+  // Disabled: settings panel polling can shift layout. Manual/realtime sync remains available.
 },2000);
 
 window.tn80CheckCloud=tn80CheckCloud;
@@ -5212,15 +5195,11 @@ setTimeout(tn81Boot,0);
 setTimeout(tn81Boot,500);
 setTimeout(tn81Boot,1500);
 setInterval(()=>{
-  tn81WrapGo();
-  tn81BindLogoutButtons();
-  tn81ForceDefaultLanguages();
-  tn81CompactCloudPanel();
-  tn81WrapMutations();
+  // Disabled: repeated legacy UI wrapping caused layout instability.
 },1500);
 
-window.addEventListener("focus",()=>{ if(tn81HasSession())tn81CloudLoad(); });
-document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && tn81HasSession())tn81CloudLoad(); });
+window.addEventListener("focus",()=>{});
+document.addEventListener("visibilitychange",()=>{});
 
 window.tn81CloudSave=tn81CloudSave;
 window.tn81CloudLoad=tn81CloudLoad;
@@ -5866,22 +5845,15 @@ setTimeout(tn82Boot,0);
 setTimeout(tn82Boot,400);
 setTimeout(tn82Boot,1200);
 setInterval(()=>{
-  tn82WrapGo();
-  tn82BindAdd();
-  tn82BindLibraryFilters();
-  tn82ForceDefaultLanguages();
-  tn82RenderLibrary();
-  tn82RenderPlaylistManager();
+  // Disabled: repeated legacy rendering caused visible layout movement.
 },2000);
 
 setInterval(()=>{
-  if(document.visibilityState==="visible" && tn82HasSession()){
-    tn82CloudLoad(false);
-  }
+  // Disabled: cloud-first realtime handles sync without layout polling.
 },5000);
 
-window.addEventListener("focus",()=>{if(tn82HasSession())tn82CloudLoad(false);});
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&tn82HasSession())tn82CloudLoad(false);});
+window.addEventListener("focus",()=>{});
+document.addEventListener("visibilitychange",()=>{});
 
 window.tn82CloudSave=tn82CloudSave;
 window.tn82CloudLoad=tn82CloudLoad;

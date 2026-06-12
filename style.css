@@ -4058,6 +4058,140 @@ textarea{
 }
 
 /* =========================================================
+   TangoNest Stability Fix
+   Prevent unintended movement, auto layout shifts, and shaking.
+========================================================= */
+
+html{
+  overflow-x:hidden!important;
+  scrollbar-gutter:stable!important;
+}
+
+body{
+  overflow-x:hidden!important;
+}
+
+*,
+*::before,
+*::after{
+  animation:none!important;
+  scroll-behavior:auto!important;
+}
+
+.app,
+.header,
+.nav,
+.page,
+.card,
+.hero-concept,
+.hero-copy,
+.hero-visual,
+.phone-mock,
+.floating-card,
+.mobile-tabbar,
+.tn-premium-add,
+.tn80-header-cloud,
+.stat{
+  transition:none!important;
+  transform:none!important;
+}
+
+.app{
+  contain:layout style!important;
+}
+
+.header{
+  height:72px!important;
+  min-height:72px!important;
+  max-height:72px!important;
+}
+
+.nav{
+  height:62px!important;
+  min-height:62px!important;
+  max-height:62px!important;
+  overflow:hidden!important;
+}
+
+.nav button{
+  flex:1 1 0!important;
+  min-width:0!important;
+}
+
+.stats{
+  min-height:40px!important;
+}
+
+.tn80-header-cloud{
+  min-width:132px!important;
+  justify-content:center!important;
+  white-space:nowrap!important;
+}
+
+.tn-premium-header-add{
+  min-width:98px!important;
+  justify-content:center!important;
+  white-space:nowrap!important;
+}
+
+.hero-concept{
+  transform:none!important;
+}
+
+.phone-mock,
+.floating-card,
+.hero-bg-word,
+.word-a,
+.word-b,
+.word-c{
+  animation:none!important;
+  transform:none!important;
+}
+
+.tn-premium-add{
+  width:auto!important;
+  min-width:132px!important;
+  max-width:180px!important;
+  justify-content:center!important;
+  contain:layout paint!important;
+}
+
+.tn82-library-mount,
+#tn82LibraryMount,
+#tnPremiumLibraryIntro,
+#pageManage > .card,
+#pageWords .card{
+  overflow-anchor:none!important;
+}
+
+@media(max-width:920px){
+  .header{
+    height:64px!important;
+    min-height:64px!important;
+    max-height:64px!important;
+  }
+
+  .mobile-tabbar{
+    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    height:64px!important;
+    min-height:64px!important;
+    max-height:64px!important;
+    overflow:hidden!important;
+  }
+
+  .mobile-tabbar button{
+    min-width:0!important;
+    padding:0 2px!important;
+    font-size:10px!important;
+    white-space:nowrap!important;
+  }
+
+  .tn80-header-cloud{
+    min-width:116px!important;
+  }
+}
+
+/* =========================================================
    TangoNest Beta82 Visual Restore
    Final UI override: polished top-nav, blue identity, unified width.
 ========================================================= */

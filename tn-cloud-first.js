@@ -13,6 +13,8 @@
   let loading = false;
   let booted = false;
   let authListenerBound = false;
+  let lastCloudSignature = "";
+  let realtimeLoadTimer = null;
 
   const $ = id => document.getElementById(id);
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -167,6 +169,13 @@
       updatedAt:row.updated_at
     }));
     persist();
+  }
+
+  function cloudSignature(playlists,words){
+    return JSON.stringify({
+      playlists:(playlists || []).map(row => [row.id,row.name,row.updated_at,row.created_at]),
+      words:(words || []).map(row => [row.id,row.playlist_id,row.front,row.back,row.front_lang,row.back_lang,row.pos,row.gender,row.tags,row.memo,row.status,row.saved,row.level,row.next_review,row.updated_at,row.created_at])
+    });
   }
 
   function isDemoWord(word){
@@ -377,6 +386,12 @@
       if(playlistsResult.error)throw playlistsResult.error;
       const wordsResult = await client.from("tn_words").select("*").eq("user_id",user.id).order("created_at",{ascending:true});
       if(wordsResult.error)throw wordsResult.error;
+      const signature = cloudSignature(playlistsResult.data || [],wordsResult.data || []);
+      if(signature === lastCloudSignature){
+        updateCloudUi("Auto Sync: On",true);
+        return;
+      }
+      lastCloudSignature = signature;
       cloudToDb(playlistsResult.data || [],wordsResult.data || []);
       await removeDemoSeedEverywhere();
       renderAll();
@@ -508,9 +523,14 @@
     }
     channel = client
       .channel("tangonest-cloud-first-" + user.id)
-      .on("postgres_changes",{event:"*",schema:"public",table:"tn_playlists",filter:"user_id=eq." + user.id},() => loadCloud())
-      .on("postgres_changes",{event:"*",schema:"public",table:"tn_words",filter:"user_id=eq." + user.id},() => loadCloud())
+      .on("postgres_changes",{event:"*",schema:"public",table:"tn_playlists",filter:"user_id=eq." + user.id},scheduleRealtimeLoad)
+      .on("postgres_changes",{event:"*",schema:"public",table:"tn_words",filter:"user_id=eq." + user.id},scheduleRealtimeLoad)
       .subscribe();
+  }
+
+  function scheduleRealtimeLoad(){
+    clearTimeout(realtimeLoadTimer);
+    realtimeLoadTimer = setTimeout(() => loadCloud(),350);
   }
 
   async function afterLogin(newSession){
