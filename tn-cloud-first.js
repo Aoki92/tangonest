@@ -169,18 +169,46 @@
     persist();
   }
 
-  async function removeDemoAppleEverywhere(){
+  function isDemoWord(word){
+    const front = String(word.front || "").trim().toLowerCase();
+    const back = String(word.back || "").trim();
+    return (
+      (front === "apple" && ["りんご","リンゴ"].includes(back)) ||
+      (front === "谢谢" && back === "ありがとう")
+    );
+  }
+
+  function isDemoPlaylist(list){
+    const name = String(list.name || "").trim().toLowerCase();
+    return name === "chinese" || name === "new playlist";
+  }
+
+  async function removeDemoSeedEverywhere(){
     const data = ensureDb();
-    const localDemo = data.words.filter(word => String(word.front || "").toLowerCase() === "apple" && ["りんご","リンゴ"].includes(String(word.back || "")));
-    if(localDemo.length){
-      data.words = data.words.filter(word => !localDemo.includes(word));
+    const demoWords = data.words.filter(isDemoWord);
+    const demoWordIds = new Set(demoWords.map(word => word.id).filter(Boolean));
+    const remainingWords = data.words.filter(word => !demoWordIds.has(word.id));
+    const demoListIds = new Set(
+      data.lists
+        .filter(isDemoPlaylist)
+        .filter(list => !remainingWords.some(word => word.listId === list.id))
+        .map(list => list.id)
+    );
+
+    if(demoWordIds.size || demoListIds.size){
+      data.words = remainingWords;
+      data.lists = data.lists.filter(list => !demoListIds.has(list.id));
       persist();
     }
+
     if(user && client){
-      for(const word of localDemo){
+      for(const word of demoWords){
         if(word.id){
           await client.from("tn_words").delete().eq("id",word.id).eq("user_id",user.id);
         }
+      }
+      for(const listId of demoListIds){
+        await client.from("tn_playlists").delete().eq("id",listId).eq("user_id",user.id);
       }
     }
   }
@@ -350,7 +378,7 @@
       const wordsResult = await client.from("tn_words").select("*").eq("user_id",user.id).order("created_at",{ascending:true});
       if(wordsResult.error)throw wordsResult.error;
       cloudToDb(playlistsResult.data || [],wordsResult.data || []);
-      await removeDemoAppleEverywhere();
+      await removeDemoSeedEverywhere();
       renderAll();
       updateCloudUi("Auto Sync: On",true);
     }catch(error){
@@ -543,8 +571,12 @@
       try{ client.removeChannel(channel); }catch(e){}
       channel = null;
     }
+    ["tangonest_sync_email_v1","tangonest_sync_hash_v1","tangonest_sync_mode_v1","tangonest_guest_mode"].forEach(key => {
+      try{ localStorage.removeItem(key); }catch(e){}
+    });
     showAuth();
     updateCloudUi("Auto Sync: Login",false);
+    setTimeout(() => $("tn73Email")?.focus(),80);
   }
 
   function bind(){

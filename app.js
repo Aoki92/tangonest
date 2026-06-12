@@ -5573,6 +5573,9 @@ function tn82AddWord(ev){
     return false;
   }
 
+  if(!db.lists.length){
+    db.lists.push({id:"list_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8),name:"New Playlist",createdAt:new Date().toISOString()});
+  }
   let listId=document.getElementById("addList")?.value || db.lists[0].id;
   if(!db.lists.some(l=>l.id===listId))listId=db.lists[0].id;
 
@@ -5809,19 +5812,30 @@ function tn82UpdateCloudMini(text,state){
   }
 }
 
-/* ---------- Initial sample/りんご cleanup ----------
-   Do not delete user's real word "りんご" if they already have more data.
-   Only remove one sample if it is the only word and appears to be starter/demo.
+/* ---------- Initial demo data cleanup ----------
+   Removes the old bundled demo words and empty demo playlists.
 */
-function tn82RemoveDemoAppleIfOnlySample(){
+function tn82IsDemoWord(w){
+  const front=String(w.front||"").trim().toLowerCase();
+  const back=String(w.back||"").trim();
+  return (
+    (front==="apple" && (back==="りんご"||back==="リンゴ")) ||
+    (front==="谢谢" && back==="ありがとう")
+  );
+}
+function tn82RemoveDemoSeedData(){
   tn82EnsureDb();
-  if(db.words.length!==1)return;
-  const w=db.words[0];
-  const front=String(w.front||"").toLowerCase();
-  const back=String(w.back||"");
-  const looksDemo=(front==="apple" && (back==="りんご"||back==="リンゴ"));
-  if(looksDemo){
-    db.words=[];
+  const demoWordIds=new Set(db.words.filter(tn82IsDemoWord).map(w=>w.id).filter(Boolean));
+  const remainingWords=db.words.filter(w=>!demoWordIds.has(w.id));
+  const demoListIds=new Set(
+    db.lists
+      .filter(l=>["chinese","new playlist"].includes(String(l.name||"").trim().toLowerCase()))
+      .filter(l=>!remainingWords.some(w=>w.listId===l.id))
+      .map(l=>l.id)
+  );
+  if(demoWordIds.size || demoListIds.size){
+    db.words=remainingWords;
+    db.lists=db.lists.filter(l=>!demoListIds.has(l.id));
     tn82TouchLocal();
     tn82Persist();
   }
@@ -5830,7 +5844,7 @@ function tn82RemoveDemoAppleIfOnlySample(){
 /* ---------- Boot ---------- */
 function tn82Boot(){
   tn82LoadLocal();
-  tn82RemoveDemoAppleIfOnlySample();
+  tn82RemoveDemoSeedData();
   tn82WrapGo();
   tn82BindAdd();
   tn82BindLibraryFilters();

@@ -317,12 +317,28 @@
     return false;
   }
 
-  function removeDemoApple(){
+  function isDemoWord(word){
+    const front = String(word.front || "").trim().toLowerCase();
+    const back = String(word.back || "").trim();
+    return (
+      (front === "apple" && ["りんご","リンゴ"].includes(back)) ||
+      (front === "谢谢" && back === "ありがとう")
+    );
+  }
+
+  function removeDemoSeedData(){
     const data = ensureDb();
-    if(data.words.length !== 1)return;
-    const word = data.words[0];
-    if(String(word.front || "").toLowerCase() === "apple" && ["りんご","リンゴ"].includes(String(word.back || ""))){
-      data.words = [];
+    const demoWordIds = new Set(data.words.filter(isDemoWord).map(word => word.id).filter(Boolean));
+    const remainingWords = data.words.filter(word => !demoWordIds.has(word.id));
+    const demoListIds = new Set(
+      data.lists
+        .filter(list => ["chinese","new playlist"].includes(String(list.name || "").trim().toLowerCase()))
+        .filter(list => !remainingWords.some(word => word.listId === list.id))
+        .map(list => list.id)
+    );
+    if(demoWordIds.size || demoListIds.size){
+      data.words = remainingWords;
+      data.lists = data.lists.filter(list => !demoListIds.has(list.id));
       touch();
     }
   }
@@ -564,7 +580,7 @@
     try{
       document.documentElement.dataset.tnFix = "booting";
       ensureDb();
-      removeDemoApple();
+      removeDemoSeedData();
       bind();
       bindHardClickDelegation();
       renderAll();
