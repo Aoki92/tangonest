@@ -105,16 +105,27 @@
     button.innerHTML = `<span>+</span><b>Add word</b>`;
     button.onclick = () => showPremiumPage("add");
     app.appendChild(button);
+
+    const stats = document.querySelector(".stats");
+    if(stats && !$("tnPremiumHeaderAdd")){
+      const headerButton = document.createElement("button");
+      headerButton.id = "tnPremiumHeaderAdd";
+      headerButton.className = "tn-premium-header-add";
+      headerButton.type = "button";
+      headerButton.textContent = "+ Add word";
+      headerButton.onclick = () => showPremiumPage("add");
+      stats.insertBefore(headerButton,stats.firstChild);
+    }
   }
 
   function configureNav(){
     const items = [
-      ["navHome","Library","library"],
+      ["navHome","Home","library"],
       ["navAdd","Playlists","playlists"],
       ["navWords","Study","study"],
       ["navStudy","Search","search"],
       ["navManage","Settings","settings"],
-      ["mnavHome","Library","library"],
+      ["mnavHome","Home","library"],
       ["mnavAdd","Playlists","playlists"],
       ["mnavWords","Study","study"],
       ["mnavQuiz","Search","search"],
@@ -159,7 +170,8 @@
 
   function targetFor(page){
     const normalized = String(page || "library").toLowerCase();
-    if(["home","words","library"].includes(normalized))return ["pageWords","library"];
+    if(["home","library"].includes(normalized))return ["pageHome","library"];
+    if(["words","wordlist"].includes(normalized))return ["pageWords","library"];
     if(["playlists","playlist"].includes(normalized))return ["pagePlaylists","playlists"];
     if(["study","studyhub"].includes(normalized))return ["pageStudyHub","study"];
     if(["cards","card"].includes(normalized))return ["pageStudy","study"];
@@ -190,7 +202,7 @@
     $(target)?.classList.add("active");
     if(nav)setActiveNav(nav);
     if(MAIN_PAGES.has(nav)){
-      try{ localStorage.setItem("tangonest_last_page_v2",nav === "library" ? "library" : nav); }catch(e){}
+      try{ localStorage.setItem("tangonest_last_page_v2",nav === "library" ? "home" : nav); }catch(e){}
     }
     renderPremium();
     if(target === "pageStudy"){
@@ -217,8 +229,8 @@
       <div class="tn-library-hero">
         <div>
           <span class="tn-kicker">Library</span>
-          <h2>Your vocabulary collection</h2>
-          <p>Words, meanings, playlists, and practice modes in one calm place.</p>
+          <h2>Your vocabulary library</h2>
+          <p>Collect words like tracks, organize them into playlists, and come back when you are ready to study.</p>
         </div>
         <button type="button" onclick="appShow('add')">Add word</button>
       </div>
@@ -369,10 +381,9 @@
       if(typeof oldAppShow === "function")return oldAppShow(page);
     };
     renderPremium();
-    setTimeout(() => {
-      const saved = localStorage.getItem("tangonest_last_page_v2");
-      showPremiumPage(saved && saved !== "home" ? saved : "library");
-    },550);
+    try{ localStorage.setItem("tangonest_last_page_v2","home"); }catch(e){}
+    setTimeout(() => showPremiumPage("library"),550);
+    setTimeout(() => showPremiumPage("library"),1700);
     setInterval(renderPremium,1800);
   }
 

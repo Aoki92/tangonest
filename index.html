@@ -4,9 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>TangoNest</title>
-<link rel="stylesheet" href="./style.css?v=20260612-premium2">
+<link rel="stylesheet" href="./style.css?v=20260612-restore3">
 
 <script>
+(function(){
+  var RESET_KEY = "tangonest_ui_reset_20260612_restore3";
+  try{
+    if(localStorage.getItem(RESET_KEY) !== "done"){
+      var remove = [];
+      for(var i=0;i<localStorage.length;i++){
+        var key = localStorage.key(i);
+        if(!key)continue;
+        var lower = key.toLowerCase();
+        if(
+          key !== RESET_KEY &&
+          (lower.indexOf("tangonest") !== -1 ||
+           lower.indexOf("supabase.auth") !== -1 ||
+           lower.indexOf("sb-bkbteylavujkfiwuqwdq-auth-token") !== -1)
+        ){
+          remove.push(key);
+        }
+      }
+      remove.forEach(function(key){ localStorage.removeItem(key); });
+      localStorage.setItem(RESET_KEY,"done");
+    }
+  }catch(e){}
+})();
+
 (function(){
   try{
     var email=localStorage.getItem("tangonest_sync_email_v1");
@@ -340,7 +364,7 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
 </script>
 
 <script src="./app.js"></script>
-<script src="./tn-fixes.js?v=20260612-premium2"></script>
+<script src="./tn-fixes.js?v=20260612-restore3"></script>
 
 
 <script id="tn73EmergencyScript">
@@ -369,7 +393,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 })();
 </script>
 
-<script src="./tn-cloud-first.js?v=20260612-premium2"></script>
-<script src="./tn-premium-ui.js?v=20260612-premium2"></script>
+<script src="./tn-cloud-first.js?v=20260612-restore3"></script>
+<script src="./tn-premium-ui.js?v=20260612-restore3"></script>
 </body>
 </html>
