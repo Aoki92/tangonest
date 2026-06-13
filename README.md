@@ -1,4 +1,4 @@
-# TangoNest Beta82 Core Function Final
+# TangoNest Beta83 Library Management Patch
 
 ## Fixed
 - Library All shows every registered word.
@@ -18,11 +18,19 @@ Open Create, reload, and it must stay on Create.
 
 ## Beta83 — Patch Notes
 
-### App name unified: VocabRise → TangoNest
+### Library management improvements
+- Added Library search by front word, back meaning, memo/example, tags, POS, and playlist name.
+- Added filters for language, alphabet/first letter, playlist, POS, and status.
+- Added a reset filters button and clean "No words found" empty state.
+- Added visible playlist menu buttons for deletion.
+- Added right-click playlist context menu with "Delete playlist".
+- Deleting a playlist keeps its words in Library by moving them to a safe default playlist.
+- Cloud sync is triggered after playlist deletion when available.
+
+### App name unified
 - All user-visible strings now read TangoNest.
 - Backup download filename changed to `tangonest_backup_YYYY-MM-DD.json`.
-- Internal JS variable `VR_SESSION_KEY` renamed to `TN_SESSION_KEY`.
-- localStorage key `vocabrise_production_stable_v1` kept as-is to preserve existing user data.
+- Legacy localStorage key is kept as-is to preserve existing user data.
 - style.css comments updated.
 
 ### Chinese default playlist removed
@@ -45,8 +53,9 @@ Root causes identified and resolved:
 | Auth overlay remained interactive after login in tn-fixes.js | `goPage()` now force-hides auth element before page transition |
 
 ### Files changed
-- `index.html` — mobile login fix, Chinese card removed, VocabRise removed
-- `app.js` — backup filename, VR_SESSION_KEY → TN_SESSION_KEY
-- `style.css` — comment-only VocabRise references removed
+- `index.html` — mobile login fix, Chinese card removed, Library management script added
+- `app.js` — backup filename and session naming cleanup
+- `style.css` — Library search/filter/menu/modal styles
 - `tn-fixes.js` — goPage auth-hide fix, DATA_KEY comment added
 - `tn-cloud-first.js` — showApp scroll reset, showAuth focus delay, LOCAL_KEY comment added
+- `tn-library-management.js` — playlist delete, right-click menu, Library search/filter logic

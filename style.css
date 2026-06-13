@@ -3362,3 +3362,52 @@ body{
   border-color:#397ec3!important;
   box-shadow:0 0 0 4px rgba(57,126,195,.13)!important;
 }
+
+/* =========================================================
+   TangoNest Beta83 Library Management
+   Playlist deletion + roster-style search filters.
+========================================================= */
+
+.tn-library-tools{margin:0 28px 20px!important;padding:16px!important;border:1px solid var(--line,#dfe8f4)!important;border-radius:20px!important;background:rgba(255,255,255,.78)!important}
+.tn-library-search-wrap label{display:block!important;margin:0 0 8px!important;color:var(--sub,#667085)!important;font-size:13px!important;font-weight:700!important}
+.tn-library-search-wrap input{width:100%!important;min-height:52px!important;border-radius:16px!important;border:1px solid var(--line,#dfe8f4)!important;background:#fff!important;padding:0 16px!important;font-size:16px!important;box-shadow:none!important}
+.tn-library-filter-row{display:flex!important;flex-wrap:wrap!important;gap:10px!important;margin-top:12px!important}
+.tn-library-filter-row select,.tn-library-filter-row button{width:auto!important;min-width:132px!important;min-height:42px!important;border-radius:999px!important;border:1px solid var(--line,#dfe8f4)!important;background:#fff!important;color:var(--text,#111827)!important;padding:0 13px!important;font-size:14px!important;font-weight:650!important;box-shadow:none!important}
+#tnClearFilters{min-width:86px!important}
+#tnClearFilters.is-active{background:var(--text,#111827)!important;color:#fff!important;border-color:var(--text,#111827)!important}
+.tn-library-playlist-block{margin:0 28px 20px!important}
+.tn-library-block-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin-bottom:10px!important}
+.tn-library-block-head h3{margin:0!important;font-size:18px!important;font-weight:760!important;letter-spacing:-.02em!important}
+.tn-library-block-head span{color:var(--sub,#667085)!important;font-size:13px!important;font-weight:650!important}
+.tn-library-playlist-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
+.tn-library-playlist-card{display:grid!important;grid-template-columns:minmax(0,1fr) 42px!important;align-items:center!important;gap:10px!important;min-width:0!important;padding:12px!important;border:1px solid var(--line,#dfe8f4)!important;border-radius:18px!important;background:#fff!important}
+.tn-playlist-open{display:flex!important;align-items:center!important;gap:12px!important;min-width:0!important;min-height:56px!important;padding:0!important;border:0!important;border-radius:14px!important;background:transparent!important;color:var(--text,#111827)!important;text-align:left!important;box-shadow:none!important}
+.tn-playlist-art{flex:0 0 auto!important;width:48px!important;height:48px!important;display:grid!important;place-items:center!important;border-radius:14px!important;background:#eef4fa!important;color:#24506a!important;font-size:14px!important;font-weight:800!important}
+.tn-playlist-copy{min-width:0!important}
+.tn-playlist-copy strong,.tn-playlist-copy em{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.tn-playlist-copy strong{font-size:16px!important;font-weight:760!important}
+.tn-playlist-copy em{margin-top:3px!important;color:var(--sub,#667085)!important;font-size:13px!important;font-style:normal!important;font-weight:650!important}
+.tn-playlist-menu-btn{width:40px!important;min-width:40px!important;height:40px!important;min-height:40px!important;padding:0!important;border-radius:999px!important;border:1px solid var(--line,#dfe8f4)!important;background:#fff!important;color:var(--sub,#667085)!important;box-shadow:none!important}
+.tn-library-no-results,.tn-library-empty-inline{margin:0 28px 24px!important;padding:24px!important;border:1px dashed var(--line,#dfe8f4)!important;border-radius:18px!important;background:#fff!important;color:var(--sub,#667085)!important}
+.tn-library-no-results h3{margin:0 0 6px!important;color:var(--text,#111827)!important;font-size:20px!important}
+.tn-library-no-results p{margin:0!important}
+.tn-context-menu{position:fixed!important;z-index:9999!important;width:190px!important;padding:6px!important;border:1px solid rgba(0,0,0,.08)!important;border-radius:14px!important;background:#fff!important;box-shadow:0 18px 48px rgba(0,0,0,.16)!important}
+.tn-context-menu button{width:100%!important;min-height:40px!important;padding:0 12px!important;border:0!important;border-radius:10px!important;background:transparent!important;color:#8f2f2f!important;text-align:left!important;font-weight:700!important}
+.tn-context-menu button:hover{background:#fff3f3!important}
+.tn-delete-modal{position:fixed!important;inset:0!important;z-index:10000!important;display:none!important;align-items:center!important;justify-content:center!important;padding:20px!important;background:rgba(23,23,23,.34)!important}
+.tn-delete-modal.show{display:flex!important}
+.tn-delete-dialog{width:min(440px,100%)!important;padding:24px!important;border-radius:24px!important;background:#fff!important;color:var(--text,#111827)!important;box-shadow:0 28px 90px rgba(0,0,0,.22)!important}
+.tn-delete-dialog h2{margin:0 0 10px!important;font-size:24px!important;font-weight:780!important;letter-spacing:-.03em!important}
+.tn-delete-dialog p{margin:0 0 14px!important;color:var(--sub,#667085)!important;line-height:1.55!important}
+.tn-delete-dialog strong{display:block!important;margin-bottom:18px!important;padding:12px 14px!important;border-radius:14px!important;background:#eef4fa!important}
+.tn-delete-actions{display:flex!important;justify-content:flex-end!important;gap:10px!important}
+.tn-delete-actions button{min-height:44px!important;padding:0 16px!important;border-radius:999px!important;border:1px solid var(--line,#dfe8f4)!important;background:#fff!important;color:var(--text,#111827)!important;font-weight:720!important}
+.tn-delete-actions [data-confirm-delete]{background:#8f2f2f!important;color:#fff!important;border-color:#8f2f2f!important}
+
+@media(max-width:720px){
+  .tn-library-tools,.tn-library-playlist-block,.tn-library-no-results,.tn-library-empty-inline{margin-left:18px!important;margin-right:18px!important}
+  .tn-library-filter-row{flex-wrap:nowrap!important;overflow-x:auto!important;padding-bottom:2px!important}
+  .tn-library-filter-row select,.tn-library-filter-row button{flex:0 0 auto!important;min-width:136px!important}
+  .tn-library-playlist-grid{grid-template-columns:1fr!important}
+  .tn-delete-actions{display:grid!important;grid-template-columns:1fr!important}
+}
