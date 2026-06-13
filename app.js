@@ -4431,7 +4431,6 @@ function tn78AddHeaderSmall(){
     mini.textContent="Cloud";
     mini.onclick=()=>{
       try{ if(typeof go==="function")go("settings"); }catch(e){}
-      setTimeout(()=>document.getElementById("tn78CloudBox")?.scrollIntoView({behavior:"smooth",block:"center"}),200);
       setTimeout(()=>tn78CheckCloud(false),300);
     };
     const badge=document.getElementById("syncStatusBadge");
@@ -4529,8 +4528,6 @@ function tn79AddCloudButtonTop(){
       try{ if(typeof go==="function")go("settings"); }catch(e){}
       setTimeout(()=>{
         tn79MoveCloudBoxToTop();
-        const box=document.getElementById("tn78CloudBox");
-        if(box)box.scrollIntoView({behavior:"smooth",block:"start"});
         try{ if(typeof tn78CheckCloud==="function")tn78CheckCloud(false); }catch(e){}
       },200);
     };
@@ -4647,19 +4644,19 @@ function tn80RenderAll(){
 function tn80UpdatePill(state,text){
   const pill=document.getElementById("tn80StatusPill");
   const header=document.getElementById("tn80HeaderCloud");
-  const label=text || (tn80HasSession() ? "Synced ✓" : "Local");
+  const label="Sync";
   if(pill){
     pill.textContent=label;
     pill.className="tn80-status-pill "+(state|| (tn80HasSession()?"synced":"local"));
   }
   if(header){
-    header.textContent=tn80HasSession() ? "Cloud: Synced ✓" : "Cloud: Local";
+    header.textContent="Cloud";
     header.classList.toggle("synced",tn80HasSession());
   }
 }
 function tn80UpdatePanelLocal(){
   tn80EnsureDb();
-  tn80Set("tn80Account",tn80Email()||"Not logged in");
+  tn80Set("tn80Account",tn80HasSession() ? "Signed in" : "Not logged in");
   tn80Set("tn80Device",tn80DeviceId());
   tn80Set("tn80LocalWords",String(tn80LocalWords()));
   tn80Set("tn80LocalLists",String(tn80LocalLists()));
@@ -5810,7 +5807,7 @@ function tn82CloudSaveSoon(){
 function tn82UpdateCloudMini(text,state){
   const btn=document.getElementById("tn80HeaderCloud") || document.getElementById("tn79CloudTopBtn") || document.getElementById("tn78MiniCloud");
   if(btn){
-    btn.textContent="Cloud: "+(text|| (tn82HasSession()?"Synced ✓":"Local"));
+    btn.textContent="Cloud";
     btn.classList.toggle("synced",state==="synced");
   }
 }

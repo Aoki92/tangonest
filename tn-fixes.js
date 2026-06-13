@@ -516,7 +516,7 @@
   function updateCloudLabel(text,synced){
     const button = $("tn80HeaderCloud");
     if(button){
-      button.textContent = "Auto Sync: " + text;
+      button.textContent = "Cloud";
       button.classList.toggle("synced",!!synced);
     }
     const panel = $("tnFixSyncPanel");

@@ -131,16 +131,16 @@
   function updateCloudUi(text="Auto Sync On",synced=true){
     const header = $("tn80HeaderCloud");
     if(header){
-      header.textContent = user ? text : "Auto Sync: Login";
+      header.textContent = "Cloud";
       header.classList.toggle("synced",!!synced && !!user);
     }
     const pill = $("tn80StatusPill");
     if(pill){
-      pill.textContent = user ? "Auto Sync On" : "Not logged in";
+      pill.textContent = "Sync";
       pill.className = "tn80-status-pill " + (user ? "synced" : "local");
     }
     const account = $("tn80Account");
-    if(account)account.textContent = user?.email || "Not logged in";
+    if(account)account.textContent = user ? "Signed in" : "Not logged in";
     const localWords = $("tn80LocalWords");
     if(localWords)localWords.textContent = ensureDb().words.length;
     const localLists = $("tn80LocalLists");

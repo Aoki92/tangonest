@@ -1,4 +1,4 @@
-# TangoNest Beta83 Library Management Patch
+# TangoNest Beta83 Library Refine Patch
 
 ## Fixed
 - Library All shows every registered word.
@@ -19,13 +19,18 @@ Open Create, reload, and it must stay on Create.
 ## Beta83 — Patch Notes
 
 ### Library management improvements
-- Added Library search by front word, back meaning, memo/example, tags, POS, and playlist name.
-- Added filters for language, alphabet/first letter, playlist, POS, and status.
+- Added Library Words / Playlists segmented views.
+- Words view includes search by front word, back meaning, memo/example, tags, POS, and playlist name.
+- Words view includes filters for language, alphabet/first letter, playlist, and POS.
 - Added a reset filters button and clean "No words found" empty state.
-- Added visible playlist menu buttons for deletion.
+- Playlists view shows playlist name, word count, and updated date.
+- Added visible playlist delete buttons.
 - Added right-click playlist context menu with "Delete playlist".
 - Deleting a playlist keeps its words in Library by moving them to a safe default playlist.
 - Cloud sync is triggered after playlist deletion when available.
+- Removed unnecessary blue circular h2/card indicators.
+- Stabilized the header cloud pill so it no longer switches between changing sync labels.
+- Local words/demo data are reset once for this update so the app can start fresh.
 
 ### App name unified
 - All user-visible strings now read TangoNest.
@@ -55,7 +60,7 @@ Root causes identified and resolved:
 ### Files changed
 - `index.html` — mobile login fix, Chinese card removed, Library management script added
 - `app.js` — backup filename and session naming cleanup
-- `style.css` — Library search/filter/menu/modal styles
+- `style.css` — Library Words/Playlists tabs, search/filter/menu/modal styles, blue-dot removal, header stability
 - `tn-fixes.js` — goPage auth-hide fix, DATA_KEY comment added
 - `tn-cloud-first.js` — showApp scroll reset, showAuth focus delay, LOCAL_KEY comment added
-- `tn-library-management.js` — playlist delete, right-click menu, Library search/filter logic
+- `tn-library-management.js` — Library Words/Playlists structure, playlist delete, right-click menu, search/filter logic, one-time local clean start
