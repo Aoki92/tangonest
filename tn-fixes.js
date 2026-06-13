@@ -2,7 +2,8 @@
   "use strict";
   document.documentElement.dataset.tnFix = "loading";
 
-  const DATA_KEY = "tangonest_production_stable_v1";
+  // localStorage key kept as-is for backward compatibility with existing user data
+  const DATA_KEY = "vocabrise_production_stable_v1";
   const PAGE_KEY = "tangonest_last_page_v2";
   const EMAIL_KEY = "tangonest_sync_email_v1";
   const HASH_KEY = "tangonest_sync_hash_v1";
@@ -48,9 +49,12 @@
     data.meta = data.meta || {};
     data.prefs.frontLang = "en-US";
     data.prefs.backLang = "ja-JP";
+    if(!data.lists.length){
+      data.lists.push({id:"starter",name:"New Playlist",createdAt:new Date().toISOString()});
+    }
     data.words = data.words.filter(Boolean).map(word => {
       word.id = word.id || id("w");
-      word.listId = word.listId || data.lists[0]?.id || "";
+      word.listId = word.listId || data.lists[0].id;
       word.frontLang = "en-US";
       word.backLang = "ja-JP";
       word.status = word.status || "new";
@@ -93,7 +97,7 @@
 
   function listName(listId){
     const data = ensureDb();
-    return data.lists.find(list => list.id === listId)?.name || "No playlist";
+    return data.lists.find(list => list.id === listId)?.name || "New Playlist";
   }
 
   function normalizePage(page){
@@ -166,12 +170,6 @@
       option.textContent = list.name || "New Playlist";
       el.appendChild(option);
     });
-    if(!all && !data.lists.length){
-      const option = document.createElement("option");
-      option.value = "";
-      option.textContent = "No playlist yet";
-      el.appendChild(option);
-    }
     if([...el.options].some(option => option.value === current))el.value = current;
     else if(all)el.value = "all";
     else if(data.lists[0])el.value = data.lists[0].id;
@@ -285,9 +283,6 @@
     const front = String($("front")?.value || "").trim();
     const back = String($("back")?.value || "").trim();
     if(!front || !back){toast("Front and Back are required");return false;}
-    if(!data.lists.length){
-      data.lists.push({id:id("list"),name:"New Playlist",createdAt:new Date().toISOString()});
-    }
     let listId = $("addList")?.value || data.lists[0].id;
     if(!data.lists.some(list => list.id === listId))listId = data.lists[0].id;
     data.words.push({
@@ -317,28 +312,12 @@
     return false;
   }
 
-  function isDemoWord(word){
-    const front = String(word.front || "").trim().toLowerCase();
-    const back = String(word.back || "").trim();
-    return (
-      (front === "apple" && ["りんご","リンゴ"].includes(back)) ||
-      (front === "谢谢" && back === "ありがとう")
-    );
-  }
-
-  function removeDemoSeedData(){
+  function removeDemoApple(){
     const data = ensureDb();
-    const demoWordIds = new Set(data.words.filter(isDemoWord).map(word => word.id).filter(Boolean));
-    const remainingWords = data.words.filter(word => !demoWordIds.has(word.id));
-    const demoListIds = new Set(
-      data.lists
-        .filter(list => ["chinese","new playlist"].includes(String(list.name || "").trim().toLowerCase()))
-        .filter(list => !remainingWords.some(word => word.listId === list.id))
-        .map(list => list.id)
-    );
-    if(demoWordIds.size || demoListIds.size){
-      data.words = remainingWords;
-      data.lists = data.lists.filter(list => !demoListIds.has(list.id));
+    if(data.words.length !== 1)return;
+    const word = data.words[0];
+    if(String(word.front || "").toLowerCase() === "apple" && ["りんご","リンゴ"].includes(String(word.back || ""))){
+      data.words = [];
       touch();
     }
   }
@@ -346,6 +325,12 @@
   function goPage(page){
     page = normalizePage(page);
     rememberPage(page);
+    // Ensure auth overlay is hidden before page transition (critical on mobile)
+    const authEl = $("tn73Auth");
+    if(authEl && document.documentElement.classList.contains("tn73-ready")){
+      authEl.style.setProperty("display","none","important");
+      authEl.style.setProperty("pointer-events","none","important");
+    }
     try{
       if(typeof window.__tnFixOldGo === "function"){
         window.__tnFixOldGo(oldPageMap[page] || page);
@@ -580,7 +565,7 @@
     try{
       document.documentElement.dataset.tnFix = "booting";
       ensureDb();
-      removeDemoSeedData();
+      removeDemoApple();
       bind();
       bindHardClickDelegation();
       renderAll();
@@ -603,9 +588,10 @@
   else boot();
   setTimeout(boot,500);
   setTimeout(boot,1500);
-  // Keep this legacy helper quiet after boot. Repeated render/cloud polling caused visible layout movement.
-  window.addEventListener("focus",() => { if(false)cloudLoad(false); });
+  setInterval(() => { bind(); renderAll(); },2500);
+  setInterval(() => { if(document.visibilityState === "visible")cloudLoad(false); },3500);
+  window.addEventListener("focus",() => cloudLoad(false));
   document.addEventListener("visibilitychange",() => {
-    // No automatic cloud load on visibility changes; cloud-first realtime handles sync without page jumps.
+    if(document.visibilityState === "visible")cloudLoad(false);
   });
 })();

@@ -3,7 +3,8 @@
 
   const URL = "https://bkbteylavujkfiwuqwdq.supabase.co";
   const KEY = "sb_publishable_UKX5qCXkbIRac4cc62_LXw_yEGDG6BZ";
-  const LOCAL_KEY = "tangonest_production_stable_v1";
+  // localStorage key kept as-is for backward compatibility with existing user data
+  const LOCAL_KEY = "vocabrise_production_stable_v1";
   const MIGRATION_KEY = "tangonest_cloud_first_migrated_v1";
   const PAGE_KEY = "tangonest_last_page_v2";
   let client = null;
@@ -13,8 +14,6 @@
   let loading = false;
   let booted = false;
   let authListenerBound = false;
-  let lastCloudSignature = "";
-  let realtimeLoadTimer = null;
 
   const $ = id => document.getElementById(id);
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -35,6 +34,7 @@
     data.meta = data.meta || {};
     data.prefs.frontLang = data.prefs.frontLang || "en-US";
     data.prefs.backLang = data.prefs.backLang || "ja-JP";
+    if(!data.lists.length)data.lists.push({id:"local-starter",name:"New Playlist"});
     return data;
   }
 
@@ -99,6 +99,8 @@
       old.style.setProperty("display","none","important");
       old.setAttribute("inert","");
     }
+    try{ document.activeElement?.blur(); }catch(e){}
+    try{ window.scrollTo(0,0); }catch(e){}
   }
 
   function showAuth(){
@@ -113,6 +115,11 @@
       auth.style.setProperty("visibility","visible","important");
       auth.style.setProperty("opacity","1","important");
     }
+    try{ window.scrollTo(0,0); }catch(e){}
+    // Delay focus so the auth card fully renders before keyboard opens on mobile
+    setTimeout(() => {
+      try{ $("tn73Email")?.focus(); }catch(e){}
+    }, 300);
   }
 
   function goSavedPage(){
@@ -150,6 +157,7 @@
       createdAt:row.created_at,
       updatedAt:row.updated_at
     }));
+    if(!data.lists.length)data.lists.push({id:"local-starter",name:"New Playlist"});
     data.words = words.map(row => ({
       id:row.id,
       listId:row.playlist_id || data.lists[0]?.id,
@@ -171,53 +179,18 @@
     persist();
   }
 
-  function cloudSignature(playlists,words){
-    return JSON.stringify({
-      playlists:(playlists || []).map(row => [row.id,row.name,row.updated_at,row.created_at]),
-      words:(words || []).map(row => [row.id,row.playlist_id,row.front,row.back,row.front_lang,row.back_lang,row.pos,row.gender,row.tags,row.memo,row.status,row.saved,row.level,row.next_review,row.updated_at,row.created_at])
-    });
-  }
-
-  function isDemoWord(word){
-    const front = String(word.front || "").trim().toLowerCase();
-    const back = String(word.back || "").trim();
-    return (
-      (front === "apple" && ["りんご","リンゴ"].includes(back)) ||
-      (front === "谢谢" && back === "ありがとう")
-    );
-  }
-
-  function isDemoPlaylist(list){
-    const name = String(list.name || "").trim().toLowerCase();
-    return name === "chinese" || name === "new playlist";
-  }
-
-  async function removeDemoSeedEverywhere(){
+  async function removeDemoAppleEverywhere(){
     const data = ensureDb();
-    const demoWords = data.words.filter(isDemoWord);
-    const demoWordIds = new Set(demoWords.map(word => word.id).filter(Boolean));
-    const remainingWords = data.words.filter(word => !demoWordIds.has(word.id));
-    const demoListIds = new Set(
-      data.lists
-        .filter(isDemoPlaylist)
-        .filter(list => !remainingWords.some(word => word.listId === list.id))
-        .map(list => list.id)
-    );
-
-    if(demoWordIds.size || demoListIds.size){
-      data.words = remainingWords;
-      data.lists = data.lists.filter(list => !demoListIds.has(list.id));
+    const localDemo = data.words.filter(word => String(word.front || "").toLowerCase() === "apple" && ["りんご","リンゴ"].includes(String(word.back || "")));
+    if(localDemo.length){
+      data.words = data.words.filter(word => !localDemo.includes(word));
       persist();
     }
-
     if(user && client){
-      for(const word of demoWords){
+      for(const word of localDemo){
         if(word.id){
           await client.from("tn_words").delete().eq("id",word.id).eq("user_id",user.id);
         }
-      }
-      for(const listId of demoListIds){
-        await client.from("tn_playlists").delete().eq("id",listId).eq("user_id",user.id);
       }
     }
   }
@@ -240,12 +213,6 @@
       option.textContent = list.name;
       el.appendChild(option);
     });
-    if(!all && !data.lists.length){
-      const option = document.createElement("option");
-      option.value = "";
-      option.textContent = "No playlist yet";
-      el.appendChild(option);
-    }
     if([...el.options].some(option => option.value === current))el.value = current;
     else if(all)el.value = "all";
     else if(data.lists[0])el.value = data.lists[0].id;
@@ -295,7 +262,7 @@
   }
 
   function listName(id){
-    return ensureDb().lists.find(list => list.id === id)?.name || "No playlist";
+    return ensureDb().lists.find(list => list.id === id)?.name || "New Playlist";
   }
 
   function filteredWords(){
@@ -369,12 +336,11 @@
 
   async function ensureDefaultPlaylist(){
     const data = ensureDb();
-    if(data.lists.length && data.lists[0].id !== "local-starter")return data.lists[0].id;
+    if(data.lists.length && data.lists[0].id !== "local-starter")return;
     const result = await client.from("tn_playlists").insert({user_id:user.id,name:"New Playlist"}).select().single();
     if(result.error)throw result.error;
     data.lists = [{id:result.data.id,name:result.data.name,createdAt:result.data.created_at,updatedAt:result.data.updated_at}];
     persist();
-    return result.data.id;
   }
 
   async function loadCloud(){
@@ -386,14 +352,9 @@
       if(playlistsResult.error)throw playlistsResult.error;
       const wordsResult = await client.from("tn_words").select("*").eq("user_id",user.id).order("created_at",{ascending:true});
       if(wordsResult.error)throw wordsResult.error;
-      const signature = cloudSignature(playlistsResult.data || [],wordsResult.data || []);
-      if(signature === lastCloudSignature){
-        updateCloudUi("Auto Sync: On",true);
-        return;
-      }
-      lastCloudSignature = signature;
       cloudToDb(playlistsResult.data || [],wordsResult.data || []);
-      await removeDemoSeedEverywhere();
+      await removeDemoAppleEverywhere();
+      await ensureDefaultPlaylist();
       renderAll();
       updateCloudUi("Auto Sync: On",true);
     }catch(error){
@@ -416,7 +377,7 @@
     }
     try{
       const listMap = new Map();
-      for(const list of localLists){
+      for(const list of data.lists){
         const inserted = await client.from("tn_playlists").insert({user_id:user.id,name:list.name || "New Playlist"}).select().single();
         if(inserted.error)throw inserted.error;
         listMap.set(list.id,inserted.data.id);
@@ -523,14 +484,9 @@
     }
     channel = client
       .channel("tangonest-cloud-first-" + user.id)
-      .on("postgres_changes",{event:"*",schema:"public",table:"tn_playlists",filter:"user_id=eq." + user.id},scheduleRealtimeLoad)
-      .on("postgres_changes",{event:"*",schema:"public",table:"tn_words",filter:"user_id=eq." + user.id},scheduleRealtimeLoad)
+      .on("postgres_changes",{event:"*",schema:"public",table:"tn_playlists",filter:"user_id=eq." + user.id},() => loadCloud())
+      .on("postgres_changes",{event:"*",schema:"public",table:"tn_words",filter:"user_id=eq." + user.id},() => loadCloud())
       .subscribe();
-  }
-
-  function scheduleRealtimeLoad(){
-    clearTimeout(realtimeLoadTimer);
-    realtimeLoadTimer = setTimeout(() => loadCloud(),350);
   }
 
   async function afterLogin(newSession){
@@ -591,12 +547,8 @@
       try{ client.removeChannel(channel); }catch(e){}
       channel = null;
     }
-    ["tangonest_sync_email_v1","tangonest_sync_hash_v1","tangonest_sync_mode_v1","tangonest_guest_mode"].forEach(key => {
-      try{ localStorage.removeItem(key); }catch(e){}
-    });
     showAuth();
     updateCloudUi("Auto Sync: Login",false);
-    setTimeout(() => $("tn73Email")?.focus(),80);
   }
 
   function bind(){
