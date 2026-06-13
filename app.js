@@ -170,7 +170,7 @@ function goStudy(listId,mode){
   updateBrandContext();
 }
 
-function render(){fillLangSelects();["addList","bulkList","studyList","quizList","audioList","renameListSelect","editList"].forEach(id=>renderSelect(id,false));renderSelect("wordListSelect",true);renderHome();renderWords();renderManage();updateStudyStar()}
+function render(){fillLangSelects();["addList","bulkList","studyList","quizList","audioList","renameListSelect","editList"].forEach(id=>renderSelect(id,false));renderSelect("wordListSelect",true);renderHome();if(typeof window.tnLibraryRender==="function")window.tnLibraryRender();else renderWords();if(typeof renderManage==="function")renderManage();updateStudyStar()}
 function renderHome(){
   const set=(id,value)=>{const el=$(id);if(el)el.textContent=value};
   const learned=db.words.filter(w=>w.status==="learned").length;
@@ -4505,7 +4505,8 @@ function tn79MoveCloudBoxToTop(){
     // Put after first heading area if possible, otherwise first.
     const firstCard=host.querySelector(".card");
     if(firstCard && firstCard !== box){
-      host.insertBefore(box, firstCard);
+      if(firstCard.parentElement === host)host.insertBefore(box, firstCard);
+      else host.insertBefore(box, host.firstChild);
     }else{
       host.insertBefore(box, host.firstChild);
     }
@@ -5405,7 +5406,10 @@ function tn82Go(page){
   });
 
   tn82ForceDefaultLanguages();
-  if(page==="library")tn82RenderLibrary();
+  if(page==="library"){
+    if(window.tnLibraryRender)window.tnLibraryRender();
+    else tn82RenderLibrary();
+  }
   if(page==="settings")tn82RenderPlaylistManager();
 }
 
@@ -5605,7 +5609,8 @@ function tn82AddWord(ev){
   ["pos","gender"].forEach(id=>{const el=document.getElementById(id); if(el)el.value="";});
   tn82ForceDefaultLanguages();
 
-  tn82RenderLibrary();
+  if(window.tnLibraryRender)window.tnLibraryRender();
+  else tn82RenderLibrary();
   tn82RenderPlaylistSelects();
   tn82UpdateCounts();
   tn82CloudSaveSoon();
@@ -5640,7 +5645,8 @@ function tn82CreatePlaylist(name){
   if(input)input.value="";
   tn82RenderPlaylistSelects();
   tn82RenderPlaylistManager();
-  tn82RenderLibrary();
+  if(window.tnLibraryRender)window.tnLibraryRender();
+  else tn82RenderLibrary();
   tn82UpdateCounts();
   tn82CloudSaveSoon();
   tn82Toast("Playlist created");
@@ -5694,7 +5700,8 @@ function tn82RenamePlaylist(id,name){
   if(renameInput)renameInput.value="";
   tn82RenderPlaylistSelects();
   tn82RenderPlaylistManager();
-  tn82RenderLibrary();
+  if(window.tnLibraryRender)window.tnLibraryRender();
+  else tn82RenderLibrary();
   try{if(typeof renderHome==="function")renderHome();}catch(e){}
   tn82CloudSaveSoon();
   tn82Toast("Playlist renamed");
@@ -5781,7 +5788,8 @@ async function tn82CloudLoad(force=false){
       tn82EnsureDb();
       tn82Persist();
       tn82RenderPlaylistSelects();
-      tn82RenderLibrary();
+      if(window.tnLibraryRender)window.tnLibraryRender();
+      else tn82RenderLibrary();
       tn82RenderPlaylistManager();
       tn82UpdateCounts();
     }
@@ -5839,7 +5847,7 @@ function tn82Boot(){
   tn82BindLibraryFilters();
   tn82ForceDefaultLanguages();
   tn82RenderPlaylistSelects();
-  tn82RenderLibrary();
+  if(!window.tnLibraryRender)tn82RenderLibrary();
   tn82RenderPlaylistManager();
   tn82UpdateCounts();
 
@@ -5859,7 +5867,7 @@ setInterval(()=>{
   tn82BindAdd();
   tn82BindLibraryFilters();
   tn82ForceDefaultLanguages();
-  tn82RenderLibrary();
+  if(!window.tnLibraryRender)tn82RenderLibrary();
   tn82RenderPlaylistManager();
 },2000);
 

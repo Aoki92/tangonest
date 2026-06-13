@@ -18,6 +18,17 @@ Open Create, reload, and it must stay on Create.
 
 ## Beta83 — Patch Notes
 
+### Library detail and navigation stability update
+- Library keeps the Words / Playlists selector.
+- Word rows now include favorite, audio, and delete actions.
+- Clicking a word opens a dictionary-style detail panel with metadata, example, edit, audio, favorite, and delete.
+- Playlists view now includes Quiz, Cards, and Listen actions for each playlist.
+- Quiz, Cards, Listen, and Library navigation no longer gets overwritten by old timed render loops.
+- Hidden login/page layers are removed from layout after login to prevent unexpected height shifts.
+- Old repeated Library render calls in app, fix, and cloud helper scripts now defer to the enhanced Library renderer.
+- Fixed repeated unsafe Cloud box insertBefore calls that could throw every two seconds.
+- Mobile bottom navigation now includes Home, Create, Library, Cards, Quiz, Listen, and Settings.
+
 ### Library management improvements
 - Added Library Words / Playlists segmented views.
 - Words view includes search by front word, back meaning, memo/example, tags, POS, and playlist name.
@@ -59,8 +70,8 @@ Root causes identified and resolved:
 
 ### Files changed
 - `index.html` — mobile login fix, Chinese card removed, Library management script added
-- `app.js` — backup filename and session naming cleanup
-- `style.css` — Library Words/Playlists tabs, search/filter/menu/modal styles, blue-dot removal, header stability
-- `tn-fixes.js` — goPage auth-hide fix, DATA_KEY comment added
-- `tn-cloud-first.js` — showApp scroll reset, showAuth focus delay, LOCAL_KEY comment added
-- `tn-library-management.js` — Library Words/Playlists structure, playlist delete, right-click menu, search/filter logic, one-time local clean start
+- `app.js` — backup filename, session naming cleanup, stable render delegation, safe Cloud box insertion
+- `style.css` — Library Words/Playlists tabs, search/filter/menu/modal styles, word detail panel, blue-dot removal, header/layout stability
+- `tn-fixes.js` — goPage auth-hide fix, DATA_KEY comment added, enhanced Library render delegation
+- `tn-cloud-first.js` — showApp scroll reset, showAuth focus delay, LOCAL_KEY comment added, enhanced Library render delegation
+- `tn-library-management.js` — Library Words/Playlists structure, playlist delete, right-click menu, word actions, detail panel, search/filter logic

@@ -327,7 +327,8 @@
 
   function renderAll(){
     renderSelects();
-    renderLibrary();
+    if(window.tnLibraryRender)window.tnLibraryRender();
+    else renderLibrary();
     renderPlaylistManager();
     updateCounts();
     updateCloudUi();

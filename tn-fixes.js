@@ -353,7 +353,10 @@
       button.classList.toggle("active",text === page);
     });
     forceLanguages();
-    if(page === "library")renderLibrary();
+    if(page === "library"){
+      if(window.tnLibraryRender)window.tnLibraryRender();
+      else renderLibrary();
+    }
     if(page === "settings")renderPlaylistManager();
   }
 
@@ -554,7 +557,8 @@
     forceLanguages();
     renderPlaylistSelects();
     renderPlaylistManager();
-    renderLibrary();
+    if(window.tnLibraryRender)window.tnLibraryRender();
+    else renderLibrary();
     renderSimpleSyncPanel();
     updateCloudLabel(hasSession() ? "On" : "Local",hasSession());
     updateCounts();
