@@ -3,6 +3,7 @@
 
   const DATA_KEY = "vocabrise_production_stable_v1";
   const RESET_KEY = "tangonest_beta83_library_clean_reset_v1";
+  const WORD_RENDER_LIMIT = 200;
   const $ = id => document.getElementById(id);
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   let activeView = localStorage.getItem("tangonest_library_view_v1") || "words";
@@ -193,8 +194,10 @@
   }
 
   function wordsView(){
-    const words = filteredWords();
-    const body = words.length ? `
+    const allWords = filteredWords();
+    const words = allWords.slice(0,WORD_RENDER_LIMIT);
+    const hiddenCount = Math.max(0,allWords.length - words.length);
+    const body = allWords.length ? `
       <div class="tn82-word-list">
         ${words.map(word => `
           <div class="tn82-word-card tn-word-row" data-word-id="${esc(word.id)}" data-open-word="${esc(word.id)}">
@@ -214,6 +217,7 @@
           </div>
         `).join("")}
       </div>
+      ${hiddenCount ? `<div class="tn82-library-summary">Showing first ${WORD_RENDER_LIMIT} words. Use search or filters to narrow ${hiddenCount} more.</div>` : ""}
     ` : `
       <div class="tn-library-empty">
         <h3>${isFilterActive() ? "No words found" : "No words yet"}</h3>
@@ -223,7 +227,7 @@
     `;
     return libraryShell(`
       ${wordsTools()}
-      <div class="tn82-library-summary">${words.length} word${words.length === 1 ? "" : "s"} shown</div>
+      <div class="tn82-library-summary">${allWords.length} word${allWords.length === 1 ? "" : "s"} found${hiddenCount ? ` · ${words.length} rendered` : ""}</div>
       ${body}
     `);
   }

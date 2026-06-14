@@ -1,5 +1,25 @@
 # TangoNest Beta83 Library Refine Patch
 
+## Emergency stability patch - 2026-06-14
+
+This build prioritizes stability over preserving corrupted local word data.
+
+### Critical fixes
+- Added `tn-emergency-guard.js` before the legacy app bundle to block old maintenance intervals and old auto cloud-load timers.
+- Added `tn-emergency-stability.js` after all app scripts to enforce explicit page-key navigation.
+- Navigation now uses only stable page keys: `home`, `create`, `library`, `cards`, `quiz`, `listen`, `settings`.
+- Library can no longer open Settings because of old tab/index mismatch.
+- Old focus/visibility/storage cloud auto-load handlers are blocked to prevent rollback from stale cloud/local state.
+- If local data contains more than 500 words, the app performs a one-time emergency reset to a clean empty state with one `New Playlist`.
+- Library renders at most 200 word rows at once to stay responsive with large collections.
+- Missing/corrupted `words`, `lists`, or playlist references are normalized defensively.
+- Header cloud labels remain fixed-size (`Cloud` / `Sync`) to avoid layout shifts.
+
+### Data reset behavior
+- Current large/corrupted local word data may be cleared once using `tangonest_emergency_reset_20260614_v1`.
+- Login/auth keys are not cleared by this reset.
+- New words can still be added normally after reset.
+
 ## Fixed
 - Library All shows every registered word.
 - Add Word immediately appears in Library.

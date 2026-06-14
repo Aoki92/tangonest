@@ -145,6 +145,8 @@ function activeListId(){
   return db.lists[0]?.id||"starter";
 }
 function updateBrandContext(){
+  db.words=Array.isArray(db.words)?db.words:[];
+  db.lists=Array.isArray(db.lists)&&db.lists.length?db.lists:[{id:"starter",name:"New Playlist"}];
   const total=db.words.length;
   const learned=db.words.filter(w=>w.status==="learned").length;
   const listId=activeListId();
