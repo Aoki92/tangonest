@@ -154,6 +154,7 @@
   }
 
   function libraryShell(content){
+    const tab = name => activeView === name ? "active" : "";
     return `
       <div class="tn-library-shell">
         <div class="tn-library-top">
@@ -162,8 +163,10 @@
             <h3>Your collection</h3>
           </div>
           <div class="tn-library-tabs" role="tablist">
-            <button type="button" data-library-view="words" class="${activeView === "words" ? "active" : ""}">Words</button>
-            <button type="button" data-library-view="playlists" class="${activeView === "playlists" ? "active" : ""}">Playlists</button>
+            <button type="button" data-library-view="words" class="${tab("words")}">Words</button>
+            <button type="button" data-library-view="playlists" class="${tab("playlists")}">Playlists</button>
+            <button type="button" data-library-view="weak" class="${tab("weak")}">Weak Words</button>
+            <button type="button" data-library-view="mastered" class="${tab("mastered")}">Mastered</button>
           </div>
         </div>
         ${content}
@@ -193,8 +196,19 @@
     `;
   }
 
-  function wordsView(){
-    const allWords = filteredWords();
+  function wordLevelLabel(word){
+    const level = Number(word.level || 3);
+    return `Lv.${level}`;
+  }
+
+  function wordsView(mode="words"){
+    let allWords = filteredWords();
+    if(mode === "weak"){
+      allWords = allWords.filter(word => Number(word.level || 3) <= 2 || word.status === "hard" || word.lastWrongAt);
+    }
+    if(mode === "mastered"){
+      allWords = allWords.filter(word => Number(word.level || 3) >= 5);
+    }
     const words = allWords.slice(0,WORD_RENDER_LIMIT);
     const hiddenCount = Math.max(0,allWords.length - words.length);
     const body = allWords.length ? `
@@ -209,6 +223,7 @@
             <div class="tn82-word-meta">
               <span>${esc(listName(word.listId))}</span>
               <span>${esc(languageLabel(word.frontLang))} -> ${esc(languageLabel(word.backLang))}</span>
+              <span>${esc(wordLevelLabel(word))}</span>
               ${word.pos ? `<span>${esc(word.pos)}</span>` : ""}
               <button type="button" class="tn-word-action ${word.saved ? "is-saved" : ""}" data-word-fav="${esc(word.id)}" title="Favorite">${word.saved ? "★" : "☆"}</button>
               <button type="button" class="tn-word-action" data-word-audio="${esc(word.id)}" title="Play audio">▶</button>
@@ -220,14 +235,15 @@
       ${hiddenCount ? `<div class="tn82-library-summary">Showing first ${WORD_RENDER_LIMIT} words. Use search or filters to narrow ${hiddenCount} more.</div>` : ""}
     ` : `
       <div class="tn-library-empty">
-        <h3>${isFilterActive() ? "No words found" : "No words yet"}</h3>
-        <p>${isFilterActive() ? "Try changing your search or filters." : "Add your first word from Create."}</p>
+        <h3>${isFilterActive() ? "No words found" : mode === "weak" ? "No weak words" : mode === "mastered" ? "No mastered words yet" : "No words yet"}</h3>
+        <p>${isFilterActive() ? "Try changing your search or filters." : mode === "weak" ? "Incorrect and low-level words will appear here." : mode === "mastered" ? "Level 5 words will appear here." : "Add your first word from Create."}</p>
         <button type="button" data-go-create>Add word</button>
       </div>
     `;
+    const title = mode === "weak" ? "Weak Words" : mode === "mastered" ? "Mastered" : "Words";
     return libraryShell(`
       ${wordsTools()}
-      <div class="tn82-library-summary">${allWords.length} word${allWords.length === 1 ? "" : "s"} found${hiddenCount ? ` · ${words.length} rendered` : ""}</div>
+      <div class="tn82-library-summary">${title}: ${allWords.length} word${allWords.length === 1 ? "" : "s"} found${hiddenCount ? ` · ${words.length} rendered` : ""}</div>
       ${body}
     `);
   }
@@ -277,8 +293,8 @@
   function renderLibrary(){
     const mount = $("tn82LibraryMount");
     if(!mount)return;
-    activeView = activeView === "playlists" ? "playlists" : "words";
-    mount.innerHTML = activeView === "playlists" ? playlistsView() : wordsView();
+    if(!["words","playlists","weak","mastered"].includes(activeView))activeView = "words";
+    mount.innerHTML = activeView === "playlists" ? playlistsView() : wordsView(activeView);
     bindLibraryUi();
     updateLegacyControls();
   }
@@ -298,7 +314,7 @@
   }
 
   function switchView(view){
-    activeView = view === "playlists" ? "playlists" : "words";
+    activeView = ["words","playlists","weak","mastered"].includes(view) ? view : "words";
     localStorage.setItem("tangonest_library_view_v1",activeView);
     renderLibrary();
   }
@@ -478,9 +494,12 @@
           <div><span>Back language</span><strong>${esc(languageLabel(word.backLang))}</strong></div>
           <div><span>POS</span><strong>${esc(word.pos || "-")}</strong></div>
           <div><span>Gender</span><strong>${esc(word.gender || "-")}</strong></div>
-          <div><span>Status</span><strong>${esc(word.status || "new")}${word.saved ? " · Saved" : ""}</strong></div>
+          <div><span>Level</span><strong>${esc(wordLevelLabel(word))} · ${esc(word.status || "new")}</strong></div>
+          <div><span>Correct</span><strong>${esc(word.correctCount || 0)}</strong></div>
+          <div><span>Wrong</span><strong>${esc(word.wrongCount || 0)}</strong></div>
+          <div><span>Reviews</span><strong>${esc(word.reviewCount || 0)}</strong></div>
         </div>
-        ${word.memo ? `<section class="tn-detail-example"><span>Example</span><p>${esc(word.memo)}</p></section>` : ""}
+        ${word.memo ? `<section class="tn-detail-example"><span>Example</span><p>${esc(word.memo)}</p><button type="button" class="tn-example-audio" onclick="window.tnSpeakExample && window.tnSpeakExample('${esc(word.id)}')">▶ Example</button></section>` : ""}
       </div>
     `;
     panel.classList.add("show");

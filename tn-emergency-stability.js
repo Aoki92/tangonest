@@ -4,7 +4,7 @@
   const DATA_KEY = "vocabrise_production_stable_v1";
   const RESET_KEY = "tangonest_emergency_reset_20260614_v1";
   const PAGE_KEY = "tangonest_last_page_v2";
-  const MAX_SAFE_WORDS = 500;
+  const MAX_SAFE_WORDS = 5000;
   const $ = id => document.getElementById(id);
 
   function safeParse(raw){
