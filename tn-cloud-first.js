@@ -181,7 +181,14 @@
 
   async function removeDemoAppleEverywhere(){
     const data = ensureDb();
-    const localDemo = data.words.filter(word => String(word.front || "").toLowerCase() === "apple" && ["りんご","リンゴ"].includes(String(word.back || "")));
+    const isDemoApple = word => {
+      const front = String(word.front || "").trim();
+      const back = String(word.back || "").trim();
+      const isApple = value => String(value || "").trim().toLowerCase() === "apple";
+      const isRingo = value => ["りんご","リンゴ"].includes(String(value || "").trim());
+      return (isApple(front) && isRingo(back)) || (isApple(back) && isRingo(front));
+    };
+    const localDemo = data.words.length === 1 && isDemoApple(data.words[0]) ? [data.words[0]] : [];
     if(localDemo.length){
       data.words = data.words.filter(word => !localDemo.includes(word));
       persist();

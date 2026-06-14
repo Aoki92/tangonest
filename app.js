@@ -77,7 +77,7 @@ function loadTangoNestDB(){
   return {ui:"en",prefs:{frontLang:"fr-FR",backLang:"en-US"},lists:[{id:"starter",name:"New Playlist"}],words:[]};
 }
 const LANGS=[
-  ["fr-FR","French","pomme"],["en-US","English","apple"],["ja-JP","Japanese","りんご"],["ko-KR","Korean","사과"],["zh-CN","Chinese Simplified","苹果"],["zh-TW","Chinese Traditional","蘋果"],["es-ES","Spanish","manzana"],["ar-SA","Arabic","تفاحة"],["it-IT","Italian","mela"],["de-DE","German","Apfel"],["pt-BR","Portuguese","maçã"],["ru-RU","Russian","яблоко"],["nl-NL","Dutch","appel"],["vi-VN","Vietnamese","táo"],["th-TH","Thai","แอปเปิล"],["tr-TR","Turkish","elma"],["hi-IN","Hindi","सेब"],["id-ID","Indonesian","apel"],["el-GR","Greek","μήλο"],["he-IL","Hebrew","תפוח"]
+  ["fr-FR","French","mot"],["en-US","English","word"],["ja-JP","Japanese","意味"],["ko-KR","Korean","단어"],["zh-CN","Chinese Simplified","词"],["zh-TW","Chinese Traditional","詞"],["es-ES","Spanish","palabra"],["ar-SA","Arabic","كلمة"],["it-IT","Italian","parola"],["de-DE","German","Wort"],["pt-BR","Portuguese","palavra"],["ru-RU","Russian","слово"],["nl-NL","Dutch","woord"],["vi-VN","Vietnamese","tu"],["th-TH","Thai","คำ"],["tr-TR","Turkish","kelime"],["hi-IN","Hindi","शब्द"],["id-ID","Indonesian","kata"],["el-GR","Greek","λέξη"],["he-IL","Hebrew","מילה"]
 ];
 let db=loadTangoNestDB();
 db.prefs=db.prefs||{frontLang:"fr-FR",backLang:"en-US"};db.lists=db.lists&&db.lists.length?db.lists:[{id:"starter",name:"New Playlist"}];db.words=db.words||[];
@@ -96,7 +96,7 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function escAttr(s){return String(s??"").replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'&quot;')}
 function cap(s){return s[0].toUpperCase()+s.slice(1)}
 function langName(c){return (LANGS.find(l=>l[0]===c)||[c,c])[1]}
-function placeholderFor(c){return (LANGS.find(l=>l[0]===c)||["","", "apple"])[2]}
+function placeholderFor(c){return (LANGS.find(l=>l[0]===c)||["","", "word"])[2]}
 function optionsHTML(selected){return LANGS.map(l=>`<option value="${l[0]}" ${l[0]===selected?"selected":""}>${l[1]}</option>`).join("")}
 function fillLangSelects(){["frontLang","bulkFrontLang","editFrontLang"].forEach(id=>{if($(id))$(id).innerHTML=optionsHTML(db.prefs.frontLang)});["backLang","bulkBackLang","editBackLang"].forEach(id=>{if($(id))$(id).innerHTML=optionsHTML(db.prefs.backLang)});updatePlaceholders();attachLangMemory()}
 function attachLangMemory(){["frontLang","backLang","bulkFrontLang","bulkBackLang"].forEach(id=>{let el=$(id);if(el&&!el.dataset.attached){el.addEventListener("change",()=>{if(id.includes("Front"))db.prefs.frontLang=el.value;else if(id.includes("Back"))db.prefs.backLang=el.value;else if(id==="frontLang")db.prefs.frontLang=el.value;else if(id==="backLang")db.prefs.backLang=el.value;persist();updatePlaceholders()});el.dataset.attached=1}})}
@@ -739,7 +739,7 @@ function rotateHeroLanguages(){
     {front:"bonjour",frontLang:"French",back:"hello",backLang:"English",mode:"Review"},
     {front:"hola",frontLang:"Spanish",back:"hello",backLang:"English",mode:"Typing"},
     {front:"مرحبا",frontLang:"Arabic",back:"hello",backLang:"English",mode:"Audio"},
-    {front:"苹果",frontLang:"Chinese",back:"りんご",backLang:"Japanese",mode:"Quiz"}
+    {front:"词汇",frontLang:"Chinese",back:"語彙",backLang:"Japanese",mode:"Quiz"}
   ];
   const one=document.querySelector(".float-one");
   const two=document.querySelector(".float-two");
@@ -1444,12 +1444,12 @@ function applyEnglishJapaneseDefaults(force=false){
     }
   });
   const memo=$("memo");
-  if(memo && !memo.value && memo.placeholder) memo.placeholder="I eat an apple.";
+  if(memo && !memo.value && memo.placeholder) memo.placeholder="Example sentence or memo.";
   const newList=$("newListName");
   if(newList && newList.placeholder) newList.placeholder="English A1";
   const bulk=$("bulkText");
   if(bulk && !bulk.value && bulk.placeholder){
-    bulk.placeholder="apple\tりんご\tnoun\tnone\tI eat an apple.\nhello\tこんにちは\tinterjection\tnone\tHello!";
+    bulk.placeholder="hello\tこんにちは\tphrase\tnone\tHello, nice to meet you.\nteacher\t先生\tnoun\tnone\tI am a teacher.";
   }
 }
 setTimeout(()=>applyEnglishJapaneseDefaults(true),400);
@@ -3453,11 +3453,11 @@ function tn64EnsureEnglishJapaneseDefaults(){
   tn64SetValue("backLang","ja-JP");
   tn64SetValue("bulkFrontLang","en-US");
   tn64SetValue("bulkBackLang","ja-JP");
-  const front=tn64$("front"); if(front)front.placeholder="apple";
-  const back=tn64$("back"); if(back)back.placeholder="りんご";
-  const memo=tn64$("memo"); if(memo)memo.placeholder="I eat an apple.";
+  const front=tn64$("front"); if(front)front.placeholder="word";
+  const back=tn64$("back"); if(back)back.placeholder="meaning";
+  const memo=tn64$("memo"); if(memo)memo.placeholder="Example sentence or memo.";
   const bulk=tn64$("bulkText");
-  if(bulk)bulk.placeholder="apple\tりんご\tnoun\tnone\tI eat an apple.\nteacher\t先生\tnoun\tnone\tI am a teacher.";
+  if(bulk)bulk.placeholder="hello\tこんにちは\tphrase\tnone\tHello, nice to meet you.\nteacher\t先生\tnoun\tnone\tI am a teacher.";
   try{ tn64Persist(); }catch(e){}
 }
 function tn64ClearAddFields(){
@@ -3484,8 +3484,8 @@ function tn64MakeWord(){
     id:tn64Id(),
     front,
     back,
-    frontLang:"en-US",
-    backLang:"ja-JP",
+    frontLang:tn64$("frontLang")?.value || "en-US",
+    backLang:tn64$("backLang")?.value || "ja-JP",
     listId,
     pos:tn64$("pos")?.value || "",
     gender:tn64$("gender")?.value || "",
@@ -4944,9 +4944,9 @@ function tn81ForceDefaultLanguages(){
   const front=document.getElementById("front");
   const back=document.getElementById("back");
   const memo=document.getElementById("memo");
-  if(front)front.placeholder="apple";
-  if(back)back.placeholder="りんご";
-  if(memo)memo.placeholder="I eat an apple.";
+  if(front)front.placeholder="word";
+  if(back)back.placeholder="meaning";
+  if(memo)memo.placeholder="Example sentence or memo.";
 
   try{tn81Persist();}catch(e){}
 }
@@ -5315,6 +5315,12 @@ function tn82Esc(s){
   return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
+function tn82LangName(code){
+  try{ if(typeof langName==="function")return langName(code); }catch(e){}
+  const names={"en-US":"English","en-GB":"English","ja-JP":"Japanese","ko-KR":"Korean","zh-CN":"Chinese","zh-TW":"Chinese","fr-FR":"French","es-ES":"Spanish","de-DE":"German","it-IT":"Italian","pt-BR":"Portuguese"};
+  return names[code] || code || "Unknown";
+}
+
 function tn82Toast(msg){
   try{ if(typeof tn75Toast==="function") return tn75Toast(msg); }catch(e){}
   try{ if(typeof tn64Toast==="function") return tn64Toast(msg); }catch(e){}
@@ -5344,10 +5350,10 @@ function tn82ForceDefaultLanguages(){
   const back=document.getElementById("back");
   const memo=document.getElementById("memo");
   const bulk=document.getElementById("bulkText");
-  if(front)front.placeholder="apple";
-  if(back)back.placeholder="りんご";
-  if(memo)memo.placeholder="I eat an apple.";
-  if(bulk)bulk.placeholder="apple\tりんご\tnoun\tnone\tI eat an apple.";
+  if(front)front.placeholder="word";
+  if(back)back.placeholder="meaning";
+  if(memo)memo.placeholder="Example sentence or memo.";
+  if(bulk)bulk.placeholder="hello\tこんにちは\tphrase\tnone\tHello, nice to meet you.";
 }
 
 /* ---------- 4. Page state ---------- */
@@ -5485,7 +5491,7 @@ function tn82RenderLibrary(){
           </div>
           <div class="tn82-word-meta">
             <span>${tn82Esc(tn82ListName(w.listId))}</span>
-            <span>${tn82Esc(w.frontLang||"en-US")} → ${tn82Esc(w.backLang||"ja-JP")}</span>
+            <span>${tn82Esc(tn82LangName(w.frontLang||"en-US"))} → ${tn82Esc(tn82LangName(w.backLang||"ja-JP"))}</span>
             ${w.pos?`<span>${tn82Esc(w.pos)}</span>`:""}
           </div>
         </div>
@@ -5503,7 +5509,7 @@ function tn82RenderLibrary(){
         <td><strong>${tn82Esc(w.front)}</strong></td>
         <td>${tn82Esc(w.back)}</td>
         <td>${tn82Esc(tn82ListName(w.listId))}</td>
-        <td>${tn82Esc(w.frontLang||"en-US")} → ${tn82Esc(w.backLang||"ja-JP")}</td>
+        <td>${tn82Esc(tn82LangName(w.frontLang||"en-US"))} → ${tn82Esc(tn82LangName(w.backLang||"ja-JP"))}</td>
       </tr>
     `).join("");
   }
@@ -5830,9 +5836,11 @@ function tn82RemoveDemoAppleIfOnlySample(){
   tn82EnsureDb();
   if(db.words.length!==1)return;
   const w=db.words[0];
-  const front=String(w.front||"").toLowerCase();
-  const back=String(w.back||"");
-  const looksDemo=(front==="apple" && (back==="りんご"||back==="リンゴ"));
+  const front=String(w.front||"").trim();
+  const back=String(w.back||"").trim();
+  const isApple=value=>String(value||"").trim().toLowerCase()==="apple";
+  const isRingo=value=>["りんご","リンゴ"].includes(String(value||"").trim());
+  const looksDemo=(isApple(front) && isRingo(back)) || (isApple(back) && isRingo(front));
   if(looksDemo){
     db.words=[];
     tn82TouchLocal();

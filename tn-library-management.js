@@ -198,7 +198,21 @@
 
   function wordLevelLabel(word){
     const level = Number(word.level || 3);
-    return `Lv.${level}`;
+    const labels = {1:"Weak",2:"Learning",3:"Familiar",4:"Strong",5:"Mastered"};
+    return labels[level] || "Learning";
+  }
+
+  function levelBars(word){
+    const level = Math.min(5,Math.max(1,Number(word.level || 3)));
+    return `<span class="tn-level-bars" aria-label="Level ${level}">${[1,2,3,4,5].map(n => `<i class="${n <= level ? "on" : ""}"></i>`).join("")}</span>`;
+  }
+
+  function iconAudio(){
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"></path><path d="M16 9.5a4 4 0 0 1 0 5"></path><path d="M18.5 7a7 7 0 0 1 0 10"></path></svg>`;
+  }
+
+  function iconTrash(){
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 14h10l1-14"></path><path d="M9 7V4h6v3"></path></svg>`;
   }
 
   function wordsView(mode="words"){
@@ -222,12 +236,11 @@
             </div>
             <div class="tn82-word-meta">
               <span>${esc(listName(word.listId))}</span>
-              <span>${esc(languageLabel(word.frontLang))} -> ${esc(languageLabel(word.backLang))}</span>
-              <span>${esc(wordLevelLabel(word))}</span>
+              <span class="tn-level-chip">${esc(wordLevelLabel(word))}${levelBars(word)}</span>
               ${word.pos ? `<span>${esc(word.pos)}</span>` : ""}
-              <button type="button" class="tn-word-action ${word.saved ? "is-saved" : ""}" data-word-fav="${esc(word.id)}" title="Favorite">${word.saved ? "★" : "☆"}</button>
-              <button type="button" class="tn-word-action" data-word-audio="${esc(word.id)}" title="Play audio">▶</button>
-              <button type="button" class="tn-word-action danger" data-word-delete="${esc(word.id)}" title="Delete word">🗑</button>
+              <button type="button" class="tn-word-action ${word.saved ? "is-saved" : ""}" data-word-fav="${esc(word.id)}" title="Favorite" aria-label="Toggle favorite">${word.saved ? "★" : "☆"}</button>
+              <button type="button" class="tn-word-action" data-word-audio="${esc(word.id)}" title="Play audio" aria-label="Play front word audio">${iconAudio()}</button>
+              <button type="button" class="tn-word-action danger" data-word-delete="${esc(word.id)}" title="Delete word" aria-label="Delete word">${iconTrash()}</button>
             </div>
           </div>
         `).join("")}
@@ -236,7 +249,7 @@
     ` : `
       <div class="tn-library-empty">
         <h3>${isFilterActive() ? "No words found" : mode === "weak" ? "No weak words" : mode === "mastered" ? "No mastered words yet" : "No words yet"}</h3>
-        <p>${isFilterActive() ? "Try changing your search or filters." : mode === "weak" ? "Incorrect and low-level words will appear here." : mode === "mastered" ? "Level 5 words will appear here." : "Add your first word from Create."}</p>
+        <p>${isFilterActive() ? "Try changing your search or filters." : mode === "weak" ? "Incorrect and low-level words will appear here." : mode === "mastered" ? "Level 5 words will appear here." : "Add your first word to start building your vocabulary."}</p>
         <button type="button" data-go-create>Add word</button>
       </div>
     `;
@@ -483,7 +496,7 @@
         <h2>${esc(word.front)}</h2>
         <p class="tn-detail-meaning">${esc(word.back)}</p>
         <div class="tn-detail-actions">
-          <button type="button" data-detail-audio="${esc(word.id)}">▶ Audio</button>
+          <button type="button" data-detail-audio="${esc(word.id)}">${iconAudio()} Audio</button>
           <button type="button" data-detail-fav="${esc(word.id)}">${word.saved ? "★ Saved" : "☆ Save"}</button>
           ${typeof window.openEdit === "function" ? `<button type="button" data-detail-edit="${esc(word.id)}">Edit</button>` : ""}
           <button type="button" class="danger" data-detail-delete="${esc(word.id)}">Delete</button>
@@ -494,7 +507,7 @@
           <div><span>Back language</span><strong>${esc(languageLabel(word.backLang))}</strong></div>
           <div><span>POS</span><strong>${esc(word.pos || "-")}</strong></div>
           <div><span>Gender</span><strong>${esc(word.gender || "-")}</strong></div>
-          <div><span>Level</span><strong>${esc(wordLevelLabel(word))} · ${esc(word.status || "new")}</strong></div>
+          <div><span>Level</span><strong>${esc(wordLevelLabel(word))} · Level ${esc(word.level || 3)}</strong></div>
           <div><span>Correct</span><strong>${esc(word.correctCount || 0)}</strong></div>
           <div><span>Wrong</span><strong>${esc(word.wrongCount || 0)}</strong></div>
           <div><span>Reviews</span><strong>${esc(word.reviewCount || 0)}</strong></div>

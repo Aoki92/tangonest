@@ -3652,6 +3652,17 @@ body{
   line-height:1!important;
 }
 
+.tn-word-action svg,
+.tn-detail-actions svg{
+  width:17px!important;
+  height:17px!important;
+  fill:none!important;
+  stroke:currentColor!important;
+  stroke-width:1.9!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+}
+
 .tn-word-action:hover{
   background:#eef4fa!important;
 }
@@ -3666,6 +3677,43 @@ body{
   border-color:#f1d1d1!important;
   background:#fff8f8!important;
   color:#8f2f2f!important;
+}
+
+.tn-level-chip{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+
+.tn-level-bars{
+  display:inline-flex!important;
+  align-items:end!important;
+  gap:2px!important;
+  height:14px!important;
+}
+
+.tn-level-bars i{
+  display:block!important;
+  width:3px!important;
+  height:7px!important;
+  border-radius:999px!important;
+  background:#d8e2ef!important;
+}
+
+.tn-level-bars i:nth-child(2){height:9px!important}
+.tn-level-bars i:nth-child(3){height:11px!important}
+.tn-level-bars i:nth-child(4){height:13px!important}
+.tn-level-bars i:nth-child(5){height:15px!important}
+.tn-level-bars i.on{background:#315f93!important}
+
+#pageWords .tn82-library-mount ~ .desc,
+#pageWords .tn82-library-mount ~ .mobile-list-actions,
+#pageWords .tn82-library-mount ~ .row4,
+#pageWords .tn82-library-mount ~ .row,
+#pageWords .tn82-library-mount ~ .mobile-sticky-search,
+#pageWords .tn82-library-mount ~ .actions,
+#pageWords .tn82-library-mount ~ #wordsBox{
+  display:none!important;
 }
 
 .tn-playlist-actions{
@@ -3767,6 +3815,10 @@ body{
 }
 
 .tn-detail-actions button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
   min-height:40px!important;
   padding:0 14px!important;
   border:1px solid rgba(160,178,199,.44)!important;

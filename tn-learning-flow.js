@@ -20,6 +20,9 @@
     const data = dbRef();
     data.words = Array.isArray(data.words) ? data.words : [];
     data.lists = Array.isArray(data.lists) && data.lists.length ? data.lists : [{id:"starter",name:"New Playlist"}];
+    if(data.words.length === 1 && isDemoAppleWord(data.words[0])){
+      data.words = [];
+    }
     data.words.forEach(word => {
       word.level = Math.min(5,Math.max(1,Number(word.level || 3)));
       word.correctCount = Number(word.correctCount || 0);
@@ -31,6 +34,29 @@
     data.prefs.frontLang = data.prefs.frontLang || "en-US";
     data.prefs.backLang = data.prefs.backLang || "ja-JP";
     persistQuiet();
+  }
+
+  function isDemoAppleWord(word){
+    const front = String(word?.front || "").trim();
+    const back = String(word?.back || "").trim();
+    const frontLower = front.toLowerCase();
+    const backLower = back.toLowerCase();
+    const isApple = value => String(value || "").trim().toLowerCase() === "apple";
+    const isRingo = value => ["りんご","リンゴ"].includes(String(value || "").trim());
+    return (isApple(frontLower) && isRingo(back)) || (isApple(backLower) && isRingo(front));
+  }
+
+  function neutralizeDemoPlaceholders(){
+    const replacements = {
+      front:"word",
+      back:"meaning",
+      memo:"Example sentence or memo.",
+      bulkText:"hello\tこんにちは\tphrase\tnone\tHello, nice to meet you.\nteacher\t先生\tnoun\tnone\tI am a teacher."
+    };
+    Object.entries(replacements).forEach(([id,placeholder]) => {
+      const el = $(id);
+      if(el)el.placeholder = placeholder;
+    });
   }
 
   function addDays(n){
@@ -276,6 +302,7 @@
     normalizeWords();
     installQuizLearning();
     installAudioGuard();
+    neutralizeDemoPlaceholders();
     renderHomeDashboard();
     try{ if(typeof window.renderHome === "function"){
       const oldRenderHome = window.renderHome;
@@ -294,4 +321,5 @@
   if(document.readyState === "loading")document.addEventListener("DOMContentLoaded",boot);
   else boot();
   setTimeout(boot,500);
+  setTimeout(neutralizeDemoPlaceholders,1200);
 })();

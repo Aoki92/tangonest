@@ -146,10 +146,10 @@
       const el = $(id);
       if(el && !el.value && [...el.options].some(option => option.value === data.prefs.backLang))el.value = data.prefs.backLang;
     });
-    if($("front"))$("front").placeholder = "apple";
-    if($("back"))$("back").placeholder = "りんご";
-    if($("memo"))$("memo").placeholder = "I eat an apple.";
-    if($("bulkText"))$("bulkText").placeholder = "apple\tりんご\tnoun\tnone\tI eat an apple.";
+    if($("front"))$("front").placeholder = "word";
+    if($("back"))$("back").placeholder = "meaning";
+    if($("memo"))$("memo").placeholder = "Example sentence or memo.";
+    if($("bulkText"))$("bulkText").placeholder = "hello\tこんにちは\tphrase\tnone\tHello, nice to meet you.";
   }
 
   function renderSelect(id,{all=false}={}){
@@ -316,7 +316,11 @@
     const data = ensureDb();
     if(data.words.length !== 1)return;
     const word = data.words[0];
-    if(String(word.front || "").toLowerCase() === "apple" && ["りんご","リンゴ"].includes(String(word.back || ""))){
+    const front = String(word.front || "").trim();
+    const back = String(word.back || "").trim();
+    const isApple = value => String(value || "").trim().toLowerCase() === "apple";
+    const isRingo = value => ["りんご","リンゴ"].includes(String(value || "").trim());
+    if((isApple(front) && isRingo(back)) || (isApple(back) && isRingo(front))){
       data.words = [];
       touch();
     }
