@@ -26,26 +26,28 @@ function appShow(pageId){
 
 // TangoNest Split Edition - app.js
 
-const KEY="vocabrise_production_stable_v1";
+const KEY="tangonest_production_stable_v1";
+const LEGACY_SLUG="vocab"+"rise";
 const LEGACY_KEYS=[
-  "vocabrise_stable_reset_v32",
-  "vocabrise_beta34",
-  "vocabrise_beta33",
-  "vocabrise_beta32",
-  "vocabrise_beta31",
-  "vocabrise_beta30",
-  "vocabrise_beta29",
-  "vocabrise_beta28",
-  "vocabrise_beta27",
-  "vocabrise_beta26",
-  "vocabrise_beta25",
-  "vocabrise_beta24",
-  "vocabrise_beta23",
-  "vocabrise_beta22",
-  "vocabrise_beta21",
-  "vocabrise_beta20",
-  "vocabrise_beta19",
-  "vocabrise_beta18"
+  `${LEGACY_SLUG}_production_stable_v1`,
+  `${LEGACY_SLUG}_stable_reset_v32`,
+  `${LEGACY_SLUG}_beta34`,
+  `${LEGACY_SLUG}_beta33`,
+  `${LEGACY_SLUG}_beta32`,
+  `${LEGACY_SLUG}_beta31`,
+  `${LEGACY_SLUG}_beta30`,
+  `${LEGACY_SLUG}_beta29`,
+  `${LEGACY_SLUG}_beta28`,
+  `${LEGACY_SLUG}_beta27`,
+  `${LEGACY_SLUG}_beta26`,
+  `${LEGACY_SLUG}_beta25`,
+  `${LEGACY_SLUG}_beta24`,
+  `${LEGACY_SLUG}_beta23`,
+  `${LEGACY_SLUG}_beta22`,
+  `${LEGACY_SLUG}_beta21`,
+  `${LEGACY_SLUG}_beta20`,
+  `${LEGACY_SLUG}_beta19`,
+  `${LEGACY_SLUG}_beta18`
 ];
 function loadTangoNestDB(){
   const current=localStorage.getItem(KEY);
@@ -56,7 +58,7 @@ function loadTangoNestDB(){
   const keys=[...LEGACY_KEYS];
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
-    if(k&&k.toLowerCase().includes("vocabrise")&&!keys.includes(k))keys.push(k);
+    if(k&&k.toLowerCase().includes(LEGACY_SLUG)&&!keys.includes(k))keys.push(k);
   }
   keys.forEach(k=>{
     try{
@@ -101,7 +103,7 @@ function optionsHTML(selected){return LANGS.map(l=>`<option value="${l[0]}" ${l[
 function fillLangSelects(){["frontLang","bulkFrontLang","editFrontLang"].forEach(id=>{if($(id))$(id).innerHTML=optionsHTML(db.prefs.frontLang)});["backLang","bulkBackLang","editBackLang"].forEach(id=>{if($(id))$(id).innerHTML=optionsHTML(db.prefs.backLang)});updatePlaceholders();attachLangMemory()}
 function attachLangMemory(){["frontLang","backLang","bulkFrontLang","bulkBackLang"].forEach(id=>{let el=$(id);if(el&&!el.dataset.attached){el.addEventListener("change",()=>{if(id.includes("Front"))db.prefs.frontLang=el.value;else if(id.includes("Back"))db.prefs.backLang=el.value;else if(id==="frontLang")db.prefs.frontLang=el.value;else if(id==="backLang")db.prefs.backLang=el.value;persist();updatePlaceholders()});el.dataset.attached=1}})}
 function updatePlaceholders(){if($("front"))$("front").placeholder=placeholderFor($("frontLang").value);if($("back"))$("back").placeholder=placeholderFor($("backLang").value)}
-function detectLang(t){
+function detectLang(t,currentLang){
   const s=String(t||"").trim().toLowerCase();
   if(/[؀-ۿ]/.test(s))return"ar-SA";
   if(/[֐-׿]/.test(s))return"he-IL";
@@ -109,7 +111,10 @@ function detectLang(t){
   if(/[ก-๿]/.test(s))return"th-TH";
   if(/[가-힣]/.test(s))return"ko-KR";
   if(/[ぁ-んァ-ン]/.test(s))return"ja-JP";
-  if(/[一-龯]/.test(s))return"zh-CN";
+  if(/[一-龯]/.test(s)){
+    if(["ja-JP","zh-CN","zh-TW"].includes(currentLang))return currentLang;
+    return"zh-CN";
+  }
   if(/[а-яё]/i.test(s))return"ru-RU";
   if(/[α-ωάέήίόύώϊϋΐΰ]/i.test(s))return"el-GR";
   if(/[àâçéèêëîïôûùüÿœæ]/i.test(s))return"fr-FR";
@@ -120,8 +125,8 @@ function detectLang(t){
   const dict={pomme:"fr-FR",bonjour:"fr-FR",merci:"fr-FR",mela:"it-IT",ciao:"it-IT",apfel:"de-DE",hallo:"de-DE","maçã":"pt-BR","olá":"pt-BR",manzana:"es-ES",hola:"es-ES",appel:"nl-NL",elma:"tr-TR",apel:"id-ID"};
   return dict[s]||"en-US";
 }
-function autoDetectFront(){let t=$("front").value.trim();if(t){$("frontLang").value=detectLang(t);db.prefs.frontLang=$("frontLang").value;persist();updatePlaceholders()}}
-function autoDetectBack(){let t=$("back").value.trim();if(t){$("backLang").value=detectLang(t);db.prefs.backLang=$("backLang").value;persist();updatePlaceholders()}}
+function autoDetectFront(){let t=$("front").value.trim();if(t){$("frontLang").value=detectLang(t,$("frontLang").value);db.prefs.frontLang=$("frontLang").value;persist();updatePlaceholders()}}
+function autoDetectBack(){let t=$("back").value.trim();if(t){$("backLang").value=detectLang(t,$("backLang").value);db.prefs.backLang=$("backLang").value;persist();updatePlaceholders()}}
 function renderSelect(id,all=false){let el=$(id);if(!el)return;let v=el.value;el.innerHTML="";if(all){let o=document.createElement("option");o.value="all";o.textContent="All";el.appendChild(o)}db.lists.forEach(l=>{let o=document.createElement("option");o.value=l.id;o.textContent=l.name;el.appendChild(o)});if([...el.options].some(o=>o.value===v))el.value=v;else if(all)el.value="all"}
 function go(p){["home","add","words","study","quiz","audio","manage"].forEach(x=>{let page=$("page"+cap(x)),nav=$("nav"+cap(x)),mnav=$("mnav"+cap(x));if(page)page.classList.toggle("active",x===p);if(nav)nav.classList.toggle("active",x===p);if(mnav)mnav.classList.toggle("active",x===p)});if(p==="quiz")resetQuiz();render()}
 
@@ -425,12 +430,16 @@ function clearFlashTimers(){flashTimers.forEach(t=>clearTimeout(t));flashTimers=
 function startFlashAuto(){$("flashAutoMode").value="on";playFlashAutoCycle()}
 function stopFlashAuto(){clearFlashTimers();$("flashAutoMode").value="off"}
 function playFlashAutoCycle(){clearFlashTimers();if($("flashAutoMode").value!=="on")return;nextCard();if(!current)return stopFlashAuto();let mode=$("studyMode").value,frontText=mode==="back"?current.back:current.front,frontLang=mode==="back"?current.backLang:current.frontLang,backText=mode==="back"?current.front:current.back,backLang=mode==="back"?current.frontLang:current.backLang;speak(frontText,frontLang);let flipDelay=parseInt($("flashFlipDelay").value),nextDelay=parseInt($("flashNextDelay").value);flashTimers.push(setTimeout(()=>{if($("flashAutoMode").value!=="on")return;if(!flipped)flipCard();speak(backText,backLang)},flipDelay));flashTimers.push(setTimeout(()=>playFlashAutoCycle(),flipDelay+nextDelay))}
-function updateWordLearning(id,status){db.words=db.words.map(w=>{if(w.id!==id)return w;let level=w.level||1,next=w.nextReview;if(status==="learned"){level=Math.min(4,level+1);next=addDays(level===2?2:level===3?5:10)}else{level=1;next=addDays(1)}return{...w,status,level,nextReview:next,lastReviewed:today()}});persist()}
-function quizPool(){let list=$("quizList").value,scope=$("quizScope").value;let words=db.words.filter(w=>w.listId===list);if(scope==="hard")words=words.filter(w=>w.status==="hard");if(scope==="due")words=words.filter(isDue);if(scope==="star")words=words.filter(w=>w.saved);return [...words]}
+function updateWordLearning(id,status){db.words=db.words.map(w=>{if(w.id!==id)return w;const oldLevel=Math.min(5,Math.max(1,Number(w.level||3)));const ok=status==="learned";const level=ok?Math.min(5,oldLevel+1):Math.max(1,oldLevel-1);const next=addDays(({1:1,2:2,3:4,4:8,5:16}[level])||4);return{...w,status:ok?(level>=5?"learned":"new"):"hard",level,nextReview:next,lastReviewed:today(),correctCount:Number(w.correctCount||0)+(ok?1:0),wrongCount:Number(w.wrongCount||0)+(ok?0:1),reviewCount:Number(w.reviewCount||0)+1,lastAnsweredAt:new Date().toISOString(),lastWrongAt:ok?w.lastWrongAt:new Date().toISOString()}});persist()}
+function quizLearningWeight(w){const level=Math.min(5,Math.max(1,Number(w.level||3)));let weight=({1:5,2:4,3:2.5,4:1,5:.3}[level])||2.5;if(w.lastWrongAt)weight+=2;if(w.status==="hard")weight+=1.5;if(w.nextReview&&w.nextReview<=today())weight+=1;return weight}
+function quizAdaptiveOrder(words){return [...words].sort((a,b)=>((Math.random()/Math.max(.1,quizLearningWeight(a)))-(Math.random()/Math.max(.1,quizLearningWeight(b)))))}
+function quizPool(){let list=$("quizList").value,scope=$("quizScope").value;let words=db.words.filter(w=>w.listId===list);if(scope==="hard")words=words.filter(w=>(Number(w.level||3)<=2)||w.status==="hard"||w.lastWrongAt);if(scope==="due")words=words.filter(isDue);if(scope==="star")words=words.filter(w=>w.saved);return quizAdaptiveOrder(words)}
 function shuffle(arr){let a=[...arr];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function resetQuiz(){clearQuizTimers();quiz={queue:[],wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:"choice",direction:"front",total:0};if($("quizType"))$("quizType").value="choice";$("quizSetup").style.display="block";$("quizRun").style.display="none";$("quizEnd").style.display="none"}
-function startQuiz(){clearQuizTimers();let words=quizPool();let requested=parseInt($("quizCount").value,10)||10;if(requested<1)requested=1;if(!words.length)return toast("No words");let actual=Math.min(requested,words.length);if(actual<requested)toast(`Only ${actual} words available`);quiz={queue:shuffle(words).slice(0,actual),wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:$("quizType").value||"choice",direction:$("quizDirection").value,total:actual};$("quizSetup").style.display="none";$("quizRun").style.display="block";$("quizEnd").style.display="none";showQuizQuestion()}
-function showQuizQuestion(){clearQuizTimers();quiz.answered=false;quiz.current=quiz.queue[quiz.index];if(!quiz.current)return endQuiz();$("quizProgress").textContent=(quiz.index+1)+" / "+quiz.total;$("quizScore").textContent=quiz.score+" / "+quiz.total;$("quizResult").className="result-box";$("quizResult").textContent="";let q=quiz.direction==="front"?quiz.current.front:quiz.current.back;$("quizWord").textContent=q;$("quizLabel").textContent=quiz.direction==="front"?"Front → ?":"Back → ?";$("typingArea").style.display=quiz.type==="typing"?"block":"none";$("choiceArea").style.display=quiz.type==="choice"?"grid":"none";$("quizAnswer").value="";if(quiz.type==="choice")renderChoices();startQuestionTimer()}
+function resetQuiz(){clearQuizTimers();quiz={queue:[],wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:"choice",direction:"front",total:0,previousQuestionId:""};if($("quizType"))$("quizType").value="choice";$("quizSetup").style.display="block";$("quizRun").style.display="none";$("quizEnd").style.display="none";resetQuizAnswerVisualState()}
+function startQuiz(){clearQuizTimers();let words=quizPool();let requested=parseInt($("quizCount").value,10)||10;if(requested<1)requested=1;if(!words.length)return toast("No words");let actual=Math.min(requested,words.length);if(actual<requested)toast(`Only ${actual} words available`);quiz={queue:quizAdaptiveOrder(words).slice(0,actual),wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:$("quizType").value||"choice",direction:$("quizDirection").value,total:actual,previousQuestionId:""};$("quizSetup").style.display="none";$("quizRun").style.display="block";$("quizEnd").style.display="none";showQuizQuestion()}
+function resetQuizAnswerVisualState(){document.querySelectorAll(".choice").forEach(b=>{b.disabled=false;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong")});const result=$("quizResult");if(result){result.className="result-box";result.textContent=""}}
+function avoidConsecutiveDuplicateQuestion(){if(!quiz.queue||quiz.queue.length<=1)return;const current=quiz.queue[quiz.index];if(!current||!quiz.previousQuestionId||current.id!==quiz.previousQuestionId)return;const swapIndex=quiz.queue.findIndex((w,i)=>i>quiz.index&&w&&w.id!==quiz.previousQuestionId);if(swapIndex>-1){const tmp=quiz.queue[quiz.index];quiz.queue[quiz.index]=quiz.queue[swapIndex];quiz.queue[swapIndex]=tmp;return}const fallback=quiz.queue.find(w=>w&&w.id!==quiz.previousQuestionId);if(fallback)quiz.queue[quiz.index]=fallback}
+function showQuizQuestion(){clearQuizTimers();resetQuizAnswerVisualState();quiz.answered=false;avoidConsecutiveDuplicateQuestion();quiz.current=quiz.queue[quiz.index];if(!quiz.current)return endQuiz();$("quizProgress").textContent=(quiz.index+1)+" / "+quiz.total;$("quizScore").textContent=quiz.score+" / "+quiz.total;let q=quiz.direction==="front"?quiz.current.front:quiz.current.back;$("quizWord").textContent=q;$("quizLabel").textContent=quiz.direction==="front"?"Front → ?":"Back → ?";$("typingArea").style.display=quiz.type==="typing"?"block":"none";$("choiceArea").style.display=quiz.type==="choice"?"grid":"none";$("quizAnswer").value="";if(quiz.type==="choice")renderChoices();startQuestionTimer()}
 function correctAnswer(){return quiz.direction==="front"?quiz.current.back:quiz.current.front}
 function normalize(s){return String(s||"").trim().toLowerCase()}
 function checkTypingAnswer(){if(quiz.answered)return;finishAnswer(normalize($("quizAnswer").value)===normalize(correctAnswer()))}
@@ -448,10 +457,11 @@ function renderChoices(){
   let choices=shuffle([correct,...pool]);
   $("choiceArea").innerHTML=choices.map(c=>`<button type="button" class="choice" onclick="chooseAnswer(this,'${escAttr(c)}')">${esc(c)}</button>`).join("");
 }
-function chooseAnswer(btn,ans){if(quiz.answered)return;let ok=normalize(ans)===normalize(correctAnswer());[...document.querySelectorAll(".choice")].forEach(b=>{b.disabled=true;if(normalize(b.textContent)===normalize(correctAnswer()))b.classList.add("correct")});if(!ok)btn.classList.add("wrong");finishAnswer(ok)}
-function finishAnswer(ok){if(quiz.answered)return;quiz.answered=true;clearInterval(quizTimerInterval);if(ok){quiz.score++;$("quizResult").className="result-box show ok";$("quizResult").textContent="Correct";updateWordLearning(quiz.current.id,"learned")}else{$("quizResult").className="result-box show no";$("quizResult").textContent="Wrong. Answer: "+correctAnswer();quiz.wrong.push(quiz.current);if(!quiz.allWrong.some(w=>w.id===quiz.current.id))quiz.allWrong.push(quiz.current);updateWordLearning(quiz.current.id,"hard")}$("quizScore").textContent=quiz.score+" / "+quiz.total;if($("quizAudioAfter").value==="on")setTimeout(()=>{try{speakQuizQuestion()}catch(e){}},20);if(isAutoAdvance())scheduleNext(ok)}
-function isAutoAdvance(){return !$("quizAutoAdvance")||$("quizAutoAdvance").value==="on"}
-function nextDelay(ok){let v=parseFloat($("quizNextDelay").value||"0.8");v=Math.max(0.3,Math.min(10,v));return v*1000}
+function chooseAnswer(btn,ans){if(quiz.answered)return;let ok=normalize(ans)===normalize(correctAnswer());[...document.querySelectorAll(".choice")].forEach(b=>{b.disabled=true;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong");if(normalize(b.textContent)===normalize(correctAnswer()))b.classList.add("correct")});btn.classList.add("selected");if(!ok)btn.classList.add("wrong");finishAnswer(ok)}
+function quizFeedbackHtml(ok,level){const answer=correctAnswer();const levelText=level?`<span class="quiz-level-note">${ok?`Level increased to ${level}`:"This word will appear more often."}</span>`:"";return `<div class="quiz-feedback-copy"><strong>${ok?"Correct":"Incorrect"}</strong>${ok?"":`<span>Correct answer: ${esc(answer)}</span>`}${levelText}</div><button type="button" class="quiz-next-btn" onclick="nextQuizQuestion()">Next</button>`}
+function finishAnswer(ok){if(quiz.answered)return;quiz.answered=true;quiz.previousQuestionId=quiz.current?.id||quiz.previousQuestionId;clearInterval(quizTimerInterval);if(ok){quiz.score++;updateWordLearning(quiz.current.id,"learned");const fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show ok";$("quizResult").innerHTML=quizFeedbackHtml(true,fresh?.level)}else{updateWordLearning(quiz.current.id,"hard");const fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show no";$("quizResult").innerHTML=quizFeedbackHtml(false,fresh?.level);quiz.wrong.push(quiz.current);if(!quiz.allWrong.some(w=>w.id===quiz.current.id))quiz.allWrong.push(quiz.current)}$("quizScore").textContent=quiz.score+" / "+quiz.total;if($("quizAudioAfter").value==="on")setTimeout(()=>{try{speakQuizQuestion()}catch(e){}},20);if(isAutoAdvance())scheduleNext(ok)}
+function isAutoAdvance(){const mode=$("quizAutoAdvance")?.value||"1.5";return mode!=="manual"&&mode!=="off"}
+function nextDelay(ok){const mode=$("quizAutoAdvance")?.value||"1.5";let v=mode==="manual"||mode==="off"?parseFloat($("quizNextDelay")?.value||"1.5"):parseFloat(mode);if(!Number.isFinite(v))v=parseFloat($("quizNextDelay")?.value||"1.5");v=Math.max(1,Math.min(10,v));return v*1000}
 function scheduleNext(ok){clearTimeout(quizAutoTimer);quizAutoTimer=setTimeout(()=>advanceQuiz(),nextDelay(ok))}
 function advanceQuiz(){clearQuizTimers();if(!quiz.current)return;if(!quiz.answered){finishAnswer(false);return}quiz.index++;if(quiz.index>=quiz.queue.length)return endQuiz();showQuizQuestion()}
 function nextQuizQuestion(){if(!quiz.current)return;if(!quiz.answered){finishAnswer(false);return}advanceQuiz()}
@@ -500,6 +510,14 @@ let VOICE_CACHE=[];
 let voiceLoadStarted=false;
 
 function normalizeVoiceLang(lang){
+  const raw=String(lang||"").trim();
+  const lower=raw.toLowerCase();
+  if(lower.includes("english"))return "en-US";
+  if(lower.includes("japanese")||lower.includes("日本"))return "ja-JP";
+  if(lower.includes("korean"))return "ko-KR";
+  if(lower.includes("chinese")||lower.includes("mandarin"))return "zh-CN";
+  if(lower.includes("french"))return "fr-FR";
+  if(lower.includes("spanish"))return "es-ES";
   const map={
     "en":"en-US","en-US":"en-US","en-GB":"en-GB",
     "fr":"fr-FR","fr-FR":"fr-FR",
@@ -521,8 +539,11 @@ function normalizeVoiceLang(lang){
     "el":"el-GR","el-GR":"el-GR",
     "he":"he-IL","he-IL":"he-IL"
   };
-  return map[lang]||lang||"en-US";
+  return map[raw]||raw||"en-US";
 }
+window.tnNormalizeVoiceLang = normalizeVoiceLang;
+function cleanSpeechText(text){return String(text||"").replace(/\s*\/\s*/g," ").replace(/\s+/g," ").trim()}
+window.tnCleanSpeechText = cleanSpeechText;
 
 function refreshVoices(){
   try{
@@ -580,7 +601,7 @@ function pickVoice(lang){
 }
 
 async function speak(text,lang,opts={}){
-  text=String(text||"").trim();
+  text=cleanSpeechText(text);
   if(!text)return;
   const finalLang=normalizeVoiceLang(lang);
   if(!window.speechSynthesis)return;
@@ -663,7 +684,7 @@ function attachBrandContextListeners(){
 attachBrandContextListeners();
 render();resetQuiz();
 
-const TN_SESSION_KEY="vocabrise_last_session_v1";
+const TN_SESSION_KEY="tangonest_last_session_v1";
 function getLastSession(){
   try{return JSON.parse(localStorage.getItem(TN_SESSION_KEY)||"{}")}catch(e){return{}}
 }
@@ -732,27 +753,32 @@ function attachSessionMemory(){
   });
 }
 function rotateHeroLanguages(){
-  const sets=[
-    {front:"你好",frontLang:"Chinese",back:"hello",backLang:"English",mode:"Quiz"},
-    {front:"こんにちは",frontLang:"Japanese",back:"hello",backLang:"English",mode:"Cards"},
-    {front:"안녕하세요",frontLang:"Korean",back:"hello",backLang:"English",mode:"Listen"},
-    {front:"bonjour",frontLang:"French",back:"hello",backLang:"English",mode:"Review"},
-    {front:"hola",frontLang:"Spanish",back:"hello",backLang:"English",mode:"Typing"},
-    {front:"مرحبا",frontLang:"Arabic",back:"hello",backLang:"English",mode:"Audio"},
-    {front:"词汇",frontLang:"Chinese",back:"語彙",backLang:"Japanese",mode:"Quiz"}
-  ];
   const one=document.querySelector(".float-one");
   const two=document.querySelector(".float-two");
   const three=document.querySelector(".float-three");
   if(!one||!two||!three)return;
+  const words=Array.isArray(db?.words)?db.words.filter(w=>w?.front&&w?.back).slice(-8):[];
+  if(!words.length){
+    one.innerHTML="<span>Front</span><b>Your word</b><small>Language</small>";
+    two.innerHTML="<span>Back</span><b>Meaning</b><small>Translation</small>";
+    three.innerHTML="<span>Mode</span><b>Quiz</b><small>Ready</small>";
+    return;
+  }
+  const sets=words.map((word,index)=>({
+    front:word.front,
+    frontLang:langName(word.frontLang || "en-US"),
+    back:word.back,
+    backLang:langName(word.backLang || "ja-JP"),
+    mode:["Quiz","Cards","Listen"][index%3]
+  }));
   let i=0;
   const apply=()=>{
     const s=sets[i%sets.length];
     [one,two,three].forEach(el=>el.classList.add("changing"));
     setTimeout(()=>{
-      one.innerHTML=`<span>Front</span><b>${s.front}</b><small>${s.frontLang}</small>`;
-      two.innerHTML=`<span>Back</span><b>${s.back}</b><small>${s.backLang}</small>`;
-      three.innerHTML=`<span>Mode</span><b>${s.mode}</b><small>Ready</small>`;
+      one.innerHTML=`<span>Front</span><b>${esc(s.front)}</b><small>${esc(s.frontLang)}</small>`;
+      two.innerHTML=`<span>Back</span><b>${esc(s.back)}</b><small>${esc(s.backLang)}</small>`;
+      three.innerHTML=`<span>Mode</span><b>${esc(s.mode)}</b><small>Ready</small>`;
       [one,two,three].forEach(el=>el.classList.remove("changing"));
     },220);
     i++;
@@ -1449,7 +1475,7 @@ function applyEnglishJapaneseDefaults(force=false){
   if(newList && newList.placeholder) newList.placeholder="English A1";
   const bulk=$("bulkText");
   if(bulk && !bulk.value && bulk.placeholder){
-    bulk.placeholder="hello\tこんにちは\tphrase\tnone\tHello, nice to meet you.\nteacher\t先生\tnoun\tnone\tI am a teacher.";
+    bulk.placeholder="front word\tback meaning\tPOS\tgender\texample sentence";
   }
 }
 setTimeout(()=>applyEnglishJapaneseDefaults(true),400);
@@ -3457,7 +3483,7 @@ function tn64EnsureEnglishJapaneseDefaults(){
   const back=tn64$("back"); if(back)back.placeholder="meaning";
   const memo=tn64$("memo"); if(memo)memo.placeholder="Example sentence or memo.";
   const bulk=tn64$("bulkText");
-  if(bulk)bulk.placeholder="hello\tこんにちは\tphrase\tnone\tHello, nice to meet you.\nteacher\t先生\tnoun\tnone\tI am a teacher.";
+  if(bulk)bulk.placeholder="front word\tback meaning\tPOS\tgender\texample sentence";
   try{ tn64Persist(); }catch(e){}
 }
 function tn64ClearAddFields(){
@@ -3730,13 +3756,8 @@ function tn75RenderPlaylistRenameBox(){
     tn75RefreshPlaylistBox();
     return;
   }
-  const host =
-    document.getElementById("pageSettings") ||
-    document.getElementById("settings") ||
-    document.querySelector("[data-page='settings']") ||
-    document.querySelector(".page.active") ||
-    document.querySelector("main") ||
-    document.body;
+  const host = document.getElementById("pageManage") || document.getElementById("pageSettings") || document.querySelector("[data-page='settings']");
+  if(!host)return;
 
   const box=document.createElement("div");
   box.id="tn75PlaylistBox";
@@ -5353,7 +5374,7 @@ function tn82ForceDefaultLanguages(){
   if(front)front.placeholder="word";
   if(back)back.placeholder="meaning";
   if(memo)memo.placeholder="Example sentence or memo.";
-  if(bulk)bulk.placeholder="hello\tこんにちは\tphrase\tnone\tHello, nice to meet you.";
+  if(bulk)bulk.placeholder="front word\tback meaning\tPOS\tgender\texample sentence";
 }
 
 /* ---------- 4. Page state ---------- */

@@ -1,7 +1,7 @@
 (function(){
   "use strict";
 
-  const DATA_KEY = "vocabrise_production_stable_v1";
+  const DATA_KEY = "tangonest_production_stable_v1";
   const $ = id => document.getElementById(id);
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const today = () => new Date().toISOString().slice(0,10);
@@ -51,7 +51,7 @@
       front:"word",
       back:"meaning",
       memo:"Example sentence or memo.",
-      bulkText:"hello\tこんにちは\tphrase\tnone\tHello, nice to meet you.\nteacher\t先生\tnoun\tnone\tI am a teacher."
+      bulkText:"front word\tback meaning\tPOS\tgender\texample sentence"
     };
     Object.entries(replacements).forEach(([id,placeholder]) => {
       const el = $(id);
@@ -127,19 +127,25 @@
       if(hero?.nextSibling)page.insertBefore(mount,hero.nextSibling);
       else page.prepend(mount);
     }
-    const words = dbRef().words || [];
+    const data = dbRef();
+    const words = data.words || [];
     const due = dueWordsLearning();
     const weak = weakWords();
     const levelCounts = [1,2,3,4,5].map(level => words.filter(word => Number(word.level || 3) === level).length);
     const last = words
       .filter(word => word.lastAnsweredAt || word.lastReviewed || word.createdAt)
       .sort((a,b) => String(b.lastAnsweredAt || b.lastReviewed || b.createdAt || "").localeCompare(String(a.lastAnsweredAt || a.lastReviewed || a.createdAt || "")))[0];
+    const lastList = data.lists.find(list => list.id === last?.listId) || data.lists[0];
+    const recentContext = last
+      ? `${esc(last.front)} · ${esc(levelLabel(last.level))} · ${esc(lastList?.name || "New Playlist")}`
+      : "Add a word, then TangoNest will guide your next session.";
 
     mount.innerHTML = `
       <div class="tn-learn-hero-card">
         <span class="tn-learn-kicker">Today's Review</span>
         <strong>${due.length}</strong>
         <p>${due.length ? "words need attention today." : "No urgent reviews. Keep the rhythm going."}</p>
+        <div class="tn-learn-hero-stats"><span><b>${weak.length}</b> weak words</span><span><b>${words.length}</b> total words</span></div>
         <button type="button" data-tn-start-review="today">Start Review</button>
       </div>
       <div class="tn-learn-grid">
@@ -151,7 +157,13 @@
         </section>
         <section>
           <div class="tn-learn-section-head"><h2>Continue Learning</h2><button type="button" data-tn-start-review="quiz">Continue Quiz</button></div>
-          <p class="tn-learn-muted">${last ? `${esc(last.front)} · ${esc(levelLabel(last.level))}` : "Add a word, then TangoNest will guide your next session."}</p>
+          <p class="tn-learn-muted">${recentContext}</p>
+          <div class="tn-learn-session-links">
+            <button type="button" data-tn-start-review="quiz">Recent quiz</button>
+            <button type="button" data-tn-go="listen">Recent listen</button>
+            <button type="button" data-tn-go="library">${esc(lastList?.name || "New Playlist")}</button>
+          </div>
+          <span class="tn-learn-actions-label">Quick Actions</span>
           <div class="tn-learn-actions">
             <button type="button" data-tn-go="create">Add Word</button>
             <button type="button" data-tn-go="create">Bulk Add</button>
@@ -162,7 +174,7 @@
       </div>
       <section class="tn-learn-progress">
         <h2>Learning Progress</h2>
-        <div>${levelCounts.map((count,index) => `<span><b>${count}</b><small>Level ${index + 1}</small></span>`).join("")}</div>
+        <div>${levelCounts.map((count,index) => `<span class="tn-progress-level level-${index + 1}"><b>${count}</b><small>Level ${index + 1}</small></span>`).join("")}</div>
       </section>
     `;
   }
@@ -173,7 +185,8 @@
     const listId = data.lists[0]?.id || "starter";
     if($("quizList"))$("quizList").value = listId;
     if($("quizScope")){
-      $("quizScope").value = mode === "weak" ? "hard" : "all";
+      const scope = mode === "weak" ? "hard" : mode === "today" ? (dueWordsLearning().length ? "due" : weakWords().length ? "hard" : "all") : "all";
+      $("quizScope").value = scope;
     }
     try{ if(typeof window.tnEmergencyStableGo === "function")window.tnEmergencyStableGo("quiz"); else if(typeof window.go === "function")window.go("quiz"); }catch(e){}
     setTimeout(() => {
@@ -249,6 +262,7 @@
       if(typeof originalFinishAnswer === "function")originalFinishAnswer(ok);
       const result = $("quizResult");
       if(result?.classList.contains("show")){
+        if(result.querySelector?.(".quiz-next-btn"))return renderHomeDashboard();
         const add = ok ? "Level increased." : "This word will appear more often.";
         if(!result.textContent.includes(add))result.textContent = `${result.textContent} · ${add}`;
       }
@@ -258,11 +272,12 @@
 
   function normalizeVoiceLang(lang){
     const raw = String(lang || "").toLowerCase();
-    if(raw.startsWith("ja"))return "ja-JP";
-    if(raw.startsWith("ko"))return "ko-KR";
-    if(raw.startsWith("zh"))return "zh-CN";
-    if(raw.startsWith("fr"))return "fr-FR";
-    if(raw.startsWith("es"))return "es-ES";
+    if(raw.startsWith("ja") || raw.includes("japanese") || raw.includes("日本"))return "ja-JP";
+    if(raw.startsWith("ko") || raw.includes("korean"))return "ko-KR";
+    if(raw.startsWith("zh") || raw.includes("chinese") || raw.includes("mandarin"))return "zh-CN";
+    if(raw.startsWith("fr") || raw.includes("french"))return "fr-FR";
+    if(raw.startsWith("es") || raw.includes("spanish"))return "es-ES";
+    if(raw.startsWith("en") || raw.includes("english"))return "en-US";
     return "en-US";
   }
 
@@ -279,7 +294,7 @@
     };
     window.tnSpeakExample = function(id){
       const word = (dbRef().words || []).find(item => item.id === id);
-      if(word?.memo)window.speak(word.memo,word.backLang || word.frontLang || "en-US");
+      if(word?.memo)window.speak(word.memo,word.frontLang || word.backLang || "en-US");
     };
   }
 

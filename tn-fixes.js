@@ -2,8 +2,7 @@
   "use strict";
   document.documentElement.dataset.tnFix = "loading";
 
-  // localStorage key kept as-is for backward compatibility with existing user data
-  const DATA_KEY = "vocabrise_production_stable_v1";
+  const DATA_KEY = "tangonest_production_stable_v1";
   const PAGE_KEY = "tangonest_last_page_v2";
   const EMAIL_KEY = "tangonest_sync_email_v1";
   const HASH_KEY = "tangonest_sync_hash_v1";

@@ -3,8 +3,7 @@
 
   const URL = "https://bkbteylavujkfiwuqwdq.supabase.co";
   const KEY = "sb_publishable_UKX5qCXkbIRac4cc62_LXw_yEGDG6BZ";
-  // localStorage key kept as-is for backward compatibility with existing user data
-  const LOCAL_KEY = "vocabrise_production_stable_v1";
+  const LOCAL_KEY = "tangonest_production_stable_v1";
   const MIGRATION_KEY = "tangonest_cloud_first_migrated_v1";
   const PAGE_KEY = "tangonest_last_page_v2";
   let client = null;
@@ -171,7 +170,7 @@
       memo:row.memo || "",
       status:row.status || "new",
       saved:!!row.saved,
-      level:row.level || 1,
+      level:row.level || 3,
       nextReview:row.next_review || "",
       createdAt:row.created_at,
       updatedAt:row.updated_at

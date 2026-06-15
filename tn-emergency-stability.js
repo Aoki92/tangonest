@@ -1,7 +1,7 @@
 (function(){
   "use strict";
 
-  const DATA_KEY = "vocabrise_production_stable_v1";
+  const DATA_KEY = "tangonest_production_stable_v1";
   const RESET_KEY = "tangonest_emergency_reset_20260614_v1";
   const PAGE_KEY = "tangonest_last_page_v2";
   const MAX_SAFE_WORDS = 5000;

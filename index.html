@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <title>TangoNest</title>
-<link rel="stylesheet" href="./style.css?v=20260614-librarypolish1">
+<link rel="stylesheet" href="./style.css?v=20260615-majorux7">
 
 <script>
 (function(){
@@ -38,7 +38,7 @@
 html.tn73-ready #tn73Auth{display:none!important;pointer-events:none!important;visibility:hidden!important;opacity:0!important}
 #tn73Auth,#tn73Auth *{pointer-events:auto!important;box-sizing:border-box!important;-webkit-user-select:auto!important;user-select:auto!important;touch-action:auto!important}
 .tn73-card{width:min(520px,calc(100% - 0px))!important;margin:auto!important;flex-shrink:0!important;border-radius:32px!important;background:rgba(248,251,255,.97)!important;border:1px solid rgba(255,255,255,.55)!important;box-shadow:0 30px 90px rgba(15,23,42,.32)!important;padding:28px!important;color:#0f172a!important;position:relative!important;z-index:2147483647!important}
-.tn73-brand{display:flex!important;align-items:center!important;gap:14px!important;margin-bottom:8px!important}.tn73-logo{width:48px!important;height:48px!important;border-radius:15px!important;display:flex!important;align-items:center!important;justify-content:center!important;background:linear-gradient(135deg,#1d4ed8,#22d3ee)!important;color:white!important;font-weight:950!important}.tn73-title{font-size:30px!important;line-height:1!important;font-weight:950!important;letter-spacing:-.04em!important}.tn73-subtitle{margin-top:4px!important;font-weight:750!important;color:#64748b!important}.tn73-pill{display:inline-flex!important;border-radius:999px!important;background:white!important;padding:6px 12px!important;font-weight:900!important;color:#64748b!important;margin:6px 0 12px 62px!important}.tn73-kicker{display:inline-flex!important;border-radius:999px!important;padding:7px 12px!important;color:#2563eb!important;background:rgba(37,99,235,.10)!important;font-size:13px!important;font-weight:950!important;letter-spacing:.16em!important;margin-bottom:12px!important}
+.tn73-brand{display:flex!important;align-items:center!important;gap:14px!important;margin-bottom:8px!important}.tn73-logo{width:48px!important;height:48px!important;border-radius:15px!important;display:flex!important;align-items:center!important;justify-content:center!important;background:url("./icon-192.png") center/cover no-repeat,linear-gradient(135deg,#1d4ed8,#22d3ee)!important;color:transparent!important;font-size:0!important;font-weight:950!important;overflow:hidden!important}.tn73-title{font-size:30px!important;line-height:1!important;font-weight:950!important;letter-spacing:-.04em!important}.tn73-subtitle{margin-top:4px!important;font-weight:750!important;color:#64748b!important}.tn73-pill{display:inline-flex!important;border-radius:999px!important;background:white!important;padding:6px 12px!important;font-weight:900!important;color:#64748b!important;margin:6px 0 12px 62px!important}.tn73-kicker{display:inline-flex!important;border-radius:999px!important;padding:7px 12px!important;color:#2563eb!important;background:rgba(37,99,235,.10)!important;font-size:13px!important;font-weight:950!important;letter-spacing:.16em!important;margin-bottom:12px!important}
 #tn73Auth h1{margin:0 0 10px!important;font-size:40px!important;line-height:1.04!important;letter-spacing:-.06em!important;color:#0f172a!important}#tn73Auth p{margin:0 0 16px!important;color:#64748b!important;line-height:1.45!important;font-size:16px!important}#tn73Auth label{display:block!important;margin:11px 0 6px!important;font-weight:900!important;color:#475569!important;font-size:14px!important}
 #tn73Auth input{display:block!important;width:100%!important;height:50px!important;border-radius:16px!important;border:1px solid rgba(148,163,184,.30)!important;background:white!important;color:#0f172a!important;font-size:16px!important;padding:0 14px!important;outline:none!important;pointer-events:auto!important;cursor:text!important;touch-action:manipulation!important;-webkit-appearance:none!important;position:relative!important;z-index:2147483647!important}
 #tn73Auth input:focus{border-color:#2563eb!important;box-shadow:0 0 0 4px rgba(37,99,235,.14)!important}.tn73-msg{margin:14px 0!important;padding:11px 13px!important;border-radius:14px!important;background:#eff6ff!important;color:#1d4ed8!important;border:1px solid rgba(59,130,246,.18)!important;font-weight:800!important}.tn73-msg.error{background:#fef2f2!important;color:#b91c1c!important}.tn73-msg.success{background:#ecfdf5!important;color:#047857!important}.tn73-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important}
@@ -146,8 +146,8 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
           <div><b>Audio</b><span>Listen</span></div>
         </div>
       </div>
-      <div class="floating-card float-one"><span>Front</span><b>bonjour</b><small>French</small></div>
-      <div class="floating-card float-two"><span>Back</span><b>hello</b><small>English</small></div>
+      <div class="floating-card float-one"><span>Front</span><b>Your word</b><small>Language</small></div>
+      <div class="floating-card float-two"><span>Back</span><b>Meaning</b><small>Translation</small></div>
       <div class="floating-card float-three"><span>Mode</span><b>Quiz</b><small>Ready</small></div>
     </div>
   </section>
@@ -171,7 +171,7 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
     </div>
     <div class="card"><h2>Bulk Add</h2><p class="desc">Paste up to five columns from notes or spreadsheets: Front / Back / POS / Gender / Example.</p>
       <div class="row3"><div><label>Front language</label><select id="bulkFrontLang"></select></div><div><label>Back language</label><select id="bulkBackLang"></select></div><div><label>Save to list</label><select id="bulkList"></select></div></div>
-      <textarea id="bulkText" placeholder="hello	こんにちは	phrase	none	Hello, nice to meet you.&#10;teacher	先生	noun	none	I am a teacher."></textarea>
+      <textarea id="bulkText" placeholder="front word	back meaning	POS	gender	example sentence"></textarea>
       <div class="actions"><button class="btn blue" onclick="previewBulk()">Preview</button><button class="btn primary" onclick="bulkImport()">Bulk Register</button><button class="btn" onclick="$('bulkText').value='';clearBulkPreview()">Clear</button></div><div id="bulkPreview" class="sync-box" style="display:none"></div><div id="bulkDuplicatePanel" class="dup-panel"></div>
     </div>
   </section>
@@ -201,7 +201,7 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
     <div class="quiz-card"><div class="card"><h2>Quiz Mode</h2><p class="desc">Stable quiz engine: exact question count, independent audio, reliable auto-advance.</p>
       <div id="quizSetup">
         <div class="row3"><div><label>Library</label><select id="quizList"></select></div><div><label>Quiz Type</label><select id="quizType"><option value="choice" selected>4 Choices</option><option value="typing">Typing</option></select></div><div><label>Direction</label><select id="quizDirection"><option value="front">Front → Back</option><option value="back">Back → Front</option></select></div></div>
-        <div class="row3"><div><label>Question count</label><input id="quizCount" type="number" min="1" max="300" step="1" value="10"></div><div><label>Auto advance</label><select id="quizAutoAdvance"><option value="on" selected>On</option><option value="off">Off / manual</option></select></div><div><label>Next delay</label><input id="quizNextDelay" type="number" min="0.3" max="10" step="0.1" value="0.8"></div></div>
+        <div class="row3"><div><label>Question count</label><input id="quizCount" type="number" min="1" max="300" step="1" value="10"></div><div><label>Feedback speed</label><select id="quizAutoAdvance"><option value="1">Fast · 1.0s</option><option value="1.5" selected>Normal · 1.5s</option><option value="2.5">Slow · 2.5s</option><option value="manual">Manual Next</option></select></div><div><label>Custom delay</label><input id="quizNextDelay" type="number" min="1" max="10" step="0.1" value="1.5"></div></div>
         <div class="row3"><div><label>After-answer audio</label><select id="quizAudioAfter"><option value="on">On</option><option value="off">Off</option></select></div><div><label>Hard Mode</label><select id="quizHardMode"><option value="off">Off</option><option value="on">On: time limit</option></select></div><div><label>Time limit</label><input id="quizTimeLimit" type="number" min="2" max="60" step="1" value="8"></div></div>
         <div class="row"><div><label>Scope</label><select id="quizScope"><option value="all">All</option><option value="hard">Hard only</option><option value="due">Due only</option><option value="star">★ Saved only</option></select></div><div><label>Exact count rule</label><p class="desc" style="margin:8px 0 0">If fewer words are available, the quiz clearly uses the available count.</p></div></div>
         <div class="actions"><button class="btn primary" onclick="startQuiz()">Start Quiz</button></div>
@@ -340,9 +340,9 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
 })();
 </script>
 
-<script src="./tn-emergency-guard.js?v=20260614-librarypolish1"></script>
-<script src="./app.js?v=20260614-librarypolish1"></script>
-<script src="./tn-fixes.js?v=20260614-librarypolish1"></script>
+<script src="./tn-emergency-guard.js?v=20260615-majorux7"></script>
+<script src="./app.js?v=20260615-majorux7"></script>
+<script src="./tn-fixes.js?v=20260615-majorux7"></script>
 
 
 <script id="tn73EmergencyScript">
@@ -371,9 +371,9 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 })();
 </script>
 
-<script src="./tn-cloud-first.js?v=20260614-librarypolish1"></script>
-<script src="./tn-library-management.js?v=20260614-librarypolish1"></script>
-<script src="./tn-emergency-stability.js?v=20260614-librarypolish1"></script>
-<script src="./tn-learning-flow.js?v=20260614-librarypolish1"></script>
+<script src="./tn-cloud-first.js?v=20260615-majorux7"></script>
+<script src="./tn-library-management.js?v=20260615-majorux7"></script>
+<script src="./tn-emergency-stability.js?v=20260615-majorux7"></script>
+<script src="./tn-learning-flow.js?v=20260615-majorux7"></script>
 </body>
 </html>

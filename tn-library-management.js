@@ -1,7 +1,7 @@
 (function(){
   "use strict";
 
-  const DATA_KEY = "vocabrise_production_stable_v1";
+  const DATA_KEY = "tangonest_production_stable_v1";
   const RESET_KEY = "tangonest_beta83_library_clean_reset_v1";
   const WORD_RENDER_LIMIT = 200;
   const $ = id => document.getElementById(id);
@@ -202,6 +202,11 @@
     return labels[level] || "Learning";
   }
 
+  function levelClass(word){
+    const level = Math.min(5,Math.max(1,Number(word?.level || 3)));
+    return `level-${level}`;
+  }
+
   function levelBars(word){
     const level = Math.min(5,Math.max(1,Number(word.level || 3)));
     return `<span class="tn-level-bars" aria-label="Level ${level}">${[1,2,3,4,5].map(n => `<i class="${n <= level ? "on" : ""}"></i>`).join("")}</span>`;
@@ -236,7 +241,7 @@
             </div>
             <div class="tn82-word-meta">
               <span>${esc(listName(word.listId))}</span>
-              <span class="tn-level-chip">${esc(wordLevelLabel(word))}${levelBars(word)}</span>
+              <span class="tn-level-chip ${levelClass(word)}">${esc(wordLevelLabel(word))}${levelBars(word)}</span>
               ${word.pos ? `<span>${esc(word.pos)}</span>` : ""}
               <button type="button" class="tn-word-action ${word.saved ? "is-saved" : ""}" data-word-fav="${esc(word.id)}" title="Favorite" aria-label="Toggle favorite">${word.saved ? "★" : "☆"}</button>
               <button type="button" class="tn-word-action" data-word-audio="${esc(word.id)}" title="Play audio" aria-label="Play front word audio">${iconAudio()}</button>
@@ -281,8 +286,8 @@
               <button type="button" data-playlist-mode="quiz" data-playlist-id="${esc(list.id)}">Quiz</button>
               <button type="button" data-playlist-mode="cards" data-playlist-id="${esc(list.id)}">Cards</button>
               <button type="button" data-playlist-mode="listen" data-playlist-id="${esc(list.id)}">Listen</button>
+              <button type="button" class="tn-playlist-delete-btn" data-delete-playlist="${esc(list.id)}">Delete</button>
             </div>
-            <button type="button" class="tn-playlist-delete-btn" data-delete-playlist="${esc(list.id)}">Delete</button>
             <button type="button" class="tn-playlist-menu-btn" data-menu-playlist="${esc(list.id)}" aria-label="Playlist menu">...</button>
           </article>
         `;}).join("")}
@@ -507,12 +512,12 @@
           <div><span>Back language</span><strong>${esc(languageLabel(word.backLang))}</strong></div>
           <div><span>POS</span><strong>${esc(word.pos || "-")}</strong></div>
           <div><span>Gender</span><strong>${esc(word.gender || "-")}</strong></div>
-          <div><span>Level</span><strong>${esc(wordLevelLabel(word))} · Level ${esc(word.level || 3)}</strong></div>
+          <div><span>Level</span><strong class="tn-detail-level ${levelClass(word)}">${esc(wordLevelLabel(word))} · Level ${esc(word.level || 3)}</strong></div>
           <div><span>Correct</span><strong>${esc(word.correctCount || 0)}</strong></div>
           <div><span>Wrong</span><strong>${esc(word.wrongCount || 0)}</strong></div>
           <div><span>Reviews</span><strong>${esc(word.reviewCount || 0)}</strong></div>
         </div>
-        ${word.memo ? `<section class="tn-detail-example"><span>Example</span><p>${esc(word.memo)}</p><button type="button" class="tn-example-audio" onclick="window.tnSpeakExample && window.tnSpeakExample('${esc(word.id)}')">▶ Example</button></section>` : ""}
+        ${word.memo ? `<section class="tn-detail-example"><span>Example</span><p>${esc(word.memo)}</p><button type="button" class="tn-example-audio" onclick="window.tnSpeakExample && window.tnSpeakExample('${esc(word.id)}')">${iconAudio()} Example audio</button></section>` : ""}
       </div>
     `;
     panel.classList.add("show");
@@ -633,6 +638,7 @@
   }
 
   function stabilizeHeader(){
+    moveCloudPanelsToSettings();
     const header = $("tn80HeaderCloud");
     if(header){
       if(header.textContent !== "Cloud")header.textContent = "Cloud";
@@ -649,6 +655,18 @@
     if(account && /@/.test(account.textContent || ""))account.textContent = "Signed in";
     const syncBadge = $("syncStatusBadge");
     if(syncBadge && syncBadge.textContent !== "Sync")syncBadge.textContent = "Sync";
+  }
+
+  function moveCloudPanelsToSettings(){
+    const settings = $("pageManage");
+    const host = settings?.querySelector(".card") || settings;
+    if(!host)return;
+    ["tn80CloudPanel","tn78CloudBox"].forEach(id => {
+      const panel = $(id);
+      if(panel && panel.parentElement !== host){
+        host.insertBefore(panel,host.firstChild);
+      }
+    });
   }
 
   function bindLibraryUi(){
