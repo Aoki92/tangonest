@@ -13,6 +13,9 @@
 
   function data(){
     try{
+      if(typeof window.tnGetDb === "function")return window.tnGetDb();
+    }catch(e){}
+    try{
       if(typeof db !== "undefined" && db)return db;
     }catch(e){}
     return safeParse(localStorage.getItem(DATA_KEY));
@@ -29,7 +32,10 @@
     }catch(e){
       window.db = next;
     }
-    try{ localStorage.setItem(DATA_KEY,JSON.stringify(next)); }catch(e){}
+    try{
+      if(typeof window.tnWriteData === "function")window.tnWriteData(next);
+      else localStorage.setItem(DATA_KEY,JSON.stringify(next));
+    }catch(e){}
   }
 
   function cleanData(reason){

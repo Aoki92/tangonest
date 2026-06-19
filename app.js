@@ -27,6 +27,7 @@ function appShow(pageId){
 // TangoNest Split Edition - app.js
 
 const KEY="tangonest_production_stable_v1";
+const SHADOW_KEY="tangonest_last_good_data_v1";
 const LEGACY_SLUG="vocab"+"rise";
 const LEGACY_KEYS=[
   `${LEGACY_SLUG}_production_stable_v1`,
@@ -49,10 +50,96 @@ const LEGACY_KEYS=[
   `${LEGACY_SLUG}_beta19`,
   `${LEGACY_SLUG}_beta18`
 ];
+function tnParsedData(raw){
+  try{return raw ? JSON.parse(raw) : null}catch(e){return null}
+}
+function tnIsDefaultList(list){
+  const id=String(list?.id||"");
+  const name=String(list?.name||"").trim().toLowerCase();
+  return !name || name==="new playlist" || id==="starter" || id==="local-starter";
+}
+function tnHasUserData(data){
+  if(!data || typeof data!=="object")return false;
+  const words=Array.isArray(data.words)?data.words:[];
+  const lists=Array.isArray(data.lists)?data.lists:[];
+  return words.some(w=>String(w?.front||"").trim()&&String(w?.back||"").trim()) ||
+    lists.some(list=>!tnIsDefaultList(list));
+}
+function tnListName(data,id){
+  return String((data?.lists||[]).find(list=>list.id===id)?.name||"New Playlist").trim().toLowerCase();
+}
+function tnMergeStoredData(primary,backup){
+  const a=primary&&typeof primary==="object"?primary:{};
+  const b=backup&&typeof backup==="object"?backup:{};
+  const out={
+    ui:a.ui||b.ui||"en",
+    prefs:{...(b.prefs||{}),...(a.prefs||{})},
+    lists:[],
+    words:[],
+    meta:{...(b.meta||{}),...(a.meta||{})}
+  };
+  const addList=list=>{
+    if(!list)return;
+    const name=String(list.name||"New Playlist").trim().toLowerCase();
+    const existing=out.lists.find(item=>item.id===list.id||String(item.name||"").trim().toLowerCase()===name);
+    if(existing)Object.assign(existing,list);
+    else out.lists.push({...list});
+  };
+  (b.lists||[]).forEach(addList);
+  (a.lists||[]).forEach(addList);
+  if(!out.lists.length)out.lists.push({id:"starter",name:"New Playlist"});
+  const listIdByName=new Map(out.lists.map(list=>[String(list.name||"").trim().toLowerCase(),list.id]));
+  const wordMap=new Map();
+  const addWord=(source,word)=>{
+    if(!word||!String(word.front||"").trim()||!String(word.back||"").trim())return;
+    const sourceListName=tnListName(source,word.listId);
+    const next={...word,listId:listIdByName.get(sourceListName)||word.listId||out.lists[0].id};
+    const key=next.id||[String(next.front).trim().toLowerCase(),String(next.back).trim().toLowerCase(),sourceListName].join("|");
+    wordMap.set(key,{...(wordMap.get(key)||{}),...next});
+  };
+  (b.words||[]).forEach(word=>addWord(b,word));
+  (a.words||[]).forEach(word=>addWord(a,word));
+  out.words=[...wordMap.values()];
+  out.prefs.frontLang=out.prefs.frontLang||"en-US";
+  out.prefs.backLang=out.prefs.backLang||"ja-JP";
+  out.meta.updatedAt=out.meta.updatedAt||new Date().toISOString();
+  return out;
+}
+function tnWriteData(data){
+  const text=JSON.stringify(data);
+  localStorage.setItem(KEY,text);
+  if(tnHasUserData(data))localStorage.setItem(SHADOW_KEY,text);
+}
+function tnClearLastGoodData(){
+  try{localStorage.removeItem(SHADOW_KEY)}catch(e){}
+}
 function loadTangoNestDB(){
   const current=localStorage.getItem(KEY);
   if(current){
-    try{return JSON.parse(current)}catch(e){}
+    const parsed=tnParsedData(current);
+    const shadow=tnParsedData(localStorage.getItem(SHADOW_KEY));
+    if(parsed){
+      if(tnHasUserData(parsed) && tnHasUserData(shadow)){
+        const merged=tnMergeStoredData(parsed,shadow);
+        tnWriteData(merged);
+        return merged;
+      }
+      if(tnHasUserData(parsed) || !tnHasUserData(shadow))return parsed;
+      tnWriteData(shadow);
+      console.warn("TangoNest recovered data from last-good backup");
+      return shadow;
+    }
+    if(tnHasUserData(shadow)){
+      tnWriteData(shadow);
+      console.warn("TangoNest recovered data from last-good backup");
+      return shadow;
+    }
+  }
+  const shadow=tnParsedData(localStorage.getItem(SHADOW_KEY));
+  if(tnHasUserData(shadow)){
+    tnWriteData(shadow);
+    console.warn("TangoNest recovered data from last-good backup");
+    return shadow;
   }
   let best=null,bestCount=-1,bestKey="";
   const keys=[...LEGACY_KEYS];
@@ -72,17 +159,18 @@ function loadTangoNestDB(){
     }catch(e){}
   });
   if(best){
-    localStorage.setItem(KEY,JSON.stringify(best));
+    tnWriteData(best);
     console.log("TangoNest migrated data from",bestKey);
     return best;
   }
-  return {ui:"en",prefs:{frontLang:"fr-FR",backLang:"en-US"},lists:[{id:"starter",name:"New Playlist"}],words:[]};
+  return {ui:"en",prefs:{frontLang:"en-US",backLang:"ja-JP"},lists:[{id:"starter",name:"New Playlist"}],words:[]};
 }
 const LANGS=[
   ["fr-FR","French","mot"],["en-US","English","word"],["ja-JP","Japanese","意味"],["ko-KR","Korean","단어"],["zh-CN","Chinese Simplified","词"],["zh-TW","Chinese Traditional","詞"],["es-ES","Spanish","palabra"],["ar-SA","Arabic","كلمة"],["it-IT","Italian","parola"],["de-DE","German","Wort"],["pt-BR","Portuguese","palavra"],["ru-RU","Russian","слово"],["nl-NL","Dutch","woord"],["vi-VN","Vietnamese","tu"],["th-TH","Thai","คำ"],["tr-TR","Turkish","kelime"],["hi-IN","Hindi","शब्द"],["id-ID","Indonesian","kata"],["el-GR","Greek","λέξη"],["he-IL","Hebrew","מילה"]
 ];
 let db=loadTangoNestDB();
-db.prefs=db.prefs||{frontLang:"fr-FR",backLang:"en-US"};db.lists=db.lists&&db.lists.length?db.lists:[{id:"starter",name:"New Playlist"}];db.words=db.words||[];
+db.prefs=db.prefs||{frontLang:"en-US",backLang:"ja-JP"};db.lists=db.lists&&db.lists.length?db.lists:[{id:"starter",name:"New Playlist"}];db.words=db.words||[];
+try{window.db=db;}catch(e){}
 let current=null,flipped=false,timer=null,flashTimers=[],audioTimer=null,audioQueue=[],audioIndex=0,audioPaused=false,selectedIds=new Set();
 let quiz={queue:[],wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:"choice",direction:"front",total:0};let quizAutoTimer=null,quizTimerInterval=null,quizQuestionStartedAt=0;
 const $=id=>document.getElementById(id);
@@ -91,16 +179,132 @@ const today=()=>new Date().toISOString().slice(0,10);
 function addDays(n){let d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
 function isDue(w){return !!w.nextReview&&w.nextReview<=today()}
 function dueWords(){return db.words.filter(isDue)}
-function save(renderUI=true){localStorage.setItem(KEY,JSON.stringify(db));if(renderUI)render()}
-function persist(){localStorage.setItem(KEY,JSON.stringify(db))}
+function shareDb(){try{window.db=db;}catch(e){}return db}
+function tnGetDb(){return shareDb()}
+function tnAdoptDb(next){if(next&&typeof next==="object"){Object.keys(db).forEach(key=>delete db[key]);Object.assign(db,next);}return shareDb()}
+function save(renderUI=true){shareDb();tnWriteData(db);if(renderUI)render()}
+function persist(){shareDb();tnWriteData(db)}
+try{window.tnGetDb=tnGetDb;window.tnAdoptDb=tnAdoptDb;window.tnWriteData=tnWriteData;}catch(e){}
 function toast(m){$("toast").textContent=m;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),1700)}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escAttr(s){return String(s??"").replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'&quot;')}
 function cap(s){return s[0].toUpperCase()+s.slice(1)}
+
+window.tnDataSafety = window.tnDataSafety || (() => {
+  const BACKUP_KEY = "tangonest_backup_before_cloud_hydration_v1";
+  const clone = value => {
+    try{return JSON.parse(JSON.stringify(value || {}));}catch(e){return {};}
+  };
+  const now = () => new Date().toISOString();
+  const normalize = value => {
+    const data = clone(value);
+    data.ui = data.ui || "en";
+    data.prefs = data.prefs || {};
+    data.meta = data.meta || {};
+    data.lists = Array.isArray(data.lists) ? data.lists.filter(Boolean) : [];
+    data.words = Array.isArray(data.words) ? data.words.filter(Boolean) : [];
+    if(!data.prefs.frontLang)data.prefs.frontLang = "en-US";
+    if(!data.prefs.backLang)data.prefs.backLang = "ja-JP";
+    if(!data.lists.length)data.lists.push({id:"starter",name:"New Playlist",createdAt:now()});
+    data.words = data.words.map(word => ({...word,listId:word.listId || data.lists[0]?.id}));
+    return data;
+  };
+  const isDefaultList = list => {
+    const id = String(list?.id || "");
+    const name = String(list?.name || "").trim().toLowerCase();
+    return !name || name === "new playlist" || id === "starter" || id === "local-starter";
+  };
+  const hasUserData = value => {
+    const data = normalize(value);
+    const hasCustomPrefs = Object.entries(data.prefs || {}).some(([key,value]) => {
+      if(key === "frontLang")return value && value !== "en-US";
+      if(key === "backLang")return value && value !== "ja-JP";
+      return value !== undefined && value !== null && value !== "";
+    });
+    return data.words.some(word => String(word.front || "").trim() && String(word.back || "").trim()) ||
+      data.lists.some(list => !isDefaultList(list)) ||
+      hasCustomPrefs;
+  };
+  const listName = (data,id) => String((data.lists || []).find(list => list.id === id)?.name || "New Playlist").trim().toLowerCase();
+  const wordKey = (data,word) => [
+    String(word.front || "").trim().toLowerCase(),
+    String(word.back || "").trim().toLowerCase(),
+    listName(data,word.listId)
+  ].join("|");
+  const newer = (a,b) => {
+    const at = a?.updatedAt || a?.updated_at || a?.createdAt || a?.created_at || "";
+    const bt = b?.updatedAt || b?.updated_at || b?.createdAt || b?.created_at || "";
+    if(!at)return b;
+    if(!bt)return a;
+    return new Date(at) >= new Date(bt) ? a : b;
+  };
+  function merge(localValue,cloudValue){
+    const local = normalize(localValue);
+    const cloud = normalize(cloudValue);
+    const lists = [];
+    const addList = list => {
+      if(!list)return;
+      const name = String(list.name || "New Playlist").trim().toLowerCase();
+      const exists = lists.find(item => item.id === list.id || String(item.name || "").trim().toLowerCase() === name);
+      if(exists)Object.assign(exists,newer(exists,list));
+      else lists.push({...list});
+    };
+    cloud.lists.forEach(addList);
+    local.lists.forEach(addList);
+    if(!lists.length)lists.push({id:"starter",name:"New Playlist",createdAt:now()});
+    const byName = new Map(lists.map(list => [String(list.name || "").trim().toLowerCase(),list.id]));
+    const merged = {...cloud,prefs:{...local.prefs,...cloud.prefs},meta:{...local.meta,...cloud.meta},lists,words:[]};
+    const words = new Map();
+    const addWord = (source,word) => {
+      if(!word || !String(word.front || "").trim() || !String(word.back || "").trim())return;
+      const sourceListName = listName(source,word.listId);
+      const next = {...word,listId:byName.get(sourceListName) || word.listId || lists[0].id};
+      const key = wordKey({...source,lists},next);
+      words.set(key,words.has(key) ? newer(words.get(key),next) : next);
+    };
+    cloud.words.forEach(word => addWord(cloud,word));
+    local.words.forEach(word => addWord(local,word));
+    merged.words = [...words.values()];
+    merged.meta.updatedAt = newer(local.meta,cloud.meta)?.updatedAt || newer(local.meta,cloud.meta)?.updated_at || local.meta.updatedAt || cloud.meta.updatedAt || now();
+    return normalize(merged);
+  }
+  function backup(reason,local,incoming){
+    try{
+      localStorage.setItem(BACKUP_KEY,JSON.stringify({at:now(),reason,local:clone(local),incoming:clone(incoming)}));
+    }catch(e){}
+  }
+  function replace(next){
+    const safe = normalize(next);
+    Object.keys(db).forEach(key => delete db[key]);
+    Object.assign(db,safe);
+    shareDb();
+    persist();
+    return db;
+  }
+  function safeHydrate(incoming,reason="cloud-hydration"){
+    const local = normalize(db);
+    const cloud = normalize(incoming);
+    const localHas = hasUserData(local);
+    const cloudHas = hasUserData(cloud);
+    if(localHas && !cloudHas){
+      backup(reason + ":kept-local",local,cloud);
+      persist();
+      return {action:"kept-local",data:local};
+    }
+    const next = localHas && cloudHas ? merge(local,cloud) : cloud;
+    if(JSON.stringify(next) !== JSON.stringify(local))backup(reason,local,cloud);
+    replace(next);
+    return {action:localHas && cloudHas ? "merged" : "applied-cloud",data:db};
+  }
+  return {normalize,hasUserData,merge,safeHydrate,backup};
+})();
+function tnSafeApplyCloudData(incoming,reason){
+  return window.tnDataSafety?.safeHydrate(incoming,reason)?.data || incoming;
+}
 function langName(c){return (LANGS.find(l=>l[0]===c)||[c,c])[1]}
 function placeholderFor(c){return (LANGS.find(l=>l[0]===c)||["","", "word"])[2]}
 function optionsHTML(selected){return LANGS.map(l=>`<option value="${l[0]}" ${l[0]===selected?"selected":""}>${l[1]}</option>`).join("")}
-function fillLangSelects(){["frontLang","bulkFrontLang","editFrontLang"].forEach(id=>{if($(id))$(id).innerHTML=optionsHTML(db.prefs.frontLang)});["backLang","bulkBackLang","editBackLang"].forEach(id=>{if($(id))$(id).innerHTML=optionsHTML(db.prefs.backLang)});updatePlaceholders();attachLangMemory()}
+function fillLangSelects(){db.prefs=db.prefs||{};db.prefs.frontLang=db.prefs.frontLang||"en-US";db.prefs.backLang=db.prefs.backLang||"ja-JP";["frontLang","bulkFrontLang","editFrontLang"].forEach(id=>{if($(id))$(id).innerHTML=optionsHTML(db.prefs.frontLang)});["backLang","bulkBackLang","editBackLang"].forEach(id=>{if($(id))$(id).innerHTML=optionsHTML(db.prefs.backLang)});updatePlaceholders();attachLangMemory()}
 function attachLangMemory(){["frontLang","backLang","bulkFrontLang","bulkBackLang"].forEach(id=>{let el=$(id);if(el&&!el.dataset.attached){el.addEventListener("change",()=>{if(id.includes("Front"))db.prefs.frontLang=el.value;else if(id.includes("Back"))db.prefs.backLang=el.value;else if(id==="frontLang")db.prefs.frontLang=el.value;else if(id==="backLang")db.prefs.backLang=el.value;persist();updatePlaceholders()});el.dataset.attached=1}})}
 function updatePlaceholders(){if($("front"))$("front").placeholder=placeholderFor($("frontLang").value);if($("back"))$("back").placeholder=placeholderFor($("backLang").value)}
 function detectLang(t,currentLang){
@@ -435,14 +639,14 @@ function quizLearningWeight(w){const level=Math.min(5,Math.max(1,Number(w.level|
 function quizAdaptiveOrder(words){return [...words].sort((a,b)=>((Math.random()/Math.max(.1,quizLearningWeight(a)))-(Math.random()/Math.max(.1,quizLearningWeight(b)))))}
 function quizPool(){let list=$("quizList").value,scope=$("quizScope").value;let words=db.words.filter(w=>w.listId===list);if(scope==="hard")words=words.filter(w=>(Number(w.level||3)<=2)||w.status==="hard"||w.lastWrongAt);if(scope==="due")words=words.filter(isDue);if(scope==="star")words=words.filter(w=>w.saved);return quizAdaptiveOrder(words)}
 function shuffle(arr){let a=[...arr];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function resetQuiz(){clearQuizTimers();quiz={queue:[],wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:"choice",direction:"front",total:0,previousQuestionId:""};if($("quizType"))$("quizType").value="choice";$("quizSetup").style.display="block";$("quizRun").style.display="none";$("quizEnd").style.display="none";resetQuizAnswerVisualState()}
-function startQuiz(){clearQuizTimers();let words=quizPool();let requested=parseInt($("quizCount").value,10)||10;if(requested<1)requested=1;if(!words.length)return toast("No words");let actual=Math.min(requested,words.length);if(actual<requested)toast(`Only ${actual} words available`);quiz={queue:quizAdaptiveOrder(words).slice(0,actual),wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:$("quizType").value||"choice",direction:$("quizDirection").value,total:actual,previousQuestionId:""};$("quizSetup").style.display="none";$("quizRun").style.display="block";$("quizEnd").style.display="none";showQuizQuestion()}
+function resetQuiz(){clearQuizTimers();quiz={queue:[],wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:"choice",direction:"front",total:0,previousQuestionId:"",selectedAnswer:""};if($("quizType"))$("quizType").value="choice";$("quizSetup").style.display="block";$("quizRun").style.display="none";$("quizEnd").style.display="none";resetQuizAnswerVisualState()}
+function startQuiz(){clearQuizTimers();let words=quizPool();let requested=parseInt($("quizCount").value,10)||10;if(requested<1)requested=1;if(!words.length)return toast("No words");let actual=Math.min(requested,words.length);if(actual<requested)toast(`Only ${actual} words available`);quiz={queue:quizAdaptiveOrder(words).slice(0,actual),wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:$("quizType").value||"choice",direction:$("quizDirection").value,total:actual,previousQuestionId:"",selectedAnswer:""};$("quizSetup").style.display="none";$("quizRun").style.display="block";$("quizEnd").style.display="none";showQuizQuestion()}
 function resetQuizAnswerVisualState(){document.querySelectorAll(".choice").forEach(b=>{b.disabled=false;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong")});const result=$("quizResult");if(result){result.className="result-box";result.textContent=""}}
 function avoidConsecutiveDuplicateQuestion(){if(!quiz.queue||quiz.queue.length<=1)return;const current=quiz.queue[quiz.index];if(!current||!quiz.previousQuestionId||current.id!==quiz.previousQuestionId)return;const swapIndex=quiz.queue.findIndex((w,i)=>i>quiz.index&&w&&w.id!==quiz.previousQuestionId);if(swapIndex>-1){const tmp=quiz.queue[quiz.index];quiz.queue[quiz.index]=quiz.queue[swapIndex];quiz.queue[swapIndex]=tmp;return}const fallback=quiz.queue.find(w=>w&&w.id!==quiz.previousQuestionId);if(fallback)quiz.queue[quiz.index]=fallback}
-function showQuizQuestion(){clearQuizTimers();resetQuizAnswerVisualState();quiz.answered=false;avoidConsecutiveDuplicateQuestion();quiz.current=quiz.queue[quiz.index];if(!quiz.current)return endQuiz();$("quizProgress").textContent=(quiz.index+1)+" / "+quiz.total;$("quizScore").textContent=quiz.score+" / "+quiz.total;let q=quiz.direction==="front"?quiz.current.front:quiz.current.back;$("quizWord").textContent=q;$("quizLabel").textContent=quiz.direction==="front"?"Front → ?":"Back → ?";$("typingArea").style.display=quiz.type==="typing"?"block":"none";$("choiceArea").style.display=quiz.type==="choice"?"grid":"none";$("quizAnswer").value="";if(quiz.type==="choice")renderChoices();startQuestionTimer()}
+function showQuizQuestion(){clearQuizTimers();resetQuizAnswerVisualState();quiz.answered=false;quiz.selectedAnswer="";avoidConsecutiveDuplicateQuestion();quiz.current=quiz.queue[quiz.index];if(!quiz.current)return endQuiz();$("quizProgress").textContent=(quiz.index+1)+" / "+quiz.total;$("quizScore").textContent=quiz.score+" / "+quiz.total;let q=quiz.direction==="front"?quiz.current.front:quiz.current.back;$("quizWord").textContent=q;$("quizLabel").textContent=quiz.direction==="front"?"Front → ?":"Back → ?";$("typingArea").style.display=quiz.type==="typing"?"block":"none";$("choiceArea").style.display=quiz.type==="choice"?"grid":"none";$("quizAnswer").value="";if(quiz.type==="choice")renderChoices();startQuestionTimer()}
 function correctAnswer(){return quiz.direction==="front"?quiz.current.back:quiz.current.front}
 function normalize(s){return String(s||"").trim().toLowerCase()}
-function checkTypingAnswer(){if(quiz.answered)return;finishAnswer(normalize($("quizAnswer").value)===normalize(correctAnswer()))}
+function checkTypingAnswer(){if(quiz.answered)return;quiz.selectedAnswer=$("quizAnswer").value;finishAnswer(normalize($("quizAnswer").value)===normalize(correctAnswer()))}
 function renderChoices(){
   let correct=correctAnswer();
   const currentList=quiz.current.listId;
@@ -457,8 +661,8 @@ function renderChoices(){
   let choices=shuffle([correct,...pool]);
   $("choiceArea").innerHTML=choices.map(c=>`<button type="button" class="choice" onclick="chooseAnswer(this,'${escAttr(c)}')">${esc(c)}</button>`).join("");
 }
-function chooseAnswer(btn,ans){if(quiz.answered)return;let ok=normalize(ans)===normalize(correctAnswer());[...document.querySelectorAll(".choice")].forEach(b=>{b.disabled=true;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong");if(normalize(b.textContent)===normalize(correctAnswer()))b.classList.add("correct")});btn.classList.add("selected");if(!ok)btn.classList.add("wrong");finishAnswer(ok)}
-function quizFeedbackHtml(ok,level){const answer=correctAnswer();const levelText=level?`<span class="quiz-level-note">${ok?`Level increased to ${level}`:"This word will appear more often."}</span>`:"";return `<div class="quiz-feedback-copy"><strong>${ok?"Correct":"Incorrect"}</strong>${ok?"":`<span>Correct answer: ${esc(answer)}</span>`}${levelText}</div><button type="button" class="quiz-next-btn" onclick="nextQuizQuestion()">Next</button>`}
+function chooseAnswer(btn,ans){if(quiz.answered)return;quiz.selectedAnswer=ans;let ok=normalize(ans)===normalize(correctAnswer());[...document.querySelectorAll(".choice")].forEach(b=>{b.disabled=true;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong");if(normalize(b.textContent)===normalize(correctAnswer()))b.classList.add("correct")});btn.classList.add("selected");if(!ok)btn.classList.add("wrong");finishAnswer(ok)}
+function quizFeedbackHtml(ok,level){const answer=correctAnswer();const selected=quiz.selectedAnswer||answer;const levelText=level?`<span class="quiz-level-note">${ok?`Level increased to ${level}`:"This word will appear more often."}</span>`:"";return `<div class="quiz-feedback-copy"><strong>${ok?"Correct":"Incorrect"}</strong><span>Your answer: ${esc(selected)}</span>${ok?"":`<span>Correct answer: ${esc(answer)}</span>`}${levelText}</div><button type="button" class="quiz-next-btn" onclick="nextQuizQuestion()">Next</button>`}
 function finishAnswer(ok){if(quiz.answered)return;quiz.answered=true;quiz.previousQuestionId=quiz.current?.id||quiz.previousQuestionId;clearInterval(quizTimerInterval);if(ok){quiz.score++;updateWordLearning(quiz.current.id,"learned");const fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show ok";$("quizResult").innerHTML=quizFeedbackHtml(true,fresh?.level)}else{updateWordLearning(quiz.current.id,"hard");const fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show no";$("quizResult").innerHTML=quizFeedbackHtml(false,fresh?.level);quiz.wrong.push(quiz.current);if(!quiz.allWrong.some(w=>w.id===quiz.current.id))quiz.allWrong.push(quiz.current)}$("quizScore").textContent=quiz.score+" / "+quiz.total;if($("quizAudioAfter").value==="on")setTimeout(()=>{try{speakQuizQuestion()}catch(e){}},20);if(isAutoAdvance())scheduleNext(ok)}
 function isAutoAdvance(){const mode=$("quizAutoAdvance")?.value||"1.5";return mode!=="manual"&&mode!=="off"}
 function nextDelay(ok){const mode=$("quizAutoAdvance")?.value||"1.5";let v=mode==="manual"||mode==="off"?parseFloat($("quizNextDelay")?.value||"1.5"):parseFloat(mode);if(!Number.isFinite(v))v=parseFloat($("quizNextDelay")?.value||"1.5");v=Math.max(1,Math.min(10,v));return v*1000}
@@ -502,8 +706,8 @@ function downloadBackupFile(){
 }
 
 function exportDataText(){let data={app:"TangoNest",version:"stable-reset-v32",exportedAt:new Date().toISOString(),data:db},text=JSON.stringify(data),box=$("syncDataBox");box.value=text;box.focus();box.select();if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(text).then(()=>toast("Copied export data")).catch(()=>toast("Export data is ready"));else toast("Export data is ready. Copy the text.")}
-function importDataText(){let text=($("syncDataBox").value||"").trim();if(!text)return toast("Paste export data first");let parsed;try{parsed=JSON.parse(text)}catch(e){return alert("Import failed: invalid data")}let incoming=parsed.data&&parsed.data.words?parsed.data:parsed;if(!incoming.words||!incoming.lists)return alert("Import failed: this is not TangoNest data");if(!confirm(`Import ${incoming.words.length} words? Current data will be replaced.`))return;db={ui:incoming.ui||"en",prefs:incoming.prefs||{frontLang:"fr-FR",backLang:"en-US"},lists:incoming.lists.length?incoming.lists:[{id:"starter",name:"New Playlist"}],words:incoming.words};save();toast("Imported")}
-function clearAll(){if(!confirm(`Delete all vocabulary data in this browser? (${db.words.length} words)`))return;let final=prompt("Type DELETE to confirm.");if(final!=="DELETE")return toast("Cancelled");db={ui:"en",prefs:{frontLang:"fr-FR",backLang:"en-US"},lists:[{id:"starter",name:"New Playlist"}],words:[]};localStorage.setItem(KEY,JSON.stringify(db));resetCard();resetQuiz();render();toast("All data deleted")}
+function importDataText(){let text=($("syncDataBox").value||"").trim();if(!text)return toast("Paste export data first");let parsed;try{parsed=JSON.parse(text)}catch(e){return alert("Import failed: invalid data")}let incoming=parsed.data&&parsed.data.words?parsed.data:parsed;if(!incoming.words||!incoming.lists)return alert("Import failed: this is not TangoNest data");if(!confirm(`Import ${incoming.words.length} words? Current data will be replaced.`))return;db={ui:incoming.ui||"en",prefs:incoming.prefs||{frontLang:"en-US",backLang:"ja-JP"},lists:incoming.lists.length?incoming.lists:[{id:"starter",name:"New Playlist"}],words:incoming.words};save();toast("Imported")}
+function clearAll(){if(!confirm(`Delete all vocabulary data in this browser? (${db.words.length} words)`))return;let final=prompt("Type DELETE to confirm.");if(final!=="DELETE")return toast("Cancelled");db={ui:"en",prefs:{frontLang:"en-US",backLang:"ja-JP"},lists:[{id:"starter",name:"New Playlist"}],words:[],meta:{intentionalClearAt:new Date().toISOString()}};shareDb();tnClearLastGoodData();localStorage.setItem(KEY,JSON.stringify(db));resetCard();resetQuiz();render();toast("All data deleted")}
 
 let VOICES_READY=false;
 let VOICE_CACHE=[];
@@ -1008,7 +1212,7 @@ async function loadFromCloud(){
     if(!data?.data?.data)return safeToast("No cloud data yet");
     const cloudDb=data.data.data;
     if(!cloudDb.words||!cloudDb.lists)return safeToast("Cloud data format error");
-    db=cloudDb;
+    tnSafeApplyCloudData(cloudDb,"manual-load-from-cloud");
     if(typeof save==="function")save();
     if(typeof render==="function")render();
     if(typeof updateBrandContext==="function")updateBrandContext();
@@ -2045,7 +2249,7 @@ bulkImport = function(mode){
     clearBulkPreview();
 
     if(typeof persist==="function")persist();
-    else localStorage.setItem(KEY,JSON.stringify(db));
+    else tnWriteData(db);
 
     render();
     tnSafeToast(replaced?`${added} added, ${replaced} replaced`:`${added} added`);
@@ -2113,7 +2317,7 @@ function tnApplyDefaultLanguageIfEmpty(){
   const set=(el,val)=>{
     if(!el)return;
     if([...el.options].some(o=>o.value===val)){
-      // If default is still Chinese because of old app default, correct it.
+      // If a stale old default remains, correct it.
       if(el.value==="zh-CN" || el.value==="fr-FR" || !el.value) el.value=val;
     }
   };
@@ -2139,7 +2343,7 @@ setTimeout(()=>{tnPreflightCheck();tnApplyDefaultLanguageIfEmpty();attachBulkBut
 function tnSafePersistOnly(){
   try{
     if(typeof KEY!=="undefined"){
-      localStorage.setItem(KEY,JSON.stringify(db));
+      tnWriteData(db);
     }else{
       localStorage.setItem("tangonest_data_backup",JSON.stringify(db));
     }
@@ -2522,11 +2726,7 @@ async function tnLoadCloudSilently(){
     const cloudDb=data.data.data;
     if(!cloudDb.words || !cloudDb.lists)return false;
 
-    // If cloud has data, trust it on login/session restore.
-    db=cloudDb;
-
-    // Persist locally without calling old save()/render() chain.
-    if(typeof KEY!=="undefined")localStorage.setItem(KEY,JSON.stringify(db));
+    tnSafeApplyCloudData(cloudDb,"silent-login-cloud-load");
 
     try{ render(); }catch(e){ console.warn("render after cloud load recovered",e); try{renderHome?.();renderWords?.();}catch(_){} }
     tnUpdateHeaderCountsOnly?.();
@@ -2902,10 +3102,7 @@ function tnApplyCloudPayload(payload){
   if(!cloudDb || !cloudDb.words || !cloudDb.lists){
     return false;
   }
-  db=cloudDb;
-  try{
-    if(typeof KEY!=="undefined")localStorage.setItem(KEY,JSON.stringify(db));
-  }catch(e){console.warn(e)}
+  tnSafeApplyCloudData(cloudDb,"account-cloud-payload");
   try{render();}catch(e){
     console.warn("render recovered after cloud load",e);
     try{renderHome?.();renderWords?.();tnUpdateHeaderCountsOnly?.();}catch(_){}
@@ -3193,7 +3390,7 @@ function tnStableAddDays(n){
 
 function tnStablePersist(){
   if(typeof KEY!=="undefined"){
-    localStorage.setItem(KEY,JSON.stringify(db));
+    tnWriteData(db);
   }else{
     localStorage.setItem("tangonest_local_data_v1",JSON.stringify(db));
   }
@@ -3450,7 +3647,7 @@ function tn64TodayPlus(n){
 }
 function tn64Persist(){
   try{
-    if(typeof KEY!=="undefined") localStorage.setItem(KEY, JSON.stringify(db));
+    if(typeof KEY!=="undefined") tnWriteData(db);
     else localStorage.setItem("tangonest_data", JSON.stringify(db));
   }catch(e){
     console.error("localStorage save failed",e);
@@ -3751,26 +3948,11 @@ function tn75Esc(s){
 
 /* Playlist rename UI */
 function tn75RenderPlaylistRenameBox(){
-  tn75EnsureDb();
-  if(document.getElementById("tn75PlaylistBox")){
-    tn75RefreshPlaylistBox();
-    return;
-  }
-  const host = document.getElementById("pageManage") || document.getElementById("pageSettings") || document.querySelector("[data-page='settings']");
-  if(!host)return;
-
-  const box=document.createElement("div");
-  box.id="tn75PlaylistBox";
-  box.className="tn75-playlist-box card";
-  box.innerHTML=`
-    <div class="tn75-box-title">Playlist names</div>
-    <div class="tn75-box-text">Rename your language spaces.</div>
-    <div id="tn75PlaylistRows"></div>
-  `;
-  host.appendChild(box);
-  tn75RefreshPlaylistBox();
+  document.getElementById("tn75PlaylistBox")?.remove();
 }
 function tn75RefreshPlaylistBox(){
+  document.getElementById("tn75PlaylistBox")?.remove();
+  return;
   const rows=document.getElementById("tn75PlaylistRows");
   if(!rows)return;
   tn75EnsureDb();
@@ -3833,7 +4015,7 @@ async function tn75CloudLoad(){
   const {data,error}=await s.rpc("tn_login",{p_email:tn75Email(),p_password_hash:tn75Hash()});
   if(error || !data || data.ok===false){console.error(error||data);tn75Toast("Cloud load failed");return false;}
   if(data.data){
-    Object.assign(db,data.data);
+    tnSafeApplyCloudData(data.data,"tn75-cloud-load");
     tn75Persist();
     tn75SafeRender();
     tn75Toast("Loaded from cloud ✓");
@@ -4063,7 +4245,7 @@ async function tn76CloudLoad({silent=true, force=false}={}){
       const localJson=JSON.stringify(db||{});
       const cloudJson=JSON.stringify(data.data||{});
       if(force || localJson !== cloudJson){
-        Object.assign(db,data.data);
+        tnSafeApplyCloudData(data.data,"tn76-cloud-load");
         tn76Persist();
         tn76RenderEverywhere();
         if(!silent)tn76Toast("Loaded from cloud ✓");
@@ -4761,7 +4943,7 @@ async function tn80LoadCloudNow(){
     if(!data || data.ok===false)throw new Error(data?.error||"Cloud load failed");
 
     if(data.data){
-      Object.assign(db,data.data);
+      tnSafeApplyCloudData(data.data,"tn80-manual-cloud-load");
       tn80Persist();
       tn80RenderAll();
     }
@@ -5176,7 +5358,7 @@ async function tn81CloudLoad(){
     const {data,error}=await s.rpc("tn_login",{p_email:tn81Email(),p_password_hash:tn81Hash()});
     if(error)throw error;
     if(data && data.ok!==false && data.data){
-      Object.assign(db,data.data);
+      tnSafeApplyCloudData(data.data,"tn81-cloud-load");
       tn81Persist();
       tn81RenderAll();
       tn81RememberPage(current);
@@ -5315,7 +5497,8 @@ function tn82TouchLocal(){
 
 function tn82Persist(){
   tn82EnsureDb();
-  localStorage.setItem(tn82DataKey(),JSON.stringify(db));
+  if(tn82DataKey()===KEY)tnWriteData(db);
+  else localStorage.setItem(tn82DataKey(),JSON.stringify(db));
 }
 
 function tn82LoadLocal(){
@@ -5813,7 +5996,7 @@ async function tn82CloudLoad(force=false){
     const cloudJson=JSON.stringify(cloud);
     const localJson=JSON.stringify(db||{});
     if((force || cloudJson!==localJson) && (force || cloudIsNewer)){
-      Object.assign(db,cloud);
+      tnSafeApplyCloudData(cloud,"tn82-cloud-load");
       tn82EnsureDb();
       tn82Persist();
       tn82RenderPlaylistSelects();

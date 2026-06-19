@@ -7,13 +7,20 @@
   const today = () => new Date().toISOString().slice(0,10);
 
   function dbRef(){
+    try{
+      if(typeof window.tnGetDb === "function")return window.tnGetDb();
+    }catch(e){}
     try{ if(typeof db !== "undefined" && db)return db; }catch(e){}
     try{ return JSON.parse(localStorage.getItem(DATA_KEY) || "{}"); }catch(e){}
     return {lists:[],words:[],prefs:{frontLang:"en-US",backLang:"ja-JP"},meta:{}};
   }
 
   function persistQuiet(){
-    try{ localStorage.setItem(DATA_KEY,JSON.stringify(dbRef())); }catch(e){}
+    try{
+      const data = dbRef();
+      if(typeof window.tnWriteData === "function")window.tnWriteData(data);
+      else localStorage.setItem(DATA_KEY,JSON.stringify(data));
+    }catch(e){}
   }
 
   function normalizeWords(){

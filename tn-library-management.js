@@ -2,6 +2,7 @@
   "use strict";
 
   const DATA_KEY = "tangonest_production_stable_v1";
+  const SHADOW_KEY = "tangonest_last_good_data_v1";
   const RESET_KEY = "tangonest_beta83_library_clean_reset_v1";
   const WORD_RENDER_LIMIT = 200;
   const $ = id => document.getElementById(id);
@@ -11,9 +12,39 @@
   let contextTargetId = "";
   window.__tnLibraryManagementActive = true;
 
+  function parseData(raw){
+    try{return raw ? JSON.parse(raw) : null;}catch(e){return null;}
+  }
+
+  function isDefaultList(list){
+    const id = String(list?.id || "");
+    const name = String(list?.name || "").trim().toLowerCase();
+    return !name || name === "new playlist" || id === "starter" || id === "local-starter";
+  }
+
+  function hasUserData(data){
+    if(!data || typeof data !== "object")return false;
+    const words = Array.isArray(data.words) ? data.words : [];
+    const lists = Array.isArray(data.lists) ? data.lists : [];
+    return words.some(word => String(word?.front || "").trim() && String(word?.back || "").trim()) ||
+      lists.some(list => !isDefaultList(list));
+  }
+
   function dbRef(){
-    try{ if(typeof db !== "undefined" && db)return db; }catch(e){}
-    try{ return JSON.parse(localStorage.getItem(DATA_KEY) || "{}"); }catch(e){}
+    try{
+      if(typeof window.tnGetDb === "function"){
+        const shared = window.tnGetDb();
+        if(hasUserData(shared))return shared;
+      }
+    }catch(e){}
+    try{ if(typeof db !== "undefined" && db && hasUserData(db))return db; }catch(e){}
+    try{
+      const primary = parseData(localStorage.getItem(DATA_KEY)) || {};
+      const backup = parseData(localStorage.getItem(SHADOW_KEY)) || {};
+      const chosen = hasUserData(primary) || !hasUserData(backup) ? primary : backup;
+      if(hasUserData(chosen) && typeof window.tnAdoptDb === "function")return window.tnAdoptDb(chosen);
+      return chosen;
+    }catch(e){}
     return {ui:"en",prefs:{frontLang:"en-US",backLang:"ja-JP"},lists:[],words:[],meta:{}};
   }
 
@@ -32,7 +63,10 @@
     const data = dbRef();
     data.meta = data.meta || {};
     data.meta.updatedAt = new Date().toISOString();
-    try{ localStorage.setItem(DATA_KEY,JSON.stringify(data)); }catch(e){}
+    try{
+      if(typeof window.tnWriteData === "function")window.tnWriteData(data);
+      else localStorage.setItem(DATA_KEY,JSON.stringify(data));
+    }catch(e){}
   }
 
   function toast(message){
@@ -56,7 +90,8 @@
       meta:{updatedAt:new Date().toISOString()}
     };
     setDb(fresh);
-    localStorage.setItem(DATA_KEY,JSON.stringify(fresh));
+    if(typeof window.tnWriteData === "function")window.tnWriteData(fresh);
+    else localStorage.setItem(DATA_KEY,JSON.stringify(fresh));
     localStorage.setItem(RESET_KEY,"1");
   }
 
@@ -315,6 +350,18 @@
     mount.innerHTML = activeView === "playlists" ? playlistsView() : wordsView(activeView);
     bindLibraryUi();
     updateLegacyControls();
+    updateHeaderCounts();
+  }
+
+  function updateHeaderCounts(){
+    const data = ensureData();
+    const learned = data.words.filter(word => word.status === "learned").length;
+    const hard = data.words.filter(word => word.status === "hard").length;
+    const set = (id,value) => { const el = $(id); if(el)el.textContent = value; };
+    ["wc","totalWords","dashTotal","heroWords"].forEach(id => set(id,data.words.length));
+    ["listCount","totalLists","heroLists"].forEach(id => set(id,data.lists.length));
+    ["lc","totalLearned","heroLearned"].forEach(id => set(id,learned));
+    ["hc","totalHard","dashHard"].forEach(id => set(id,hard));
   }
 
   function updateLegacyControls(){

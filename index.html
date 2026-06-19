@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <title>TangoNest</title>
-<link rel="stylesheet" href="./style.css?v=20260615-majorux7">
+<link rel="stylesheet" href="./style.css?v=20260619-loginfix9">
 
 <script>
 (function(){
@@ -263,16 +263,6 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
     <div class="progress-grid"><div class="progress-card"><b id="mgNew">0</b><span>New</span></div><div class="progress-card"><b id="mgDue">0</b><span>Due</span></div><div class="progress-card"><b id="mgNoPOS">0</b><span>No POS</span></div><div class="progress-card"><b id="mgSaved">0</b><span>Saved</span></div></div>
     <div class="card" style="box-shadow:none;margin-top:14px"></details>
 
-<div id="tn82PlaylistManager" class="tn82-playlist-manager">
-  <div class="tn82-mini-head">
-    <div>
-      <h3>Playlist Names</h3>
-      <p>プレイリスト名を変更できます。</p>
-    </div>
-  </div>
-  <div id="tn82PlaylistRows"></div>
-</div>
-
 <h2>Data Transfer</h2><p class="desc">Manual transfer between PC and phone.</p><div class="actions"><button class="btn blue" onclick="exportDataText()">Export / Copy Data</button><button class="btn yellow" onclick="downloadBackupFile()">Download Backup</button><button class="btn green" onclick="importDataText()">Import Data</button></div><div class="sync-box"><label>Export / Import Text</label><textarea id="syncDataBox" placeholder="Exported data will appear here."></textarea></div></div>
     
     <div class="card" style="box-shadow:none;margin-top:14px">
@@ -340,9 +330,9 @@ html:not(.tn73-ready) #loginGate,html:not(.tn73-ready) .login-gate{display:none!
 })();
 </script>
 
-<script src="./tn-emergency-guard.js?v=20260615-majorux7"></script>
-<script src="./app.js?v=20260615-majorux7"></script>
-<script src="./tn-fixes.js?v=20260615-majorux7"></script>
+<script src="./tn-emergency-guard.js?v=20260619-loginfix9"></script>
+<script src="./app.js?v=20260619-loginfix9"></script>
+<script src="./tn-fixes.js?v=20260619-loginfix9"></script>
 
 
 <script id="tn73EmergencyScript">
@@ -357,12 +347,12 @@ function supa(){try{if(window.tn74GetSupabase){const x=window.tn74GetSupabase();
 function data(){try{if(typeof db!=="undefined"&&db)return db}catch(e){}try{if(typeof KEY!=="undefined")return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}return {}}
 async function rpc(n,a){const s=supa();if(!s){if(window.tn74GetSupabase)window.tn74GetSupabase();throw new Error("Cloud sync is not ready. Supabase SDK is still loading. Wait 2 seconds and press Login again.");}const r=await s.rpc(n,a);if(r.error)throw r.error;return r.data}
 function sess(email,h){localStorage.setItem(E,email.trim().toLowerCase());localStorage.setItem(H,h);localStorage.setItem(M,"no-email-sync")}
-function apply(d){if(!d)return;try{if(typeof db!=="undefined"){Object.assign(db,d);if(typeof KEY!=="undefined")localStorage.setItem(KEY,JSON.stringify(db))}}catch(e){}}
+function apply(d){if(!d)return;try{if(window.tnDataSafety?.safeHydrate){window.tnDataSafety.safeHydrate(d,"inline-auth-apply");return}if(typeof db!=="undefined"){const localHas=Array.isArray(db.words)&&db.words.length;const cloudHas=Array.isArray(d.words)&&d.words.length;if(localHas&&!cloudHas)return;Object.assign(db,d);if(typeof KEY!=="undefined")localStorage.setItem(KEY,JSON.stringify(db))}}catch(e){}}
 function oldOff(){const o=$("loginGate");if(o){o.style.setProperty("display","none","important");o.style.setProperty("pointer-events","none","important");o.setAttribute("inert","")}}
 function status(){const p=$("tn73Pill");if(p)p.textContent=has()?"Synced ✓":"Local";let b=$("syncStatusBadge");if(b){b.textContent=has()?"Synced ✓":"Local";b.classList.toggle("synced",has());b.classList.toggle("local",!has())}}
 function showApp(){document.documentElement.classList.add("tn73-ready","tn-authenticated");document.documentElement.classList.remove("tn-logged-out","tn-needs-auth");document.body?.classList.add("tn-logged-in");document.body?.classList.remove("tn-auth-open");const a=$("tn73Auth");if(a){a.style.setProperty("display","none","important");a.style.setProperty("pointer-events","none","important")}try{document.activeElement?.blur()}catch(e){}try{window.scrollTo(0,0)}catch(e){}try{if(typeof go==="function"){const saved=localStorage.getItem("tangonest_last_page_v2")||localStorage.getItem("tangonest_last_page_v1")||"home";const map={create:"add",library:"words",cards:"study",listen:"audio",settings:"manage"};go(map[saved]||saved)}}catch(e){}status();oldOff()}
 function showAuth(){document.documentElement.classList.remove("tn73-ready","tn-authenticated");document.documentElement.classList.add("tn-logged-out");document.body?.classList.add("tn-auth-open");const a=$("tn73Auth");if(a){a.style.setProperty("display","flex","important");a.style.setProperty("pointer-events","auto","important")}try{window.scrollTo(0,0)}catch(e){}setTimeout(()=>{try{$("tn73Email")?.focus()}catch(e){}},300);status();oldOff()}
-async function login(){const email=($("tn73Email")?.value||"").trim().toLowerCase(),pw=$("tn73Password")?.value||"";if(!email||!pw)return message("Email and password are required.","error");if(pw.length<6)return message("Password must be at least 6 characters.","error");busy(true);message("Logging in...");try{const h=await hash(email,pw),res=await rpc("tn_login",{p_email:email,p_password_hash:h});if(!res||res.ok===false)throw new Error(res?.error||"Login failed.");sess(email,h);apply(res.data);message("Logged in.","success");setTimeout(showApp,200)}catch(e){console.error(e);message(e.message||"Login failed.","error")}finally{busy(false)}}
+async function login(){const email=($("tn73Email")?.value||"").trim().toLowerCase(),pw=$("tn73Password")?.value||"";if(!email||!pw)return message("Email and password are required.","error");if(pw.length<6)return message("Password must be at least 6 characters.","error");busy(true);message("Logging in...");try{const h=await hash(email,pw),res=await rpc("tn_login",{p_email:email,p_password_hash:h});if(!res||res.ok===false)throw new Error(res?.error||"Login failed.");sess(email,h);apply(res.data);setTimeout(()=>{try{window.tnFixCloudSave&&window.tnFixCloudSave()}catch(e){}},450);message("Logged in.","success");setTimeout(showApp,200)}catch(e){console.error(e);message(e.message||"Login failed.","error")}finally{busy(false)}}
 async function create(){const email=($("tn73Email")?.value||"").trim().toLowerCase(),pw=$("tn73Password")?.value||"";if(!email||!pw)return message("Email and password are required.","error");if(pw.length<6)return message("Password must be at least 6 characters.","error");busy(true);message("Creating account...");try{const h=await hash(email,pw),res=await rpc("tn_signup",{p_email:email,p_password_hash:h,p_data:data()});if(!res||res.ok===false)throw new Error(res?.error||"Create account failed.");sess(email,h);apply(res.data);message("Account created. Logged in.","success");setTimeout(showApp,200)}catch(e){console.error(e);message(e.message||"Create account failed.","error")}finally{busy(false)}}
 function bind(){const em=$("tn73Email"),pw=$("tn73Password");if(em&&!em.value)em.value=localStorage.getItem(E)||"";const l=$("tn73Login"),c=$("tn73Create"),g=$("tn73Guest");if(l){l.onclick=login;l.ontouchend=function(e){e.preventDefault();login()}}if(c){c.onclick=create;c.ontouchend=function(e){e.preventDefault();create()}}if(g){g.onclick=()=>{localStorage.setItem("tangonest_guest_mode","1");showApp()};g.ontouchend=function(e){e.preventDefault();localStorage.setItem("tangonest_guest_mode","1");showApp()}}if(pw&&!pw.__tn73){pw.addEventListener("keydown",e=>{if(e.key==="Enter")login()});pw.__tn73=1}if(em&&!em.__tn73){em.addEventListener("keydown",e=>{if(e.key==="Enter")pw?.focus()});em.__tn73=1}}
 function boot(){bind();oldOff();has()?showApp():showAuth()}
@@ -371,9 +361,9 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 })();
 </script>
 
-<script src="./tn-cloud-first.js?v=20260615-majorux7"></script>
-<script src="./tn-library-management.js?v=20260615-majorux7"></script>
-<script src="./tn-emergency-stability.js?v=20260615-majorux7"></script>
-<script src="./tn-learning-flow.js?v=20260615-majorux7"></script>
+<script src="./tn-cloud-first.js?v=20260619-loginfix9"></script>
+<script src="./tn-library-management.js?v=20260619-loginfix9"></script>
+<script src="./tn-emergency-stability.js?v=20260619-loginfix9"></script>
+<script src="./tn-learning-flow.js?v=20260619-loginfix9"></script>
 </body>
 </html>

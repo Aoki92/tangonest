@@ -623,8 +623,8 @@ tr:hover td{background:#fbfcff}
 .choice:hover{background:var(--brand-soft);border-color:#d9ddff}
 .choice:disabled{cursor:default;opacity:1}
 .choice.selected{box-shadow:0 0 0 3px rgba(37,99,235,.14)}
-.choice.correct{background:#ecfdf3;border-color:#bbf7d0;color:#166534}
-.choice.wrong{background:#fff1f2;border-color:#fecdd3;color:#be123c}
+.choice.correct{background:#e8f1fb;border-color:#b9cfe6;color:#214d79}
+.choice.wrong{background:#f7f2ef;border-color:#dfc9bf;color:#7b3f31}
 .result-box{margin-top:12px;color:var(--sub);font-weight:750}
 .result-box.show{
   display:flex;
@@ -636,6 +636,8 @@ tr:hover td{background:#fbfcff}
   border-radius:16px;
   background:#fff;
 }
+.result-box.show.ok{border-color:#b9cfe6;background:#f7fbff;color:#214d79}
+.result-box.show.no{border-color:#dfc9bf;background:#fffaf7;color:#7b3f31}
 .quiz-feedback-copy{
   display:grid;
   gap:4px;
@@ -3721,11 +3723,11 @@ body{
   color:#27415f!important;
 }
 
-.tn-level-chip.level-1,.tn-detail-level.level-1,.tn-progress-level.level-1{background:#fff1f2!important;color:#8f2f2f!important;border-color:#f6cdd2!important}
-.tn-level-chip.level-2,.tn-detail-level.level-2,.tn-progress-level.level-2{background:#fff7ed!important;color:#935224!important;border-color:#f4d6b8!important}
-.tn-level-chip.level-3,.tn-detail-level.level-3,.tn-progress-level.level-3{background:#fffbeb!important;color:#806012!important;border-color:#eadc9a!important}
-.tn-level-chip.level-4,.tn-detail-level.level-4,.tn-progress-level.level-4{background:#eff6ff!important;color:#24506a!important;border-color:#c9ddf3!important}
-.tn-level-chip.level-5,.tn-detail-level.level-5,.tn-progress-level.level-5{background:#ecfdf5!important;color:#22624a!important;border-color:#bfe8d7!important}
+.tn-level-chip.level-1,.tn-detail-level.level-1,.tn-progress-level.level-1{background:#f1f5f9!important;color:#475569!important;border-color:#d8e2ef!important}
+.tn-level-chip.level-2,.tn-detail-level.level-2,.tn-progress-level.level-2{background:#e8f0f8!important;color:#3f5f7d!important;border-color:#c9d9e8!important}
+.tn-level-chip.level-3,.tn-detail-level.level-3,.tn-progress-level.level-3{background:#dce9f6!important;color:#2f5f90!important;border-color:#b7cde3!important}
+.tn-level-chip.level-4,.tn-detail-level.level-4,.tn-progress-level.level-4{background:#d0e1f2!important;color:#224c78!important;border-color:#a8c1db!important}
+.tn-level-chip.level-5,.tn-detail-level.level-5,.tn-progress-level.level-5{background:#e6edf7!important;color:#172b4d!important;border-color:#aebed3!important}
 
 .tn-detail-level{
   display:inline-flex!important;
@@ -4113,6 +4115,7 @@ body{
 
 #pageHome > .card,
 #pageHome #tn75PlaylistBox,
+#pageManage #tn75PlaylistBox,
 #pageHome #tn80CloudPanel,
 #pageHome #tn78CloudBox,
 #pageHome .tn80-cloud-panel{

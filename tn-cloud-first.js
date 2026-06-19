@@ -19,6 +19,9 @@
 
   function dbRef(){
     try{
+      if(typeof window.tnGetDb === "function")return window.tnGetDb();
+    }catch(e){}
+    try{
       if(typeof db !== "undefined" && db)return db;
     }catch(e){}
     window.db = window.db || {ui:"en",prefs:{frontLang:"en-US",backLang:"ja-JP"},lists:[],words:[],meta:{}};
@@ -38,7 +41,9 @@
   }
 
   function persist(){
-    localStorage.setItem(LOCAL_KEY,JSON.stringify(ensureDb()));
+    const data = ensureDb();
+    if(typeof window.tnWriteData === "function")window.tnWriteData(data);
+    else localStorage.setItem(LOCAL_KEY,JSON.stringify(data));
   }
 
   function toast(message){
@@ -149,17 +154,23 @@
   }
 
   function cloudToDb(playlists,words){
-    const data = ensureDb();
-    data.lists = playlists.map(row => ({
+    const fallback = ensureDb();
+    const remote = {
+      ui:fallback.ui || "en",
+      prefs:{...(fallback.prefs || {})},
+      meta:{updatedAt:new Date().toISOString()},
+      lists: playlists.map(row => ({
       id:row.id,
       name:row.name || "New Playlist",
       createdAt:row.created_at,
       updatedAt:row.updated_at
-    }));
-    if(!data.lists.length)data.lists.push({id:"local-starter",name:"New Playlist"});
-    data.words = words.map(row => ({
+    })),
+      words:[]
+    };
+    if(!remote.lists.length)remote.lists.push({id:"local-starter",name:"New Playlist"});
+    remote.words = words.map(row => ({
       id:row.id,
-      listId:row.playlist_id || data.lists[0]?.id,
+      listId:row.playlist_id || remote.lists[0]?.id,
       front:row.front,
       back:row.back,
       frontLang:row.front_lang || "en-US",
@@ -175,7 +186,13 @@
       createdAt:row.created_at,
       updatedAt:row.updated_at
     }));
-    persist();
+    if(window.tnDataSafety?.safeHydrate)window.tnDataSafety.safeHydrate(remote,"cloud-first-table-load");
+    else{
+      const data = ensureDb();
+      Object.keys(data).forEach(key => delete data[key]);
+      Object.assign(data,remote);
+      persist();
+    }
   }
 
   async function removeDemoAppleEverywhere(){
@@ -267,6 +284,100 @@
     persist();
   }
 
+  function id(prefix){
+    return prefix + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,8);
+  }
+
+  function touchLocal(){
+    const data = ensureDb();
+    data.meta.updatedAt = new Date().toISOString();
+    data.meta.lastDeviceId = localStorage.getItem("tangonest_device_id_v1") || data.meta.lastDeviceId || "local";
+    persist();
+  }
+
+  function saveLocalChange(){
+    touchLocal();
+    renderAll();
+    if(typeof window.tnFixCloudSave === "function"){
+      setTimeout(() => window.tnFixCloudSave(),600);
+    }
+  }
+
+  function localCreatePlaylist(name){
+    const data = ensureDb();
+    name = String(name || $("newList")?.value || "").trim();
+    if(!name)return toast("Playlist name is required");
+    const exists = data.lists.some(list => String(list.name || "").trim().toLowerCase() === name.toLowerCase());
+    if(exists)return toast("Playlist already exists");
+    data.lists.push({id:id("list"),name,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    if($("newList"))$("newList").value = "";
+    saveLocalChange();
+    toast("Playlist created");
+    return true;
+  }
+
+  function localRenamePlaylist(listId,name){
+    const data = ensureDb();
+    listId = listId || $("renameListSelect")?.value || data.lists[0]?.id;
+    name = String(name || $("renameListInput")?.value || "").trim();
+    const list = data.lists.find(item => item.id === listId);
+    if(!name)return toast("Playlist name is required");
+    if(!list)return toast("Playlist not found");
+    list.name = name;
+    list.updatedAt = new Date().toISOString();
+    if($("renameListInput"))$("renameListInput").value = "";
+    saveLocalChange();
+    toast("Playlist renamed");
+    return true;
+  }
+
+  function localAddWord(event){
+    if(event?.preventDefault)event.preventDefault();
+    const data = ensureDb();
+    const front = String($("front")?.value || "").trim();
+    const back = String($("back")?.value || "").trim();
+    if(!front || !back)return toast("Front and Back are required");
+    rememberLanguagePrefs();
+    let playlistId = $("addList")?.value || data.lists[0]?.id;
+    if(!data.lists.some(list => list.id === playlistId))playlistId = data.lists[0]?.id;
+    const now = new Date().toISOString();
+    data.words.push({
+      id:id("w"),
+      front,
+      back,
+      listId:playlistId,
+      frontLang:$("frontLang")?.value || data.prefs.frontLang || "en-US",
+      backLang:$("backLang")?.value || data.prefs.backLang || "ja-JP",
+      pos:$("pos")?.value || "",
+      gender:$("gender")?.value || "",
+      tags:String($("tags")?.value || "").trim(),
+      memo:String($("memo")?.value || "").trim(),
+      status:"new",
+      saved:false,
+      seen:0,
+      level:1,
+      nextReview:new Date().toISOString().slice(0,10),
+      createdAt:now,
+      updatedAt:now
+    });
+    ["front","back","memo","tags"].forEach(inputId => { if($(inputId))$(inputId).value = ""; });
+    ["pos","gender"].forEach(inputId => { if($(inputId))$(inputId).value = ""; });
+    saveLocalChange();
+    toast("1 word added");
+    return false;
+  }
+
+  function localDeleteWord(wordId){
+    const data = ensureDb();
+    const word = data.words.find(item => item.id === wordId);
+    if(!word)return toast("Word not found");
+    if(!confirm(`Delete "${word.front}"?`))return false;
+    data.words = data.words.filter(item => item.id !== wordId);
+    saveLocalChange();
+    toast("Word deleted");
+    return true;
+  }
+
   function listName(id){
     return ensureDb().lists.find(list => list.id === id)?.name || "New Playlist";
   }
@@ -343,6 +454,7 @@
 
   async function ensureDefaultPlaylist(){
     const data = ensureDb();
+    if(data.words.length || data.lists.some(list => list.id !== "local-starter"))return;
     if(data.lists.length && data.lists[0].id !== "local-starter")return;
     const result = await client.from("tn_playlists").insert({user_id:user.id,name:"New Playlist"}).select().single();
     if(result.error)throw result.error;
@@ -359,7 +471,17 @@
       if(playlistsResult.error)throw playlistsResult.error;
       const wordsResult = await client.from("tn_words").select("*").eq("user_id",user.id).order("created_at",{ascending:true});
       if(wordsResult.error)throw wordsResult.error;
-      cloudToDb(playlistsResult.data || [],wordsResult.data || []);
+      let cloudPlaylists = playlistsResult.data || [];
+      let cloudWords = wordsResult.data || [];
+      if(!cloudPlaylists.length && !cloudWords.length && window.tnDataSafety?.hasUserData?.(ensureDb())){
+        localStorage.removeItem(MIGRATION_KEY);
+        await migrateLocalOnce(true);
+        const retryPlaylists = await client.from("tn_playlists").select("*").eq("user_id",user.id).order("created_at",{ascending:true});
+        const retryWords = await client.from("tn_words").select("*").eq("user_id",user.id).order("created_at",{ascending:true});
+        if(!retryPlaylists.error)cloudPlaylists = retryPlaylists.data || cloudPlaylists;
+        if(!retryWords.error)cloudWords = retryWords.data || cloudWords;
+      }
+      cloudToDb(cloudPlaylists,cloudWords);
       await removeDemoAppleEverywhere();
       await ensureDefaultPlaylist();
       renderAll();
@@ -373,8 +495,8 @@
     }
   }
 
-  async function migrateLocalOnce(){
-    if(!user || localStorage.getItem(MIGRATION_KEY) === user.id)return;
+  async function migrateLocalOnce(force=false){
+    if(!user || (!force && localStorage.getItem(MIGRATION_KEY) === user.id))return;
     const data = ensureDb();
     const localLists = data.lists.filter(list => list.id && list.id !== "local-starter");
     const localWords = data.words.filter(word => word.front && word.back);
@@ -414,9 +536,9 @@
   }
 
   async function createPlaylist(){
-    if(!user)return toast("Login first");
     const input = $("newList");
     const name = String(input?.value || "").trim();
+    if(!user)return localCreatePlaylist(name);
     if(!name)return toast("Playlist name is required");
     const result = await client.from("tn_playlists").insert({user_id:user.id,name}).select().single();
     if(result.error)return toast(result.error.message);
@@ -426,9 +548,9 @@
   }
 
   async function renamePlaylist(id,name){
-    if(!user)return toast("Login first");
     id = id || $("renameListSelect")?.value;
     name = String(name || $("renameListInput")?.value || "").trim();
+    if(!user)return localRenamePlaylist(id,name);
     if(!id || !name)return toast("Playlist name is required");
     const result = await client.from("tn_playlists").update({name}).eq("id",id).eq("user_id",user.id);
     if(result.error)return toast(result.error.message);
@@ -439,7 +561,7 @@
 
   async function addWord(event){
     if(event?.preventDefault)event.preventDefault();
-    if(!user)return toast("Login first");
+    if(!user)return localAddWord(event);
     await ensureDefaultPlaylist();
     const front = String($("front")?.value || "").trim();
     const back = String($("back")?.value || "").trim();
@@ -473,7 +595,7 @@
   }
 
   async function deleteWord(id){
-    if(!user)return toast("Login first");
+    if(!user)return localDeleteWord(id);
     if(!id)return;
     const ok = confirm("Delete this word?");
     if(!ok)return;

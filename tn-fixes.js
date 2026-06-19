@@ -18,6 +18,9 @@
 
   function getDb(){
     try{
+      if(typeof window.tnGetDb === "function")return window.tnGetDb();
+    }catch(e){}
+    try{
       if(typeof db !== "undefined" && db)return db;
     }catch(e){}
     try{
@@ -67,7 +70,8 @@
 
   function persist(){
     const data = ensureDb();
-    localStorage.setItem(DATA_KEY,JSON.stringify(data));
+    if(typeof window.tnWriteData === "function")window.tnWriteData(data);
+    else localStorage.setItem(DATA_KEY,JSON.stringify(data));
   }
 
   function id(prefix){
@@ -497,8 +501,11 @@
       const localUpdated = local.meta?.updatedAt || "";
       const cloudIsNewer = force || !localUpdated || !cloudUpdated || new Date(cloudUpdated) >= new Date(localUpdated);
       if(cloudIsNewer && JSON.stringify(cloud) !== JSON.stringify(local)){
-        setDb(cloud);
-        persist();
+        if(window.tnDataSafety?.safeHydrate)window.tnDataSafety.safeHydrate(cloud,"tn-fixes-cloud-load");
+        else{
+          setDb(cloud);
+          persist();
+        }
         renderAll();
       }
       localStorage.setItem(CLOUD_TIME_KEY,result.data.updated_at || new Date().toISOString());
