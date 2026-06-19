@@ -10,32 +10,32 @@ This build prioritizes stability over preserving corrupted local word data.
 - Navigation now uses only stable page keys: `home`, `create`, `library`, `cards`, `quiz`, `listen`, `settings`.
 - Library can no longer open Settings because of old tab/index mismatch.
 - Old focus/visibility/storage cloud auto-load handlers are blocked to prevent rollback from stale cloud/local state.
-- If local data contains more than 5000 words, the app performs a one-time emergency reset to a clean empty state with one `New Playlist`.
+- Large local collections are preserved; Library renders a limited number of rows at once for speed.
 - Library renders at most 200 word rows at once to stay responsive with large collections.
 - Missing/corrupted `words`, `lists`, or playlist references are normalized defensively.
 - Header cloud labels remain fixed-size (`Cloud` / `Sync`) to avoid layout shifts.
 
-### Data reset behavior
-- Extremely large/corrupted local word data may be cleared once using `tangonest_emergency_reset_20260614_v1`.
-- Login/auth keys are not cleared by this reset.
-- New words can still be added normally after reset.
+### Data persistence behavior
+- Existing local words, playlists, and login/auth keys are preserved.
+- Empty cloud data must not overwrite non-empty local data.
+- New words can still be added normally after reload/login/logout.
 
 ## Learning flow patch - 2026-06-14
 
 ### Product improvements
-- Home now acts as a learning dashboard with Today's Review, Weak Words, Continue Learning, Learning Progress, and Quick Actions.
+- Home now acts as a learning dashboard with Today's Review, Review Queue, Continue Learning, Learning Progress, and Quick Actions.
 - Added an internal 5-level learning system:
-  - Level 1: Very Weak
-  - Level 2: Weak
-  - Level 3: Learning
-  - Level 4: Strong
-  - Level 5: Mastered
+  - Level 1
+  - Level 2
+  - Level 3
+  - Level 4
+  - Level 5
 - Each word now safely tracks `level`, `correctCount`, `wrongCount`, `reviewCount`, `lastAnsweredAt`, and `lastWrongAt`.
 - Existing words safely default to Level 3 unless they already have a level.
-- Quiz now uses weighted selection so weak and recently missed words appear more often.
+- Quiz now uses weighted selection so low-level and recently missed words appear more often.
 - Correct answers increase level; wrong answers lower level and make words more likely to appear.
-- Cards and Listen use the same weak-word weighting when possible.
-- Library now has four sections: Words, Playlists, Weak Words, Mastered.
+- Cards and Listen use the same review weighting when possible.
+- Library now has four sections: Words, Playlists, Review, Mastered.
 - Word detail now shows level, correct count, wrong count, review count, and example audio when an example exists.
 - Audio text is cleaned so `/` is not spoken as "slash"; language voice codes are normalized to en-US, ja-JP, ko-KR, zh-CN, fr-FR, and es-ES.
 
@@ -80,7 +80,7 @@ Open Create, reload, and it must stay on Create.
 - Cloud sync is triggered after playlist deletion when available.
 - Removed unnecessary blue circular h2/card indicators.
 - Stabilized the header cloud pill so it no longer switches between changing sync labels.
-- Local words/demo data are reset once for this update so the app can start fresh.
+- Local words and playlists are preserved; only isolated starter/demo sample words are cleaned when safely detected.
 
 ### App name unified
 - All user-visible strings now read TangoNest.

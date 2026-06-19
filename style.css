@@ -602,6 +602,43 @@ tr:hover td{background:#fbfcff}
   margin:14px 0;
   box-shadow:var(--shadow-soft);
 }
+.quiz-question>div{
+  width:min(100%,620px);
+}
+.quiz-question-answer{
+  display:none;
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+  text-align:left;
+}
+.quiz-question-answer.show{
+  display:grid;
+  gap:10px;
+}
+.quiz-answer-block{
+  display:grid;
+  gap:4px;
+}
+.quiz-answer-block span{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:850;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.quiz-answer-block strong,
+.quiz-answer-block em{
+  color:var(--text);
+  font-size:22px;
+  line-height:1.22;
+  font-weight:780;
+  font-style:normal;
+  overflow-wrap:anywhere;
+}
+.quiz-question-answer.ok .quiz-answer-block strong{color:#214d79}
+.quiz-question-answer.no .quiz-answer-block strong{color:#214d79}
+.quiz-question-answer.no .quiz-answer-block em{color:#7b3f31}
 .choice-grid,#choiceArea{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
@@ -3567,7 +3604,7 @@ body{
 }
 
 .tn-library-playlist-card{
-  grid-template-columns:minmax(240px,1fr) minmax(220px,auto) 40px!important;
+  grid-template-columns:minmax(0,1fr) minmax(220px,auto) 40px!important;
   min-height:84px!important;
   align-items:center!important;
   overflow:hidden!important;
@@ -3639,10 +3676,34 @@ body{
     grid-template-columns:minmax(0,1fr) 70px 40px!important;
   }
 
-  .tn-playlist-art{
+.tn-playlist-art{
     width:42px!important;
     height:42px!important;
   }
+}
+
+.tn-load-more-row{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+}
+
+.tn-load-more-btn{
+  flex:0 0 auto!important;
+  min-height:38px!important;
+  padding:0 15px!important;
+  border:1px solid rgba(160,178,199,.42)!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  color:#27415f!important;
+  font-size:13px!important;
+  font-weight:780!important;
+  cursor:pointer!important;
+}
+
+.tn-load-more-btn:hover{
+  background:#eef4fa!important;
 }
 
 /* =========================================================
@@ -3739,7 +3800,7 @@ body{
 }
 
 .tn-level-bars{
-  display:inline-flex!important;
+  display:none!important;
   align-items:end!important;
   gap:2px!important;
   height:14px!important;
@@ -4122,6 +4183,13 @@ body{
   display:none!important;
 }
 
+#pageManage #tn80CloudPanel,
+#pageManage #tn78CloudBox,
+#pageManage .tn80-cloud-panel,
+#pageManage .tn78-cloud-box{
+  display:none!important;
+}
+
 #tn80HeaderCloud,
 #tn75SyncBtn,
 #tn77LogoutBtn,
@@ -4176,6 +4244,16 @@ html.tn73-ready .login-gate,
     justify-content:flex-start!important;
     min-width:0!important;
     width:100%!important;
+  }
+
+  .tn-load-more-row{
+    display:grid!important;
+    justify-items:start!important;
+  }
+
+  .result-box.show{
+    display:grid!important;
+    align-items:start!important;
   }
 
   .tn-word-detail-card{

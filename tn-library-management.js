@@ -8,6 +8,7 @@
   const $ = id => document.getElementById(id);
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   let activeView = localStorage.getItem("tangonest_library_view_v1") || "words";
+  let renderLimit = WORD_RENDER_LIMIT;
   let pendingDeleteId = "";
   let contextTargetId = "";
   window.__tnLibraryManagementActive = true;
@@ -200,7 +201,7 @@
           <div class="tn-library-tabs" role="tablist">
             <button type="button" data-library-view="words" class="${tab("words")}">Words</button>
             <button type="button" data-library-view="playlists" class="${tab("playlists")}">Playlists</button>
-            <button type="button" data-library-view="weak" class="${tab("weak")}">Weak Words</button>
+            <button type="button" data-library-view="weak" class="${tab("weak")}">Review</button>
             <button type="button" data-library-view="mastered" class="${tab("mastered")}">Mastered</button>
           </div>
         </div>
@@ -232,9 +233,8 @@
   }
 
   function wordLevelLabel(word){
-    const level = Number(word.level || 3);
-    const labels = {1:"Weak",2:"Learning",3:"Familiar",4:"Strong",5:"Mastered"};
-    return labels[level] || "Learning";
+    const level = Math.min(5,Math.max(1,Number(word?.level || 3)));
+    return `Level ${level}`;
   }
 
   function levelClass(word){
@@ -243,8 +243,7 @@
   }
 
   function levelBars(word){
-    const level = Math.min(5,Math.max(1,Number(word.level || 3)));
-    return `<span class="tn-level-bars" aria-label="Level ${level}">${[1,2,3,4,5].map(n => `<i class="${n <= level ? "on" : ""}"></i>`).join("")}</span>`;
+    return "";
   }
 
   function iconAudio(){
@@ -263,7 +262,7 @@
     if(mode === "mastered"){
       allWords = allWords.filter(word => Number(word.level || 3) >= 5);
     }
-    const words = allWords.slice(0,WORD_RENDER_LIMIT);
+    const words = allWords.slice(0,renderLimit);
     const hiddenCount = Math.max(0,allWords.length - words.length);
     const body = allWords.length ? `
       <div class="tn82-word-list">
@@ -285,15 +284,15 @@
           </div>
         `).join("")}
       </div>
-      ${hiddenCount ? `<div class="tn82-library-summary">Showing first ${WORD_RENDER_LIMIT} words. Use search or filters to narrow ${hiddenCount} more.</div>` : ""}
+      ${hiddenCount ? `<div class="tn82-library-summary tn-load-more-row"><span>${hiddenCount} more word${hiddenCount === 1 ? "" : "s"} hidden for speed.</span><button type="button" class="tn-load-more-btn" data-load-more>Load more</button></div>` : ""}
     ` : `
       <div class="tn-library-empty">
-        <h3>${isFilterActive() ? "No words found" : mode === "weak" ? "No weak words" : mode === "mastered" ? "No mastered words yet" : "No words yet"}</h3>
-        <p>${isFilterActive() ? "Try changing your search or filters." : mode === "weak" ? "Incorrect and low-level words will appear here." : mode === "mastered" ? "Level 5 words will appear here." : "Add your first word to start building your vocabulary."}</p>
+        <h3>${isFilterActive() ? "No words found" : mode === "weak" ? "Review queue is clear" : mode === "mastered" ? "No mastered words yet" : "No words yet"}</h3>
+        <p>${isFilterActive() ? "Try changing your search or filters." : mode === "weak" ? "Low-level or recently missed words will appear here." : mode === "mastered" ? "Level 5 words will appear here." : "Add your first word to start building your vocabulary."}</p>
         <button type="button" data-go-create>Add word</button>
       </div>
     `;
-    const title = mode === "weak" ? "Weak Words" : mode === "mastered" ? "Mastered" : "Words";
+    const title = mode === "weak" ? "Review Queue" : mode === "mastered" ? "Mastered" : "Words";
     return libraryShell(`
       ${wordsTools()}
       <div class="tn82-library-summary">${title}: ${allWords.length} word${allWords.length === 1 ? "" : "s"} found${hiddenCount ? ` · ${words.length} rendered` : ""}</div>
@@ -371,6 +370,7 @@
   }
 
   function resetFilters(){
+    renderLimit = WORD_RENDER_LIMIT;
     ["tnLibrarySearch","wordSearch"].forEach(id => { if($(id))$(id).value = ""; });
     ["tnFilterLanguage","tnFilterLetter","tnFilterPlaylist","tnFilterPos"].forEach(id => { if($(id))$(id).value = "all"; });
     if($("wordListSelect"))$("wordListSelect").value = "all";
@@ -380,12 +380,14 @@
 
   function switchView(view){
     activeView = ["words","playlists","weak","mastered"].includes(view) ? view : "words";
+    renderLimit = WORD_RENDER_LIMIT;
     localStorage.setItem("tangonest_library_view_v1",activeView);
     renderLibrary();
   }
 
   function openPlaylist(listId){
     activeView = "words";
+    renderLimit = WORD_RENDER_LIMIT;
     localStorage.setItem("tangonest_library_view_v1",activeView);
     renderLibrary();
     const select = $("tnFilterPlaylist");
@@ -559,7 +561,7 @@
           <div><span>Back language</span><strong>${esc(languageLabel(word.backLang))}</strong></div>
           <div><span>POS</span><strong>${esc(word.pos || "-")}</strong></div>
           <div><span>Gender</span><strong>${esc(word.gender || "-")}</strong></div>
-          <div><span>Level</span><strong class="tn-detail-level ${levelClass(word)}">${esc(wordLevelLabel(word))} · Level ${esc(word.level || 3)}</strong></div>
+          <div><span>Level</span><strong class="tn-detail-level ${levelClass(word)}">${esc(wordLevelLabel(word))}</strong></div>
           <div><span>Correct</span><strong>${esc(word.correctCount || 0)}</strong></div>
           <div><span>Wrong</span><strong>${esc(word.wrongCount || 0)}</strong></div>
           <div><span>Reviews</span><strong>${esc(word.reviewCount || 0)}</strong></div>
@@ -722,6 +724,7 @@
       if(el && !el.__tnLibraryBound){
         el.addEventListener(el.tagName === "INPUT" ? "input" : "change",() => {
           const shouldRefocus = id === "tnLibrarySearch";
+          renderLimit = WORD_RENDER_LIMIT;
           renderLibrary();
           if(shouldRefocus){
             requestAnimationFrame(() => {
@@ -742,6 +745,13 @@
   }
 
   document.addEventListener("click",event => {
+    const loadMore = event.target?.closest?.("[data-load-more]");
+    if(loadMore){
+      event.preventDefault();
+      renderLimit += WORD_RENDER_LIMIT;
+      renderLibrary();
+      return;
+    }
     const view = event.target?.closest?.("[data-library-view]");
     if(view){
       event.preventDefault();

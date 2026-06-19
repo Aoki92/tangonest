@@ -639,10 +639,26 @@ function quizLearningWeight(w){const level=Math.min(5,Math.max(1,Number(w.level|
 function quizAdaptiveOrder(words){return [...words].sort((a,b)=>((Math.random()/Math.max(.1,quizLearningWeight(a)))-(Math.random()/Math.max(.1,quizLearningWeight(b)))))}
 function quizPool(){let list=$("quizList").value,scope=$("quizScope").value;let words=db.words.filter(w=>w.listId===list);if(scope==="hard")words=words.filter(w=>(Number(w.level||3)<=2)||w.status==="hard"||w.lastWrongAt);if(scope==="due")words=words.filter(isDue);if(scope==="star")words=words.filter(w=>w.saved);return quizAdaptiveOrder(words)}
 function shuffle(arr){let a=[...arr];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function resetQuiz(){clearQuizTimers();quiz={queue:[],wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:"choice",direction:"front",total:0,previousQuestionId:"",selectedAnswer:""};if($("quizType"))$("quizType").value="choice";$("quizSetup").style.display="block";$("quizRun").style.display="none";$("quizEnd").style.display="none";resetQuizAnswerVisualState()}
-function startQuiz(){clearQuizTimers();let words=quizPool();let requested=parseInt($("quizCount").value,10)||10;if(requested<1)requested=1;if(!words.length)return toast("No words");let actual=Math.min(requested,words.length);if(actual<requested)toast(`Only ${actual} words available`);quiz={queue:quizAdaptiveOrder(words).slice(0,actual),wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:$("quizType").value||"choice",direction:$("quizDirection").value,total:actual,previousQuestionId:"",selectedAnswer:""};$("quizSetup").style.display="none";$("quizRun").style.display="block";$("quizEnd").style.display="none";showQuizQuestion()}
-function resetQuizAnswerVisualState(){document.querySelectorAll(".choice").forEach(b=>{b.disabled=false;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong")});const result=$("quizResult");if(result){result.className="result-box";result.textContent=""}}
-function avoidConsecutiveDuplicateQuestion(){if(!quiz.queue||quiz.queue.length<=1)return;const current=quiz.queue[quiz.index];if(!current||!quiz.previousQuestionId||current.id!==quiz.previousQuestionId)return;const swapIndex=quiz.queue.findIndex((w,i)=>i>quiz.index&&w&&w.id!==quiz.previousQuestionId);if(swapIndex>-1){const tmp=quiz.queue[quiz.index];quiz.queue[quiz.index]=quiz.queue[swapIndex];quiz.queue[swapIndex]=tmp;return}const fallback=quiz.queue.find(w=>w&&w.id!==quiz.previousQuestionId);if(fallback)quiz.queue[quiz.index]=fallback}
+const QUIZ_FEEDBACK_SPEED_KEY="tangonest_quiz_feedback_speed_v1";
+function ensureQuizFeedbackDefault(){
+  const el=$("quizAutoAdvance");
+  if(!el)return;
+  if(!el.__tnFeedbackSpeedBound){
+    el.addEventListener("change",()=>{try{localStorage.setItem(QUIZ_FEEDBACK_SPEED_KEY,el.value)}catch(e){}});
+    el.__tnFeedbackSpeedBound=true;
+  }
+  let saved="";
+  try{saved=localStorage.getItem(QUIZ_FEEDBACK_SPEED_KEY)||""}catch(e){}
+  const values=[...el.options].map(option=>option.value);
+  el.value=values.includes(saved)?saved:"1.5";
+  const custom=$("quizNextDelay");
+  if(custom&&!custom.value)custom.value="1.5";
+}
+function resetQuiz(){clearQuizTimers();ensureQuizFeedbackDefault();quiz={queue:[],wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:"choice",direction:"front",total:0,previousQuestionId:"",previousQuestionKey:"",selectedAnswer:""};if($("quizType"))$("quizType").value="choice";$("quizSetup").style.display="block";$("quizRun").style.display="none";$("quizEnd").style.display="none";resetQuizAnswerVisualState()}
+function startQuiz(){clearQuizTimers();ensureQuizFeedbackDefault();let words=quizPool();let requested=parseInt($("quizCount").value,10)||10;if(requested<1)requested=1;if(!words.length)return toast("No words");let actual=Math.min(requested,words.length);if(actual<requested)toast(`Only ${actual} words available`);quiz={queue:quizAdaptiveOrder(words).slice(0,actual),wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:$("quizType").value||"choice",direction:$("quizDirection").value,total:actual,previousQuestionId:"",previousQuestionKey:"",selectedAnswer:""};$("quizSetup").style.display="none";$("quizRun").style.display="block";$("quizEnd").style.display="none";showQuizQuestion()}
+function resetQuizAnswerVisualState(){document.querySelectorAll(".choice").forEach(b=>{b.disabled=false;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong")});const result=$("quizResult");if(result){result.className="result-box";result.textContent=""}const answer=$("quizQuestionAnswer");if(answer){answer.className="quiz-question-answer";answer.textContent=""}}
+function quizQuestionKey(word){if(!word)return "";const text=quiz.direction==="back"?word.back:word.front;return normalize(text)}
+function avoidConsecutiveDuplicateQuestion(){if(!quiz.queue||quiz.queue.length<=1)return;const current=quiz.queue[quiz.index];if(!current)return;const prevId=quiz.previousQuestionId||"";const prevKey=quiz.previousQuestionKey||"";const sameId=prevId&&current.id===prevId;const sameKey=prevKey&&quizQuestionKey(current)===prevKey;if(!sameId&&!sameKey)return;const swapIndex=quiz.queue.findIndex((w,i)=>i>quiz.index&&w&&w.id!==prevId&&quizQuestionKey(w)!==prevKey);if(swapIndex>-1){const tmp=quiz.queue[quiz.index];quiz.queue[quiz.index]=quiz.queue[swapIndex];quiz.queue[swapIndex]=tmp;return}const fallback=quiz.queue.find(w=>w&&w.id!==prevId&&quizQuestionKey(w)!==prevKey);if(fallback)quiz.queue[quiz.index]=fallback}
 function showQuizQuestion(){clearQuizTimers();resetQuizAnswerVisualState();quiz.answered=false;quiz.selectedAnswer="";avoidConsecutiveDuplicateQuestion();quiz.current=quiz.queue[quiz.index];if(!quiz.current)return endQuiz();$("quizProgress").textContent=(quiz.index+1)+" / "+quiz.total;$("quizScore").textContent=quiz.score+" / "+quiz.total;let q=quiz.direction==="front"?quiz.current.front:quiz.current.back;$("quizWord").textContent=q;$("quizLabel").textContent=quiz.direction==="front"?"Front → ?":"Back → ?";$("typingArea").style.display=quiz.type==="typing"?"block":"none";$("choiceArea").style.display=quiz.type==="choice"?"grid":"none";$("quizAnswer").value="";if(quiz.type==="choice")renderChoices();startQuestionTimer()}
 function correctAnswer(){return quiz.direction==="front"?quiz.current.back:quiz.current.front}
 function normalize(s){return String(s||"").trim().toLowerCase()}
@@ -663,9 +679,10 @@ function renderChoices(){
 }
 function chooseAnswer(btn,ans){if(quiz.answered)return;quiz.selectedAnswer=ans;let ok=normalize(ans)===normalize(correctAnswer());[...document.querySelectorAll(".choice")].forEach(b=>{b.disabled=true;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong");if(normalize(b.textContent)===normalize(correctAnswer()))b.classList.add("correct")});btn.classList.add("selected");if(!ok)btn.classList.add("wrong");finishAnswer(ok)}
 function quizFeedbackHtml(ok,level){const answer=correctAnswer();const selected=quiz.selectedAnswer||answer;const levelText=level?`<span class="quiz-level-note">${ok?`Level increased to ${level}`:"This word will appear more often."}</span>`:"";return `<div class="quiz-feedback-copy"><strong>${ok?"Correct":"Incorrect"}</strong><span>Your answer: ${esc(selected)}</span>${ok?"":`<span>Correct answer: ${esc(answer)}</span>`}${levelText}</div><button type="button" class="quiz-next-btn" onclick="nextQuizQuestion()">Next</button>`}
-function finishAnswer(ok){if(quiz.answered)return;quiz.answered=true;quiz.previousQuestionId=quiz.current?.id||quiz.previousQuestionId;clearInterval(quizTimerInterval);if(ok){quiz.score++;updateWordLearning(quiz.current.id,"learned");const fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show ok";$("quizResult").innerHTML=quizFeedbackHtml(true,fresh?.level)}else{updateWordLearning(quiz.current.id,"hard");const fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show no";$("quizResult").innerHTML=quizFeedbackHtml(false,fresh?.level);quiz.wrong.push(quiz.current);if(!quiz.allWrong.some(w=>w.id===quiz.current.id))quiz.allWrong.push(quiz.current)}$("quizScore").textContent=quiz.score+" / "+quiz.total;if($("quizAudioAfter").value==="on")setTimeout(()=>{try{speakQuizQuestion()}catch(e){}},20);if(isAutoAdvance())scheduleNext(ok)}
+function renderQuizQuestionAnswer(ok){const box=$("quizQuestionAnswer");if(!box||!quiz.current)return;const answer=correctAnswer();const selected=quiz.selectedAnswer||"";box.className=`quiz-question-answer show ${ok?"ok":"no"}`;box.innerHTML=`<div class="quiz-answer-block"><span>Correct answer</span><strong>${esc(answer)}</strong></div>${!ok&&selected?`<div class="quiz-answer-block"><span>Your answer</span><em>${esc(selected)}</em></div>`:""}`}
+function finishAnswer(ok){if(quiz.answered)return;quiz.answered=true;quiz.previousQuestionId=quiz.current?.id||quiz.previousQuestionId;quiz.previousQuestionKey=quizQuestionKey(quiz.current)||quiz.previousQuestionKey;clearInterval(quizTimerInterval);renderQuizQuestionAnswer(ok);if(ok){quiz.score++;updateWordLearning(quiz.current.id,"learned");const fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show ok";$("quizResult").innerHTML=quizFeedbackHtml(true,fresh?.level)}else{updateWordLearning(quiz.current.id,"hard");const fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show no";$("quizResult").innerHTML=quizFeedbackHtml(false,fresh?.level);quiz.wrong.push(quiz.current);if(!quiz.allWrong.some(w=>w.id===quiz.current.id))quiz.allWrong.push(quiz.current)}$("quizScore").textContent=quiz.score+" / "+quiz.total;if($("quizAudioAfter").value==="on")setTimeout(()=>{try{speakQuizQuestion()}catch(e){}},20);if(isAutoAdvance())scheduleNext(ok)}
 function isAutoAdvance(){const mode=$("quizAutoAdvance")?.value||"1.5";return mode!=="manual"&&mode!=="off"}
-function nextDelay(ok){const mode=$("quizAutoAdvance")?.value||"1.5";let v=mode==="manual"||mode==="off"?parseFloat($("quizNextDelay")?.value||"1.5"):parseFloat(mode);if(!Number.isFinite(v))v=parseFloat($("quizNextDelay")?.value||"1.5");v=Math.max(1,Math.min(10,v));return v*1000}
+function nextDelay(ok){const mode=$("quizAutoAdvance")?.value||"1.5";let v=mode==="manual"||mode==="off"?parseFloat($("quizNextDelay")?.value||"1.5"):parseFloat(mode);if(!Number.isFinite(v))v=parseFloat($("quizNextDelay")?.value||"1.5");v=Math.max(1.5,Math.min(10,v));return Math.round(v*1000)+180}
 function scheduleNext(ok){clearTimeout(quizAutoTimer);quizAutoTimer=setTimeout(()=>advanceQuiz(),nextDelay(ok))}
 function advanceQuiz(){clearQuizTimers();if(!quiz.current)return;if(!quiz.answered){finishAnswer(false);return}quiz.index++;if(quiz.index>=quiz.queue.length)return endQuiz();showQuizQuestion()}
 function nextQuizQuestion(){if(!quiz.current)return;if(!quiz.answered){finishAnswer(false);return}advanceQuiz()}
@@ -711,6 +728,7 @@ function clearAll(){if(!confirm(`Delete all vocabulary data in this browser? (${
 
 let VOICES_READY=false;
 let VOICE_CACHE=[];
+const BEST_VOICE_CACHE=new Map();
 let voiceLoadStarted=false;
 
 function normalizeVoiceLang(lang){
@@ -746,16 +764,29 @@ function normalizeVoiceLang(lang){
   return map[raw]||raw||"en-US";
 }
 window.tnNormalizeVoiceLang = normalizeVoiceLang;
-function cleanSpeechText(text){return String(text||"").replace(/\s*\/\s*/g," ").replace(/\s+/g," ").trim()}
-window.tnCleanSpeechText = cleanSpeechText;
+function sanitizeSpeechText(text){
+  return String(text||"")
+    .replace(/[|｜]/g," ")
+    .replace(/\s*\/\s*/g," ")
+    .replace(/[()[\]{}<>]/g," ")
+    .replace(/[“”"]/g,"")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function cleanSpeechText(text){return sanitizeSpeechText(text)}
+window.sanitizeSpeechText = sanitizeSpeechText;
+window.tnCleanSpeechText = sanitizeSpeechText;
 
 function refreshVoices(){
   try{
+    const previousCount=VOICE_CACHE.length;
     VOICE_CACHE=window.speechSynthesis?window.speechSynthesis.getVoices():[];
     VOICES_READY=VOICE_CACHE.length>0;
+    if(VOICE_CACHE.length!==previousCount)BEST_VOICE_CACHE.clear();
   }catch(e){
     VOICE_CACHE=[];
     VOICES_READY=false;
+    BEST_VOICE_CACHE.clear();
   }
   return VOICE_CACHE;
 }
@@ -796,16 +827,26 @@ function voiceScore(v,lang){
 
 function pickVoice(lang){
   const target=normalizeVoiceLang(lang);
+  const cacheKey=target.toLowerCase();
+  if(BEST_VOICE_CACHE.has(cacheKey))return BEST_VOICE_CACHE.get(cacheKey);
   const voices=refreshVoices();
   if(!voices.length)return null;
   const prefix=target.toLowerCase().split("-")[0];
   const candidates=voices.filter(v=>String(v.lang||"").toLowerCase().startsWith(prefix));
-  if(!candidates.length)return voices.find(v=>String(v.lang||"").toLowerCase()===target.toLowerCase())||null;
-  return candidates.sort((a,b)=>voiceScore(b,target)-voiceScore(a,target))[0]||null;
+  if(!candidates.length){
+    BEST_VOICE_CACHE.set(cacheKey,null);
+    return null;
+  }
+  const best=candidates.sort((a,b)=>voiceScore(b,target)-voiceScore(a,target))[0]||null;
+  BEST_VOICE_CACHE.set(cacheKey,best);
+  return best;
 }
 
+function getBestVoiceForLanguage(language){return pickVoice(language)}
+window.getBestVoiceForLanguage = getBestVoiceForLanguage;
+
 async function speak(text,lang,opts={}){
-  text=cleanSpeechText(text);
+  text=sanitizeSpeechText(text);
   if(!text)return;
   const finalLang=normalizeVoiceLang(lang);
   if(!window.speechSynthesis)return;
@@ -827,6 +868,8 @@ async function speak(text,lang,opts={}){
     console.warn("Speech failed",e);
   }
 }
+async function speakText(text,language,opts={}){return speak(text,language,opts)}
+window.speakText = speakText;
 
 function speakQueued(items,gap=900){
   if(!items||!items.length)return;

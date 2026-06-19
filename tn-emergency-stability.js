@@ -4,7 +4,7 @@
   const DATA_KEY = "tangonest_production_stable_v1";
   const RESET_KEY = "tangonest_emergency_reset_20260614_v1";
   const PAGE_KEY = "tangonest_last_page_v2";
-  const MAX_SAFE_WORDS = 5000;
+  const MAX_SAFE_WORDS = Number.MAX_SAFE_INTEGER;
   const $ = id => document.getElementById(id);
 
   function safeParse(raw){
@@ -60,8 +60,8 @@
     const lists = Array.isArray(current.lists) ? current.lists : [];
     const resetDone = localStorage.getItem(RESET_KEY);
     if(!resetDone && words.length > MAX_SAFE_WORDS){
-      cleanData(`too-many-words:${words.length}`);
-      return;
+      current.meta = current.meta || {};
+      current.meta.largeCollectionDetectedAt = new Date().toISOString();
     }
     current.words = words;
     current.lists = lists.length ? lists : [{id:"starter",name:"New Playlist",createdAt:new Date().toISOString()}];

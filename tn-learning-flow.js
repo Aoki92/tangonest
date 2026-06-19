@@ -112,13 +112,8 @@
   }
 
   function levelLabel(level){
-    return {
-      1:"Very Weak",
-      2:"Weak",
-      3:"Learning",
-      4:"Strong",
-      5:"Mastered"
-    }[Number(level || 3)] || "Learning";
+    const value = Math.min(5,Math.max(1,Number(level || 3)));
+    return `Level ${value}`;
   }
 
   function renderHomeDashboard(){
@@ -152,14 +147,14 @@
         <span class="tn-learn-kicker">Today's Review</span>
         <strong>${due.length}</strong>
         <p>${due.length ? "words need attention today." : "No urgent reviews. Keep the rhythm going."}</p>
-        <div class="tn-learn-hero-stats"><span><b>${weak.length}</b> weak words</span><span><b>${words.length}</b> total words</span></div>
+        <div class="tn-learn-hero-stats"><span><b>${weak.length}</b> review words</span><span><b>${words.length}</b> total words</span></div>
         <button type="button" data-tn-start-review="today">Start Review</button>
       </div>
       <div class="tn-learn-grid">
         <section>
-          <div class="tn-learn-section-head"><h2>Weak Words</h2><button type="button" data-tn-start-review="weak">Review Weak Words</button></div>
+          <div class="tn-learn-section-head"><h2>Review Queue</h2><button type="button" data-tn-start-review="weak">Review Words</button></div>
           <div class="tn-learn-word-strip">
-            ${weak.slice(0,5).map(word => `<button type="button" data-open-word="${esc(word.id)}"><b>${esc(word.front)}</b><span>${esc(word.back)} · Lv.${esc(word.level || 3)}</span></button>`).join("") || `<p>No weak words yet.</p>`}
+            ${weak.slice(0,5).map(word => `<button type="button" data-open-word="${esc(word.id)}"><b>${esc(word.front)}</b><span>${esc(word.back)} · ${esc(levelLabel(word.level))}</span></button>`).join("") || `<p>No review words yet.</p>`}
           </div>
         </section>
         <section>
