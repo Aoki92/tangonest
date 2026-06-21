@@ -697,8 +697,8 @@ function renderChoices(){
 }
 function chooseAnswer(btn,ans){if(quiz.answered)return;quiz.selectedAnswer=ans;let ok=normalize(ans)===normalize(correctAnswer());[...document.querySelectorAll(".choice")].forEach(b=>{b.disabled=true;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong");if(normalize(b.textContent)===normalize(correctAnswer()))b.classList.add("correct")});btn.classList.add("selected");if(!ok)btn.classList.add("wrong");finishAnswer(ok)}
 function quizFeedbackHtml(ok,level){const answer=correctAnswer();const selected=quiz.selectedAnswer||answer;const levelText=level?`<span class="quiz-level-note">${ok?`Level increased to ${level}`:"This word will appear more often."}</span>`:"";return `<div class="quiz-feedback-copy"><strong>${ok?"Correct":"Incorrect"}</strong><span>Your answer: ${esc(selected)}</span>${ok?"":`<span>Correct answer: ${esc(answer)}</span>`}${levelText}</div><button type="button" class="quiz-next-btn" onclick="nextQuizQuestion()">Next</button>`}
-function renderQuizQuestionAnswer(ok,level){const box=$("quizQuestionAnswer");if(!box||!quiz.current)return;const answer=correctAnswer();const selected=quiz.selectedAnswer||"";const levelText=level?`<div class="quiz-answer-block quiz-answer-meta"><span>Learning</span><strong>${ok?`Level increased to ${level}`:"This word will appear more often."}</strong></div>`:"";const card=document.querySelector(".quiz-question");if(card){const long=[answer,selected].some(v=>String(v||"").length>32||String(v||"").includes("\n"));card.classList.add("is-answered");card.classList.toggle("has-long-answer",long)}box.className=`quiz-question-answer show ${ok?"ok":"no"}`;box.innerHTML=`<div class="quiz-answer-status ${ok?"ok":"no"}">${ok?"Correct":"Incorrect"}</div><div class="quiz-answer-block"><span>Correct answer</span><strong>${esc(answer)}</strong></div>${!ok&&selected?`<div class="quiz-answer-block"><span>Your answer</span><em>${esc(selected)}</em></div>`:""}${levelText}<button type="button" class="quiz-answer-audio" onclick="speakCorrectAnswer()">Play correct answer</button>`}
-function finishAnswer(ok){if(quiz.answered)return;quiz.answered=true;quiz.previousQuestionId=quiz.current?.id||quiz.previousQuestionId;quiz.previousQuestionKey=quizQuestionKey(quiz.current)||quiz.previousQuestionKey;clearInterval(quizTimerInterval);let fresh=null;if(ok){quiz.score++;updateWordLearning(quiz.current.id,"learned");fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show ok";$("quizResult").innerHTML=quizFeedbackHtml(true,fresh?.level)}else{updateWordLearning(quiz.current.id,"hard");fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show no";$("quizResult").innerHTML=quizFeedbackHtml(false,fresh?.level);quiz.wrong.push(quiz.current);if(!quiz.allWrong.some(w=>w.id===quiz.current.id))quiz.allWrong.push(quiz.current)}renderQuizQuestionAnswer(ok,fresh?.level);$("quizScore").textContent=quiz.score+" / "+quiz.total;if($("quizAudioAfter").value==="on")setTimeout(()=>{try{speakCorrectAnswer()}catch(e){}},80);if(isAutoAdvance())scheduleNext(ok)}
+function renderQuizQuestionAnswer(ok,level){const box=$("quizQuestionAnswer");if(!box||!quiz.current)return;const answer=correctAnswer();const selected=quiz.selectedAnswer||"";const levelText=level?`<div class="quiz-answer-block quiz-answer-meta"><span>Learning</span><strong>${ok?`Level increased to ${level}`:"This word will appear more often."}</strong></div>`:"";const card=document.querySelector(".quiz-question");if(card){const long=[answer,selected].some(v=>String(v||"").length>32||String(v||"").includes("\n"));card.classList.add("is-answered");card.classList.toggle("has-long-answer",long)}box.className=`quiz-question-answer show ${ok?"ok":"no"}`;box.innerHTML=`<div class="quiz-answer-status ${ok?"ok":"no"}">${ok?"Correct":"Incorrect"}</div><div class="quiz-answer-block"><span>Correct answer</span><strong>${esc(answer)}</strong></div>${!ok&&selected?`<div class="quiz-answer-block"><span>Your answer</span><em>${esc(selected)}</em></div>`:""}${levelText}<div class="quiz-answer-actions"><button type="button" class="quiz-answer-audio" onclick="speakQuizFront()">Play front</button><button type="button" class="quiz-answer-audio" onclick="speakQuizBack()">Play back</button></div>`}
+function finishAnswer(ok){if(quiz.answered)return;quiz.answered=true;quiz.previousQuestionId=quiz.current?.id||quiz.previousQuestionId;quiz.previousQuestionKey=quizQuestionKey(quiz.current)||quiz.previousQuestionKey;clearInterval(quizTimerInterval);let fresh=null;if(ok){quiz.score++;updateWordLearning(quiz.current.id,"learned");fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show ok";$("quizResult").innerHTML=quizFeedbackHtml(true,fresh?.level)}else{updateWordLearning(quiz.current.id,"hard");fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show no";$("quizResult").innerHTML=quizFeedbackHtml(false,fresh?.level);quiz.wrong.push(quiz.current);if(!quiz.allWrong.some(w=>w.id===quiz.current.id))quiz.allWrong.push(quiz.current)}renderQuizQuestionAnswer(ok,fresh?.level);$("quizScore").textContent=quiz.score+" / "+quiz.total;if($("quizAudioAfter").value==="on")setTimeout(()=>{try{speakQuizFront()}catch(e){}},80);if(isAutoAdvance())scheduleNext(ok)}
 function isAutoAdvance(){const mode=$("quizAutoAdvance")?.value||"1.5";return mode!=="manual"&&mode!=="off"}
 function nextDelay(ok){const mode=$("quizAutoAdvance")?.value||"1.5";let v=mode==="manual"||mode==="off"?parseFloat($("quizNextDelay")?.value||"1.5"):parseFloat(mode);if(!Number.isFinite(v))v=parseFloat($("quizNextDelay")?.value||"1.5");v=Math.max(1,Math.min(10,v));return Math.round(v*1000)}
 function scheduleNext(ok){clearTimeout(quizAutoTimer);quizAutoTimer=setTimeout(()=>advanceQuiz(),nextDelay(ok))}
@@ -706,8 +706,10 @@ function advanceQuiz(){clearQuizTimers();if(!quiz.current)return;if(!quiz.answer
 function nextQuizQuestion(){if(!quiz.current)return;if(!quiz.answered){finishAnswer(false);return}advanceQuiz()}
 function speakQuizQuestion(){if(!quiz.current)return;let text=quiz.direction==="front"?quiz.current.front:quiz.current.back,lang=quiz.direction==="front"?quiz.current.frontLang:quiz.current.backLang;speak(text,lang)}
 function speakCorrectAnswer(){if(!quiz.current)return;speak(correctAnswer(),correctAnswerLang())}
+function speakQuizFront(){if(!quiz.current)return;speak(quiz.current.front,quiz.current.frontLang)}
+function speakQuizBack(){if(!quiz.current)return;speak(quiz.current.back,quiz.current.backLang)}
 function clearQuizTimers(){clearTimeout(quizAutoTimer);clearInterval(quizTimerInterval);quizAutoTimer=null;quizTimerInterval=null}
-function startQuestionTimer(){let wrap=$("quizTimerWrap"),fill=$("quizTimerFill"),text=$("quizTimerText"),label=$("quizTimerLabel");if(!wrap||!fill||!text)return;if($("quizHardMode").value!=="on"){wrap.classList.remove("show");if(label)label.textContent="No time limit";text.textContent="Off";fill.style.width="0%";fill.classList.remove("danger");return}let limit=Math.max(2,parseInt($("quizTimeLimit").value||"8",10));quizQuestionStartedAt=Date.now();wrap.classList.add("show");if(label)label.textContent="Time limit";fill.style.width="100%";fill.classList.remove("danger");text.textContent=limit+"s";quizTimerInterval=setInterval(()=>{if(quiz.answered){clearInterval(quizTimerInterval);return}let remain=Math.max(0,limit-(Date.now()-quizQuestionStartedAt)/1000),pct=remain/limit*100;fill.style.width=pct+"%";if(pct<30)fill.classList.add("danger");text.textContent=Math.ceil(remain)+"s";if(remain<=0){clearInterval(quizTimerInterval);finishAnswer(false)}},200)}
+function startQuestionTimer(){let wrap=$("quizTimerWrap"),fill=$("quizTimerFill"),text=$("quizTimerText"),label=$("quizTimerLabel");if(!wrap||!fill||!text)return;if($("quizHardMode").value!=="on"){wrap.classList.remove("show");if(label)label.textContent="Time limit: Off";text.textContent="";fill.style.width="0%";fill.classList.remove("danger");return}let limit=Math.max(2,parseInt($("quizTimeLimit").value||"8",10));quizQuestionStartedAt=Date.now();wrap.classList.add("show");if(label)label.textContent="Time limit";fill.style.width="100%";fill.classList.remove("danger");text.textContent=limit+"s";quizTimerInterval=setInterval(()=>{if(quiz.answered){clearInterval(quizTimerInterval);return}let remain=Math.max(0,limit-(Date.now()-quizQuestionStartedAt)/1000),pct=remain/limit*100;fill.style.width=pct+"%";if(pct<30)fill.classList.add("danger");text.textContent=Math.ceil(remain)+"s";if(remain<=0){clearInterval(quizTimerInterval);finishAnswer(false)}},200)}
 function endQuiz(){clearQuizTimers();$("quizRun").style.display="none";$("quizEnd").style.display="block";$("quizEndText").textContent=`Score: ${quiz.score} / ${quiz.total}`;renderWrongList();render()}
 function renderWrongList(){let box=$("quizWrongList"),wrong=quiz.allWrong||[];if(!wrong.length){box.innerHTML='<div class="empty">No wrong answers. Great job!</div>';return}box.innerHTML='<h2 style="margin-top:8px">Wrong Answers</h2>'+wrong.map(item=>{let w=db.words.find(x=>x.id===item.id)||item,q=quiz.direction==="front"?w.front:w.back,a=quiz.direction==="front"?w.back:w.front,lang=quiz.direction==="front"?w.frontLang:w.backLang;return`<div class="quiz-wrong-card"><div onclick="openDetail('${w.id}')"><div class="quiz-wrong-front">${esc(q)}</div><div class="quiz-wrong-back">Answer: ${esc(a)}</div></div><div class="quiz-wrong-actions"><button onclick="speak('${escAttr(q)}','${lang}')">▶</button><button class="${w.saved?'starred':''}" onclick="toggleQuizWrongStar('${w.id}')">${w.saved?'★ Saved':'☆ Save'}</button><button onclick="openDetail('${w.id}')">Detail</button></div></div>`}).join("")}
 function toggleQuizWrongStar(id){toggleStar(id);renderWrongList()}
@@ -807,6 +809,17 @@ function sanitizeSpeechText(text){
 function cleanSpeechText(text){return sanitizeSpeechText(text)}
 window.sanitizeSpeechText = sanitizeSpeechText;
 window.tnCleanSpeechText = sanitizeSpeechText;
+function inferSpeechLanguage(text,lang){
+  const cleaned=String(text||"").trim();
+  const selected=normalizeVoiceLang(lang);
+  if(/[가-힣]/.test(cleaned))return"ko-KR";
+  if(/[ぁ-んァ-ン]/.test(cleaned))return"ja-JP";
+  if(/[一-龯]/.test(cleaned)){
+    if(selected==="ja-JP"||selected==="zh-CN"||selected==="zh-TW")return selected;
+    return"zh-CN";
+  }
+  return selected;
+}
 
 function refreshVoices(){
   try{
@@ -913,7 +926,7 @@ window.getBestVoiceForLanguage = getBestVoiceForLanguage;
 async function speak(text,lang,opts={}){
   text=sanitizeSpeechText(text);
   if(!text)return;
-  const finalLang=normalizeVoiceLang(lang);
+  const finalLang=inferSpeechLanguage(text,lang);
   if(!window.speechSynthesis)return;
   await waitForVoices();
   try{
@@ -3639,8 +3652,8 @@ function tnMakeWordFromAddForm(){
     id:tnStableId(),
     front,
     back,
-    frontLang:tnSelected("frontLang","en-US"),
-    backLang:tnSelected("backLang","ja-JP"),
+    frontLang:detectLang(front,tnSelected("frontLang","en-US")),
+    backLang:detectLang(back,tnSelected("backLang","ja-JP")),
     listId:tnSelected("addList", db.lists?.[0]?.id || "starter"),
     pos:tnSelected("pos",""),
     gender:tnSelected("gender",""),
@@ -3903,8 +3916,8 @@ function tn64MakeWord(){
     id:tn64Id(),
     front,
     back,
-    frontLang:tn64$("frontLang")?.value || "en-US",
-    backLang:tn64$("backLang")?.value || "ja-JP",
+    frontLang:detectLang(front,tn64$("frontLang")?.value || "en-US"),
+    backLang:detectLang(back,tn64$("backLang")?.value || "ja-JP"),
     listId,
     pos:tn64$("pos")?.value || "",
     gender:tn64$("gender")?.value || "",

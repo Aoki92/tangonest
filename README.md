@@ -38,6 +38,8 @@ This build prioritizes stability over preserving corrupted local word data.
 - Library now has four sections: Words, Playlists, Review, Mastered.
 - Word detail now shows level, correct count, wrong count, review count, and example audio when an example exists.
 - Audio text is cleaned so `/` is not spoken as "slash"; language voice codes are normalized to en-US, ja-JP, ko-KR, zh-CN, fr-FR, and es-ES.
+- Quiz after-answer auto audio now plays the Front / learning language only; manual buttons can still play Front or Back.
+- Browser TTS now infers CJK/Hangul script for speech so Chinese, Japanese, and Korean text is not sent to an English voice by mistake.
 
 ## Fixed
 - Library All shows every registered word.
