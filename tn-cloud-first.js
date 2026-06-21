@@ -196,26 +196,7 @@
   }
 
   async function removeDemoAppleEverywhere(){
-    const data = ensureDb();
-    const isDemoApple = word => {
-      const front = String(word.front || "").trim();
-      const back = String(word.back || "").trim();
-      const isApple = value => String(value || "").trim().toLowerCase() === "apple";
-      const isRingo = value => ["りんご","リンゴ"].includes(String(value || "").trim());
-      return (isApple(front) && isRingo(back)) || (isApple(back) && isRingo(front));
-    };
-    const localDemo = data.words.length === 1 && isDemoApple(data.words[0]) ? [data.words[0]] : [];
-    if(localDemo.length){
-      data.words = data.words.filter(word => !localDemo.includes(word));
-      persist();
-    }
-    if(user && client){
-      for(const word of localDemo){
-        if(word.id){
-          await client.from("tn_words").delete().eq("id",word.id).eq("user_id",user.id);
-        }
-      }
-    }
+    return;
   }
 
   function renderSelect(id,{all=false}={}){

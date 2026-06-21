@@ -329,8 +329,14 @@ function detectLang(t,currentLang){
   const dict={pomme:"fr-FR",bonjour:"fr-FR",merci:"fr-FR",mela:"it-IT",ciao:"it-IT",apfel:"de-DE",hallo:"de-DE","maçã":"pt-BR","olá":"pt-BR",manzana:"es-ES",hola:"es-ES",appel:"nl-NL",elma:"tr-TR",apel:"id-ID"};
   return dict[s]||"en-US";
 }
-function autoDetectFront(){let t=$("front").value.trim();if(t){$("frontLang").value=detectLang(t,$("frontLang").value);db.prefs.frontLang=$("frontLang").value;persist();updatePlaceholders()}}
-function autoDetectBack(){let t=$("back").value.trim();if(t){$("backLang").value=detectLang(t,$("backLang").value);db.prefs.backLang=$("backLang").value;persist();updatePlaceholders()}}
+function detectLangWithContext(t,currentLang,context){
+  const text=String(t||"").trim();
+  const ctx=String(context||"");
+  if(/[一-龯]/.test(text)&&!/[ぁ-んァ-ン]/.test(text)&&/[ぁ-んァ-ン]/.test(ctx))return"ja-JP";
+  return detectLang(text,currentLang);
+}
+function autoDetectFront(){let t=$("front").value.trim();if(t){$("frontLang").value=detectLangWithContext(t,$("frontLang").value,($("back")?.value||"")+" "+($("memo")?.value||""));updatePlaceholders()}}
+function autoDetectBack(){let t=$("back").value.trim();if(t){$("backLang").value=detectLangWithContext(t,$("backLang").value,($("front")?.value||"")+" "+($("memo")?.value||""));updatePlaceholders()}}
 function renderSelect(id,all=false){let el=$(id);if(!el)return;let v=el.value;el.innerHTML="";if(all){let o=document.createElement("option");o.value="all";o.textContent="All";el.appendChild(o)}db.lists.forEach(l=>{let o=document.createElement("option");o.value=l.id;o.textContent=l.name;el.appendChild(o)});if([...el.options].some(o=>o.value===v))el.value=v;else if(all)el.value="all"}
 function go(p){["home","add","words","study","quiz","audio","manage"].forEach(x=>{let page=$("page"+cap(x)),nav=$("nav"+cap(x)),mnav=$("mnav"+cap(x));if(page)page.classList.toggle("active",x===p);if(nav)nav.classList.toggle("active",x===p);if(mnav)mnav.classList.toggle("active",x===p)});if(p==="quiz")resetQuiz();render()}
 
@@ -656,39 +662,52 @@ function ensureQuizFeedbackDefault(){
 }
 function resetQuiz(){clearQuizTimers();ensureQuizFeedbackDefault();quiz={queue:[],wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:"choice",direction:"front",total:0,previousQuestionId:"",previousQuestionKey:"",selectedAnswer:""};if($("quizType"))$("quizType").value="choice";$("quizSetup").style.display="block";$("quizRun").style.display="none";$("quizEnd").style.display="none";resetQuizAnswerVisualState()}
 function startQuiz(){clearQuizTimers();ensureQuizFeedbackDefault();let words=quizPool();let requested=parseInt($("quizCount").value,10)||10;if(requested<1)requested=1;if(!words.length)return toast("No words");let actual=Math.min(requested,words.length);if(actual<requested)toast(`Only ${actual} words available`);quiz={queue:quizAdaptiveOrder(words).slice(0,actual),wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:$("quizType").value||"choice",direction:$("quizDirection").value,total:actual,previousQuestionId:"",previousQuestionKey:"",selectedAnswer:""};$("quizSetup").style.display="none";$("quizRun").style.display="block";$("quizEnd").style.display="none";showQuizQuestion()}
-function resetQuizAnswerVisualState(){document.querySelectorAll(".choice").forEach(b=>{b.disabled=false;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong")});const result=$("quizResult");if(result){result.className="result-box";result.textContent=""}const answer=$("quizQuestionAnswer");if(answer){answer.className="quiz-question-answer";answer.textContent=""}}
+function resetQuizAnswerVisualState(){document.querySelectorAll(".choice").forEach(b=>{b.disabled=false;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong")});const result=$("quizResult");if(result){result.className="result-box";result.textContent=""}const answer=$("quizQuestionAnswer");if(answer){answer.className="quiz-question-answer";answer.textContent=""}const card=document.querySelector(".quiz-question");if(card){card.classList.remove("is-answered","has-long-answer")}}
 function quizQuestionKey(word){if(!word)return "";const text=quiz.direction==="back"?word.back:word.front;return normalize(text)}
 function avoidConsecutiveDuplicateQuestion(){if(!quiz.queue||quiz.queue.length<=1)return;const current=quiz.queue[quiz.index];if(!current)return;const prevId=quiz.previousQuestionId||"";const prevKey=quiz.previousQuestionKey||"";const sameId=prevId&&current.id===prevId;const sameKey=prevKey&&quizQuestionKey(current)===prevKey;if(!sameId&&!sameKey)return;const swapIndex=quiz.queue.findIndex((w,i)=>i>quiz.index&&w&&w.id!==prevId&&quizQuestionKey(w)!==prevKey);if(swapIndex>-1){const tmp=quiz.queue[quiz.index];quiz.queue[quiz.index]=quiz.queue[swapIndex];quiz.queue[swapIndex]=tmp;return}const fallback=quiz.queue.find(w=>w&&w.id!==prevId&&quizQuestionKey(w)!==prevKey);if(fallback)quiz.queue[quiz.index]=fallback}
 function showQuizQuestion(){clearQuizTimers();resetQuizAnswerVisualState();quiz.answered=false;quiz.selectedAnswer="";avoidConsecutiveDuplicateQuestion();quiz.current=quiz.queue[quiz.index];if(!quiz.current)return endQuiz();$("quizProgress").textContent=(quiz.index+1)+" / "+quiz.total;$("quizScore").textContent=quiz.score+" / "+quiz.total;let q=quiz.direction==="front"?quiz.current.front:quiz.current.back;$("quizWord").textContent=q;$("quizLabel").textContent=quiz.direction==="front"?"Front → ?":"Back → ?";$("typingArea").style.display=quiz.type==="typing"?"block":"none";$("choiceArea").style.display=quiz.type==="choice"?"grid":"none";$("quizAnswer").value="";if(quiz.type==="choice")renderChoices();startQuestionTimer()}
 function correctAnswer(){return quiz.direction==="front"?quiz.current.back:quiz.current.front}
+function correctAnswerLang(){return quiz.direction==="front"?quiz.current.backLang:quiz.current.frontLang}
+function quizAnswerText(word){return quiz.direction==="front"?word.back:word.front}
+function quizAnswerLang(word){return quiz.direction==="front"?word.backLang:word.frontLang}
 function normalize(s){return String(s||"").trim().toLowerCase()}
 function checkTypingAnswer(){if(quiz.answered)return;quiz.selectedAnswer=$("quizAnswer").value;finishAnswer(normalize($("quizAnswer").value)===normalize(correctAnswer()))}
 function renderChoices(){
   let correct=correctAnswer();
   const currentList=quiz.current.listId;
-  const answerLang=quiz.direction==="front"?quiz.current.backLang:quiz.current.frontLang;
-  let pool=db.words
-    .filter(w=>w.listId===currentList)
-    .filter(w=>(quiz.direction==="front"?w.backLang:w.frontLang)===answerLang)
-    .map(w=>quiz.direction==="front"?w.back:w.front)
-    .filter(x=>normalize(x)!==normalize(correct));
-  pool=[...new Set(pool)].sort(()=>Math.random()-.5).slice(0,3);
-  while(pool.length<3)pool.push("—");
+  const answerLang=correctAnswerLang();
+  const pool=[];
+  const seen=new Set([normalize(correct)]);
+  const addFrom=words=>{
+    words.forEach(w=>{
+      const value=quizAnswerText(w);
+      const key=normalize(value);
+      if(!key||seen.has(key))return;
+      seen.add(key);
+      pool.push(value);
+    });
+  };
+  addFrom((db.words||[]).filter(w=>w.listId===currentList&&quizAnswerLang(w)===answerLang));
+  addFrom((db.words||[]).filter(w=>quizAnswerLang(w)===answerLang));
+  addFrom((db.words||[]));
+  pool.sort(()=>Math.random()-.5);
+  pool.splice(3);
   let choices=shuffle([correct,...pool]);
   $("choiceArea").innerHTML=choices.map(c=>`<button type="button" class="choice" onclick="chooseAnswer(this,'${escAttr(c)}')">${esc(c)}</button>`).join("");
 }
 function chooseAnswer(btn,ans){if(quiz.answered)return;quiz.selectedAnswer=ans;let ok=normalize(ans)===normalize(correctAnswer());[...document.querySelectorAll(".choice")].forEach(b=>{b.disabled=true;b.classList.remove("selected","active","correct","incorrect","wrong","is-selected","is-active","is-correct","is-wrong");if(normalize(b.textContent)===normalize(correctAnswer()))b.classList.add("correct")});btn.classList.add("selected");if(!ok)btn.classList.add("wrong");finishAnswer(ok)}
 function quizFeedbackHtml(ok,level){const answer=correctAnswer();const selected=quiz.selectedAnswer||answer;const levelText=level?`<span class="quiz-level-note">${ok?`Level increased to ${level}`:"This word will appear more often."}</span>`:"";return `<div class="quiz-feedback-copy"><strong>${ok?"Correct":"Incorrect"}</strong><span>Your answer: ${esc(selected)}</span>${ok?"":`<span>Correct answer: ${esc(answer)}</span>`}${levelText}</div><button type="button" class="quiz-next-btn" onclick="nextQuizQuestion()">Next</button>`}
-function renderQuizQuestionAnswer(ok){const box=$("quizQuestionAnswer");if(!box||!quiz.current)return;const answer=correctAnswer();const selected=quiz.selectedAnswer||"";box.className=`quiz-question-answer show ${ok?"ok":"no"}`;box.innerHTML=`<div class="quiz-answer-block"><span>Correct answer</span><strong>${esc(answer)}</strong></div>${!ok&&selected?`<div class="quiz-answer-block"><span>Your answer</span><em>${esc(selected)}</em></div>`:""}`}
-function finishAnswer(ok){if(quiz.answered)return;quiz.answered=true;quiz.previousQuestionId=quiz.current?.id||quiz.previousQuestionId;quiz.previousQuestionKey=quizQuestionKey(quiz.current)||quiz.previousQuestionKey;clearInterval(quizTimerInterval);renderQuizQuestionAnswer(ok);if(ok){quiz.score++;updateWordLearning(quiz.current.id,"learned");const fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show ok";$("quizResult").innerHTML=quizFeedbackHtml(true,fresh?.level)}else{updateWordLearning(quiz.current.id,"hard");const fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show no";$("quizResult").innerHTML=quizFeedbackHtml(false,fresh?.level);quiz.wrong.push(quiz.current);if(!quiz.allWrong.some(w=>w.id===quiz.current.id))quiz.allWrong.push(quiz.current)}$("quizScore").textContent=quiz.score+" / "+quiz.total;if($("quizAudioAfter").value==="on")setTimeout(()=>{try{speakQuizQuestion()}catch(e){}},20);if(isAutoAdvance())scheduleNext(ok)}
+function renderQuizQuestionAnswer(ok,level){const box=$("quizQuestionAnswer");if(!box||!quiz.current)return;const answer=correctAnswer();const selected=quiz.selectedAnswer||"";const levelText=level?`<div class="quiz-answer-block quiz-answer-meta"><span>Learning</span><strong>${ok?`Level increased to ${level}`:"This word will appear more often."}</strong></div>`:"";const card=document.querySelector(".quiz-question");if(card){const long=[answer,selected].some(v=>String(v||"").length>32||String(v||"").includes("\n"));card.classList.add("is-answered");card.classList.toggle("has-long-answer",long)}box.className=`quiz-question-answer show ${ok?"ok":"no"}`;box.innerHTML=`<div class="quiz-answer-status ${ok?"ok":"no"}">${ok?"Correct":"Incorrect"}</div><div class="quiz-answer-block"><span>Correct answer</span><strong>${esc(answer)}</strong></div>${!ok&&selected?`<div class="quiz-answer-block"><span>Your answer</span><em>${esc(selected)}</em></div>`:""}${levelText}<button type="button" class="quiz-answer-audio" onclick="speakCorrectAnswer()">Play correct answer</button>`}
+function finishAnswer(ok){if(quiz.answered)return;quiz.answered=true;quiz.previousQuestionId=quiz.current?.id||quiz.previousQuestionId;quiz.previousQuestionKey=quizQuestionKey(quiz.current)||quiz.previousQuestionKey;clearInterval(quizTimerInterval);let fresh=null;if(ok){quiz.score++;updateWordLearning(quiz.current.id,"learned");fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show ok";$("quizResult").innerHTML=quizFeedbackHtml(true,fresh?.level)}else{updateWordLearning(quiz.current.id,"hard");fresh=db.words.find(w=>w.id===quiz.current.id);$("quizResult").className="result-box show no";$("quizResult").innerHTML=quizFeedbackHtml(false,fresh?.level);quiz.wrong.push(quiz.current);if(!quiz.allWrong.some(w=>w.id===quiz.current.id))quiz.allWrong.push(quiz.current)}renderQuizQuestionAnswer(ok,fresh?.level);$("quizScore").textContent=quiz.score+" / "+quiz.total;if($("quizAudioAfter").value==="on")setTimeout(()=>{try{speakCorrectAnswer()}catch(e){}},80);if(isAutoAdvance())scheduleNext(ok)}
 function isAutoAdvance(){const mode=$("quizAutoAdvance")?.value||"1.5";return mode!=="manual"&&mode!=="off"}
-function nextDelay(ok){const mode=$("quizAutoAdvance")?.value||"1.5";let v=mode==="manual"||mode==="off"?parseFloat($("quizNextDelay")?.value||"1.5"):parseFloat(mode);if(!Number.isFinite(v))v=parseFloat($("quizNextDelay")?.value||"1.5");v=Math.max(1.5,Math.min(10,v));return Math.round(v*1000)+180}
+function nextDelay(ok){const mode=$("quizAutoAdvance")?.value||"1.5";let v=mode==="manual"||mode==="off"?parseFloat($("quizNextDelay")?.value||"1.5"):parseFloat(mode);if(!Number.isFinite(v))v=parseFloat($("quizNextDelay")?.value||"1.5");v=Math.max(1,Math.min(10,v));return Math.round(v*1000)}
 function scheduleNext(ok){clearTimeout(quizAutoTimer);quizAutoTimer=setTimeout(()=>advanceQuiz(),nextDelay(ok))}
 function advanceQuiz(){clearQuizTimers();if(!quiz.current)return;if(!quiz.answered){finishAnswer(false);return}quiz.index++;if(quiz.index>=quiz.queue.length)return endQuiz();showQuizQuestion()}
 function nextQuizQuestion(){if(!quiz.current)return;if(!quiz.answered){finishAnswer(false);return}advanceQuiz()}
 function speakQuizQuestion(){if(!quiz.current)return;let text=quiz.direction==="front"?quiz.current.front:quiz.current.back,lang=quiz.direction==="front"?quiz.current.frontLang:quiz.current.backLang;speak(text,lang)}
+function speakCorrectAnswer(){if(!quiz.current)return;speak(correctAnswer(),correctAnswerLang())}
 function clearQuizTimers(){clearTimeout(quizAutoTimer);clearInterval(quizTimerInterval);quizAutoTimer=null;quizTimerInterval=null}
-function startQuestionTimer(){let wrap=$("quizTimerWrap"),fill=$("quizTimerFill"),text=$("quizTimerText");if($("quizHardMode").value!=="on"){wrap.classList.remove("show");return}let limit=Math.max(2,parseInt($("quizTimeLimit").value||"8",10));quizQuestionStartedAt=Date.now();wrap.classList.add("show");fill.style.width="100%";fill.classList.remove("danger");text.textContent=limit+"s";quizTimerInterval=setInterval(()=>{if(quiz.answered){clearInterval(quizTimerInterval);return}let remain=Math.max(0,limit-(Date.now()-quizQuestionStartedAt)/1000),pct=remain/limit*100;fill.style.width=pct+"%";if(pct<30)fill.classList.add("danger");text.textContent=Math.ceil(remain)+"s";if(remain<=0){clearInterval(quizTimerInterval);finishAnswer(false)}},200)}
+function startQuestionTimer(){let wrap=$("quizTimerWrap"),fill=$("quizTimerFill"),text=$("quizTimerText"),label=$("quizTimerLabel");if(!wrap||!fill||!text)return;if($("quizHardMode").value!=="on"){wrap.classList.remove("show");if(label)label.textContent="No time limit";text.textContent="Off";fill.style.width="0%";fill.classList.remove("danger");return}let limit=Math.max(2,parseInt($("quizTimeLimit").value||"8",10));quizQuestionStartedAt=Date.now();wrap.classList.add("show");if(label)label.textContent="Time limit";fill.style.width="100%";fill.classList.remove("danger");text.textContent=limit+"s";quizTimerInterval=setInterval(()=>{if(quiz.answered){clearInterval(quizTimerInterval);return}let remain=Math.max(0,limit-(Date.now()-quizQuestionStartedAt)/1000),pct=remain/limit*100;fill.style.width=pct+"%";if(pct<30)fill.classList.add("danger");text.textContent=Math.ceil(remain)+"s";if(remain<=0){clearInterval(quizTimerInterval);finishAnswer(false)}},200)}
 function endQuiz(){clearQuizTimers();$("quizRun").style.display="none";$("quizEnd").style.display="block";$("quizEndText").textContent=`Score: ${quiz.score} / ${quiz.total}`;renderWrongList();render()}
 function renderWrongList(){let box=$("quizWrongList"),wrong=quiz.allWrong||[];if(!wrong.length){box.innerHTML='<div class="empty">No wrong answers. Great job!</div>';return}box.innerHTML='<h2 style="margin-top:8px">Wrong Answers</h2>'+wrong.map(item=>{let w=db.words.find(x=>x.id===item.id)||item,q=quiz.direction==="front"?w.front:w.back,a=quiz.direction==="front"?w.back:w.front,lang=quiz.direction==="front"?w.frontLang:w.backLang;return`<div class="quiz-wrong-card"><div onclick="openDetail('${w.id}')"><div class="quiz-wrong-front">${esc(q)}</div><div class="quiz-wrong-back">Answer: ${esc(a)}</div></div><div class="quiz-wrong-actions"><button onclick="speak('${escAttr(q)}','${lang}')">▶</button><button class="${w.saved?'starred':''}" onclick="toggleQuizWrongStar('${w.id}')">${w.saved?'★ Saved':'☆ Save'}</button><button onclick="openDetail('${w.id}')">Detail</button></div></div>`}).join("")}
 function toggleQuizWrongStar(id){toggleStar(id);renderWrongList()}
@@ -730,6 +749,18 @@ let VOICES_READY=false;
 let VOICE_CACHE=[];
 const BEST_VOICE_CACHE=new Map();
 let voiceLoadStarted=false;
+const VOICE_PREF_KEY="tangonest_voice_preferences_v1";
+const VOICE_LANGUAGE_SETTINGS=[
+  {lang:"en-US",label:"English",sample:"Hello, this is English."},
+  {lang:"ja-JP",label:"Japanese",sample:"こんにちは。日本語です。"},
+  {lang:"zh-CN",label:"Chinese",sample:"你好，这是中文。"},
+  {lang:"ko-KR",label:"Korean",sample:"안녕하세요. 한국어입니다."},
+  {lang:"fr-FR",label:"French",sample:"Bonjour, ceci est le français."},
+  {lang:"es-ES",label:"Spanish",sample:"Hola, esto es español."}
+];
+function loadVoicePrefs(){try{return JSON.parse(localStorage.getItem(VOICE_PREF_KEY)||"{}")||{}}catch(e){return{}}}
+function saveVoicePrefs(prefs){try{localStorage.setItem(VOICE_PREF_KEY,JSON.stringify(prefs||{}))}catch(e){}}
+function voiceIdentity(v){return [v?.voiceURI||"",v?.name||"",v?.lang||""].join("||")}
 
 function normalizeVoiceLang(lang){
   const raw=String(lang||"").trim();
@@ -782,7 +813,10 @@ function refreshVoices(){
     const previousCount=VOICE_CACHE.length;
     VOICE_CACHE=window.speechSynthesis?window.speechSynthesis.getVoices():[];
     VOICES_READY=VOICE_CACHE.length>0;
-    if(VOICE_CACHE.length!==previousCount)BEST_VOICE_CACHE.clear();
+    if(VOICE_CACHE.length!==previousCount){
+      BEST_VOICE_CACHE.clear();
+      setTimeout(()=>{try{renderVoiceSettings()}catch(e){}},0);
+    }
   }catch(e){
     VOICE_CACHE=[];
     VOICES_READY=false;
@@ -816,6 +850,14 @@ function voiceScore(v,lang){
   let score=0;
   if(vlang===target)score+=100;
   if(vlang.startsWith(prefix))score+=60;
+  if(target==="zh-cn"){
+    if(vlang==="zh-cn")score+=160;
+    if(vlang==="zh-hans-cn")score+=150;
+    if(vlang.startsWith("zh-hans"))score+=120;
+    if(vlang.startsWith("zh"))score+=80;
+    if(/mandarin|普通话|chinese simplified|simplified|china|zh-cn/.test(name))score+=90;
+    if(vlang.startsWith("en")||/english|american|british/.test(name))score-=500;
+  }
   if(name.includes("google"))score+=50;
   if(name.includes("premium"))score+=20;
   if(name.includes("enhanced"))score+=15;
@@ -824,6 +866,21 @@ function voiceScore(v,lang){
   if(name.includes("siri"))score+=5;
   return score;
 }
+function voiceMatchesLanguage(v,lang){
+  const target=normalizeVoiceLang(lang).toLowerCase();
+  const vlang=String(v?.lang||"").toLowerCase();
+  const name=String(v?.name||"").toLowerCase();
+  if(!vlang)return false;
+  if(target==="zh-cn"){
+    return vlang==="zh-cn"||vlang==="zh-hans-cn"||vlang.startsWith("zh-hans")||(/mandarin|普通话|chinese|simplified|china/.test(name)&&vlang.startsWith("zh"));
+  }
+  const prefix=target.split("-")[0];
+  return vlang===target||vlang.startsWith(prefix);
+}
+function matchingVoicesForLanguage(lang){
+  const target=normalizeVoiceLang(lang);
+  return refreshVoices().filter(v=>voiceMatchesLanguage(v,target)).sort((a,b)=>voiceScore(b,target)-voiceScore(a,target));
+}
 
 function pickVoice(lang){
   const target=normalizeVoiceLang(lang);
@@ -831,8 +888,16 @@ function pickVoice(lang){
   if(BEST_VOICE_CACHE.has(cacheKey))return BEST_VOICE_CACHE.get(cacheKey);
   const voices=refreshVoices();
   if(!voices.length)return null;
-  const prefix=target.toLowerCase().split("-")[0];
-  const candidates=voices.filter(v=>String(v.lang||"").toLowerCase().startsWith(prefix));
+  const prefs=loadVoicePrefs();
+  const saved=prefs[target];
+  if(saved){
+    const preferred=voices.find(v=>(v.voiceURI&&v.voiceURI===saved.voiceURI)||voiceIdentity(v)===saved.identity||(v.name===saved.name&&v.lang===saved.lang));
+    if(preferred&&voiceMatchesLanguage(preferred,target)){
+      BEST_VOICE_CACHE.set(cacheKey,preferred);
+      return preferred;
+    }
+  }
+  const candidates=matchingVoicesForLanguage(target);
   if(!candidates.length){
     BEST_VOICE_CACHE.set(cacheKey,null);
     return null;
@@ -881,9 +946,55 @@ function speakQueued(items,gap=900){
   });
 }
 
+function renderVoiceSettings(){
+  const box=$("voiceSettingsBox");
+  if(!box)return;
+  const voices=refreshVoices();
+  if(!voices.length){
+    box.innerHTML='<p class="desc">Browser voices are still loading. Press Refresh Voices if this does not update.</p>';
+    waitForVoices().then(renderVoiceSettings);
+    return;
+  }
+  const rows=VOICE_LANGUAGE_SETTINGS.map(item=>{
+    const target=normalizeVoiceLang(item.lang);
+    const matches=matchingVoicesForLanguage(target);
+    const current=pickVoice(target);
+    const currentId=current?voiceIdentity(current):"";
+    const options=['<option value="">Auto best voice</option>'].concat(matches.map(v=>`<option value="${escAttr(voiceIdentity(v))}" ${voiceIdentity(v)===currentId?"selected":""}>${esc(v.name)} / ${esc(v.lang)}</option>`)).join("");
+    const warning=!matches.length?`<div class="tn-voice-warning">No native ${esc(item.label)} voice found in this browser.</div>`:"";
+    return `<div class="tn-voice-row"><div class="tn-voice-meta"><strong>${esc(item.label)}</strong><span>${current?esc(current.name)+" / "+esc(current.lang):"Auto voice unavailable"}</span>${warning}</div><div class="tn-voice-controls"><select onchange="tnSetVoicePreference('${target}',this.value)">${options}</select><button type="button" onclick="tnTestVoice('${target}')">Test</button></div></div>`;
+  }).join("");
+  const chineseVoice=pickVoice("zh-CN");
+  const chineseOk=chineseVoice&&voiceMatchesLanguage(chineseVoice,"zh-CN");
+  const chineseWarning=chineseOk?"":'<div class="tn-voice-warning strong">Chinese playback may sound wrong because this browser has no native Mandarin / zh-CN voice loaded.</div>';
+  box.innerHTML=chineseWarning+rows;
+}
+function tnSetVoicePreference(lang,value){
+  const target=normalizeVoiceLang(lang);
+  const prefs=loadVoicePrefs();
+  if(!value){
+    delete prefs[target];
+  }else{
+    const voice=refreshVoices().find(v=>voiceIdentity(v)===value);
+    if(voice&&voiceMatchesLanguage(voice,target)){
+      prefs[target]={identity:voiceIdentity(voice),voiceURI:voice.voiceURI||"",name:voice.name||"",lang:voice.lang||""};
+    }
+  }
+  saveVoicePrefs(prefs);
+  BEST_VOICE_CACHE.clear();
+  renderVoiceSettings();
+}
+function tnTestVoice(lang){
+  const item=VOICE_LANGUAGE_SETTINGS.find(v=>normalizeVoiceLang(v.lang)===normalizeVoiceLang(lang));
+  speak(item?.sample||"TangoNest voice test.",normalizeVoiceLang(lang));
+}
+window.tnSetVoicePreference=tnSetVoicePreference;
+window.tnTestVoice=tnTestVoice;
+
 function showVoiceStatus(){
   const box=$("voiceStatusBox");
   if(!box)return;
+  renderVoiceSettings();
   const voices=refreshVoices();
   const langs=["en-US","fr-FR","ja-JP","ko-KR","zh-CN","zh-TW","es-ES","de-DE","it-IT","pt-BR","ru-RU"];
   box.style.display="block";
@@ -892,7 +1003,9 @@ function showVoiceStatus(){
     waitForVoices().then(showVoiceStatus);
     return;
   }
-  box.innerHTML='<p class="desc">Available voices: '+voices.length+'</p>'+
+  const zh=pickVoice("zh-CN");
+  const zhWarning=zh&&voiceMatchesLanguage(zh,"zh-CN")?"":'<p class="tn-voice-warning strong">No native Chinese / Mandarin voice was found. Install or enable a zh-CN voice for best pronunciation.</p>';
+  box.innerHTML='<p class="desc">Available voices: '+voices.length+'</p>'+zhWarning+
     langs.map(l=>{
       const v=pickVoice(l);
       const google=v&&String(v.name||"").toLowerCase().includes("google");
@@ -913,9 +1026,10 @@ function testAllMainVoices(){
 
 if(window.speechSynthesis){
   refreshVoices();
-  window.speechSynthesis.onvoiceschanged=()=>refreshVoices();
+  window.speechSynthesis.onvoiceschanged=()=>{refreshVoices();renderVoiceSettings()};
   setTimeout(refreshVoices,300);
   setTimeout(refreshVoices,1000);
+  setTimeout(renderVoiceSettings,1200);
 }
 
 function attachBrandContextListeners(){
@@ -2588,12 +2702,15 @@ function previewBulk(){
 }
 
 function clearBulkPreview(){
+  window.__tnBulkSuppressEmptyUntil=Date.now()+5000;
   const box=tnFinalBulkPreviewBox();
   box.style.display="none";
   box.innerHTML="";
 }
 
 function bulkImport(mode){
+  if(window.__tnBulkImportBusy)return;
+  window.__tnBulkImportBusy=true;
   const box=tnFinalBulkPreviewBox();
   try{
     let rows=bulkRows();
@@ -2602,6 +2719,10 @@ function bulkImport(mode){
     const backLang=document.getElementById("bulkBackLang")?.value || "ja-JP";
 
     if(!rows.length){
+      if(Date.now()<(window.__tnBulkSuppressEmptyUntil||0)||Date.now()-(window.__tnBulkLastSuccessAt||0)<5000){
+        clearBulkPreview();
+        return;
+      }
       box.style.display="block";
       box.innerHTML='<div class="bulk-empty">No readable rows. Use: Front / Back / POS / Gender / Example</div>';
       tnStableToast("No readable words");
@@ -2667,11 +2788,14 @@ function bulkImport(mode){
     try{ if(typeof renderWords==="function")renderWords(); }catch(e){ console.warn("renderWords skipped",e); }
 
     tnStableToast(replaced?`${added} added, ${replaced} replaced`:`${added} added`);
+    window.__tnBulkLastSuccessAt=Date.now();
   }catch(e){
     console.error("Bulk import isolated error:",e);
     box.style.display="block";
     box.innerHTML=`<div class="bulk-empty">Bulk Add error: ${tnFinalEsc(e.message||e)}</div>`;
     tnStableToast("Bulk Add error");
+  }finally{
+    setTimeout(()=>{window.__tnBulkImportBusy=false},1200);
   }
 }
 
@@ -2687,9 +2811,38 @@ function tnBindBulkButtonsFinal(){
     }
   });
 }
+function tnFinalizeBulkClickUi(beforeCount){
+  const afterCount=(db.words||[]).length;
+  if(afterCount<=beforeCount)return;
+  window.__tnBulkLastSuccessAt=Date.now();
+  window.__tnBulkSuppressEmptyUntil=Date.now()+5000;
+  const preview=document.getElementById("bulkPreview");
+  if(preview&&/No readable/i.test(preview.textContent||"")){
+    preview.style.display="none";
+    preview.innerHTML="";
+  }
+  const toastEl=document.getElementById("toast");
+  if(toastEl&&/No readable words/i.test(toastEl.textContent||"")){
+    tnStableToast(`${afterCount-beforeCount} added`);
+  }
+}
+function tnInstallBulkUiGuard(){
+  if(document.__tnBulkUiGuardInstalled)return;
+  document.__tnBulkUiGuardInstalled=true;
+  document.addEventListener("click",event=>{
+    const btn=event.target?.closest?.("button");
+    const text=(btn?.textContent||"").trim().toLowerCase();
+    if(text!=="bulk register"&&text!=="import all")return;
+    const beforeCount=(db.words||[]).length;
+    window.__tnBulkClickAt=Date.now();
+    window.__tnBulkStartCount=beforeCount;
+    [250,700,1200,2000,3500].forEach(delay=>setTimeout(()=>tnFinalizeBulkClickUi(beforeCount),delay));
+  },true);
+}
 setTimeout(tnBindBulkButtonsFinal,50);
 setTimeout(tnBindBulkButtonsFinal,500);
 setTimeout(tnBindBulkButtonsFinal,1500);
+tnInstallBulkUiGuard();
 
 
 
@@ -6075,24 +6228,12 @@ function tn82UpdateCloudMini(text,state){
   }
 }
 
-/* ---------- Initial sample/りんご cleanup ----------
-   Do not delete user's real word "りんご" if they already have more data.
-   Only remove one sample if it is the only word and appears to be starter/demo.
+/* ---------- Initial sample cleanup disabled ----------
+   Do not auto-delete apple / りんご. A user's first real word can look identical
+   to an old demo sample, so cleanup must never remove saved vocabulary.
 */
 function tn82RemoveDemoAppleIfOnlySample(){
-  tn82EnsureDb();
-  if(db.words.length!==1)return;
-  const w=db.words[0];
-  const front=String(w.front||"").trim();
-  const back=String(w.back||"").trim();
-  const isApple=value=>String(value||"").trim().toLowerCase()==="apple";
-  const isRingo=value=>["りんご","リンゴ"].includes(String(value||"").trim());
-  const looksDemo=(isApple(front) && isRingo(back)) || (isApple(back) && isRingo(front));
-  if(looksDemo){
-    db.words=[];
-    tn82TouchLocal();
-    tn82Persist();
-  }
+  return;
 }
 
 /* ---------- Boot ---------- */

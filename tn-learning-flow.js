@@ -27,9 +27,6 @@
     const data = dbRef();
     data.words = Array.isArray(data.words) ? data.words : [];
     data.lists = Array.isArray(data.lists) && data.lists.length ? data.lists : [{id:"starter",name:"New Playlist"}];
-    if(data.words.length === 1 && isDemoAppleWord(data.words[0])){
-      data.words = [];
-    }
     data.words.forEach(word => {
       word.level = Math.min(5,Math.max(1,Number(word.level || 3)));
       word.correctCount = Number(word.correctCount || 0);
@@ -44,13 +41,7 @@
   }
 
   function isDemoAppleWord(word){
-    const front = String(word?.front || "").trim();
-    const back = String(word?.back || "").trim();
-    const frontLower = front.toLowerCase();
-    const backLower = back.toLowerCase();
-    const isApple = value => String(value || "").trim().toLowerCase() === "apple";
-    const isRingo = value => ["りんご","リンゴ"].includes(String(value || "").trim());
-    return (isApple(frontLower) && isRingo(back)) || (isApple(backLower) && isRingo(front));
+    return false;
   }
 
   function neutralizeDemoPlaceholders(){

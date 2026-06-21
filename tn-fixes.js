@@ -316,17 +316,7 @@
   }
 
   function removeDemoApple(){
-    const data = ensureDb();
-    if(data.words.length !== 1)return;
-    const word = data.words[0];
-    const front = String(word.front || "").trim();
-    const back = String(word.back || "").trim();
-    const isApple = value => String(value || "").trim().toLowerCase() === "apple";
-    const isRingo = value => ["りんご","リンゴ"].includes(String(value || "").trim());
-    if((isApple(front) && isRingo(back)) || (isApple(back) && isRingo(front))){
-      data.words = [];
-      touch();
-    }
+    return;
   }
 
   function goPage(page){

@@ -46,7 +46,7 @@ This build prioritizes stability over preserving corrupted local word data.
 - Reload keeps the current page.
 - Default languages are always English -> Japanese.
 - Phone/PC sync saves after local changes and polls cloud.
-- Demo apple/りんご starter data is removed only if it is the only sample.
+- Demo apple/りんご auto-cleanup is disabled so a user's first real word is never deleted.
 
 ## Verification
 Open Library after adding a word. It must show under All.
