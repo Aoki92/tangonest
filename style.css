@@ -690,6 +690,16 @@ tr:hover td{background:#fbfcff}
   cursor:pointer;
 }
 .quiz-question.has-long-answer .quiz-answer-actions{justify-content:flex-start}
+.inline-check{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:10px;
+  color:var(--sub);
+  font-size:14px;
+  font-weight:760;
+}
+.inline-check input{width:auto}
 .choice-grid,#choiceArea{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));

@@ -49,7 +49,7 @@
       front:"word",
       back:"meaning",
       memo:"Example sentence or memo.",
-      bulkText:"front word\tback meaning\tPOS\tgender\texample sentence"
+      bulkText:"front word\tback meaning\tPOS\tgender\texample sentence\tpronunciation"
     };
     Object.entries(replacements).forEach(([id,placeholder]) => {
       const el = $(id);

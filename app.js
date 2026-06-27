@@ -3878,13 +3878,13 @@ function tn64EnsureEnglishJapaneseDefaults(){
   // Only default form selectors. Existing words/playlists are not touched.
   if(db){
     db.prefs=db.prefs||{};
-    db.prefs.frontLang="en-US";
-    db.prefs.backLang="ja-JP";
+    db.prefs.frontLang=db.prefs.frontLang||"en-US";
+    db.prefs.backLang=db.prefs.backLang||"ja-JP";
   }
-  tn64SetValue("frontLang","en-US");
-  tn64SetValue("backLang","ja-JP");
-  tn64SetValue("bulkFrontLang","en-US");
-  tn64SetValue("bulkBackLang","ja-JP");
+  if(!tn64$("frontLang")?.value)tn64SetValue("frontLang",db.prefs.frontLang);
+  if(!tn64$("backLang")?.value)tn64SetValue("backLang",db.prefs.backLang);
+  if(!tn64$("bulkFrontLang")?.value)tn64SetValue("bulkFrontLang",db.prefs.frontLang);
+  if(!tn64$("bulkBackLang")?.value)tn64SetValue("bulkBackLang",db.prefs.backLang);
   const front=tn64$("front"); if(front)front.placeholder="word";
   const back=tn64$("back"); if(back)back.placeholder="meaning";
   const memo=tn64$("memo"); if(memo)memo.placeholder="Example sentence or memo.";
@@ -4274,12 +4274,12 @@ function tn75WrapAdd(){
 
 /* Defaults fixed again */
 function tn75ForceDefaults(){
-  const set=(id,v)=>{const el=document.getElementById(id); if(el && [...el.options||[]].some(o=>o.value===v))el.value=v;};
-  set("frontLang","en-US");
-  set("backLang","ja-JP");
-  set("bulkFrontLang","en-US");
-  set("bulkBackLang","ja-JP");
-  try{db.prefs=db.prefs||{};db.prefs.frontLang="en-US";db.prefs.backLang="ja-JP";}catch(e){}
+  const set=(id,v)=>{const el=document.getElementById(id); if(el && !el.value && [...el.options||[]].some(o=>o.value===v))el.value=v;};
+  try{db.prefs=db.prefs||{};db.prefs.frontLang=db.prefs.frontLang||"en-US";db.prefs.backLang=db.prefs.backLang||"ja-JP";}catch(e){}
+  set("frontLang",db.prefs.frontLang||"en-US");
+  set("backLang",db.prefs.backLang||"ja-JP");
+  set("bulkFrontLang",db.prefs.frontLang||"en-US");
+  set("bulkBackLang",db.prefs.backLang||"ja-JP");
 }
 
 function tn75Boot(){
@@ -5345,13 +5345,13 @@ function tn81SetSelect(id,value){
 }
 function tn81ForceDefaultLanguages(){
   tn81EnsureDb();
-  db.prefs.frontLang="en-US";
-  db.prefs.backLang="ja-JP";
+  db.prefs.frontLang=db.prefs.frontLang||"en-US";
+  db.prefs.backLang=db.prefs.backLang||"ja-JP";
 
-  tn81SetSelect("frontLang","en-US");
-  tn81SetSelect("backLang","ja-JP");
-  tn81SetSelect("bulkFrontLang","en-US");
-  tn81SetSelect("bulkBackLang","ja-JP");
+  if(!document.getElementById("frontLang")?.value)tn81SetSelect("frontLang",db.prefs.frontLang);
+  if(!document.getElementById("backLang")?.value)tn81SetSelect("backLang",db.prefs.backLang);
+  if(!document.getElementById("bulkFrontLang")?.value)tn81SetSelect("bulkFrontLang",db.prefs.frontLang);
+  if(!document.getElementById("bulkBackLang")?.value)tn81SetSelect("bulkBackLang",db.prefs.backLang);
 
   const front=document.getElementById("front");
   const back=document.getElementById("back");
@@ -5752,12 +5752,12 @@ function tn82SetSelect(id,value){
 
 function tn82ForceDefaultLanguages(){
   tn82EnsureDb();
-  db.prefs.frontLang="en-US";
-  db.prefs.backLang="ja-JP";
-  tn82SetSelect("frontLang","en-US");
-  tn82SetSelect("backLang","ja-JP");
-  tn82SetSelect("bulkFrontLang","en-US");
-  tn82SetSelect("bulkBackLang","ja-JP");
+  db.prefs.frontLang=db.prefs.frontLang||"en-US";
+  db.prefs.backLang=db.prefs.backLang||"ja-JP";
+  if(!document.getElementById("frontLang")?.value)tn82SetSelect("frontLang",db.prefs.frontLang);
+  if(!document.getElementById("backLang")?.value)tn82SetSelect("backLang",db.prefs.backLang);
+  if(!document.getElementById("bulkFrontLang")?.value)tn82SetSelect("bulkFrontLang",db.prefs.frontLang);
+  if(!document.getElementById("bulkBackLang")?.value)tn82SetSelect("bulkBackLang",db.prefs.backLang);
 
   const front=document.getElementById("front");
   const back=document.getElementById("back");
@@ -6295,3 +6295,259 @@ window.tn82CloudSave=tn82CloudSave;
 window.tn82CloudLoad=tn82CloudLoad;
 window.tn82RenderLibrary=tn82RenderLibrary;
 window.tn82ForceDefaultLanguages=tn82ForceDefaultLanguages;
+
+/* ---------- Final double-check learning UX completion ---------- */
+function tnDC$(id){return document.getElementById(id)}
+function tnDCClean(v){return String(v??"").trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g,"").trim()}
+function tnDCEsc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+function tnDCValue(id){return tnDCClean(tnDC$(id)?.value||"")}
+function tnDCToast(message){try{(window.tnStableToast||window.tn82Toast||window.toast||console.log)(message)}catch(e){}}
+function tnDCPersist(){
+  try{ if(typeof tnSafePersistOnly==="function")tnSafePersistOnly(); else if(typeof tn82Persist==="function")tn82Persist(); else persist(); }catch(e){}
+  try{ if(typeof tnUpdateHeaderCountsOnly==="function")tnUpdateHeaderCountsOnly(); else if(typeof tn82UpdateCounts==="function")tn82UpdateCounts(); }catch(e){}
+}
+function tnDCBindPronunciationFields(){
+  const pron=tnDC$("pronunciation");
+  if(pron&&!pron.placeholder)pron.placeholder="kànjiàn / əˈbaʊt";
+  const bulk=tnDC$("bulkText");
+  if(bulk)bulk.placeholder="front word\tback meaning\tPOS\tgender\texample sentence\tpronunciation";
+  const edit=tnDC$("editPronunciation");
+  if(edit&&!edit.placeholder)edit.placeholder="kànjiàn / əˈbaʊt";
+}
+
+function clearForm(){
+  ["front","back","memo","tags","pronunciation"].forEach(id=>{const el=tnDC$(id);if(el)el.value=""});
+  ["pos","gender"].forEach(id=>{const el=tnDC$(id);if(el)el.value=""});
+}
+
+function tn82AddWord(ev){
+  if(ev&&ev.preventDefault)ev.preventDefault();
+  tn82EnsureDb();
+  const front=tnDCValue("front");
+  const back=tnDCValue("back");
+  if(!front||!back){tnDCToast("Front and Back are required");return false}
+  let listId=tnDC$("addList")?.value||db.lists?.[0]?.id||"starter";
+  if(!db.lists.some(l=>l.id===listId))listId=db.lists[0]?.id||"starter";
+  const word={
+    id:tn82Id(),
+    front,
+    back,
+    listId,
+    frontLang:tnDC$("frontLang")?.value||db.prefs?.frontLang||"en-US",
+    backLang:tnDC$("backLang")?.value||db.prefs?.backLang||"ja-JP",
+    pos:tnDC$("pos")?.value||"",
+    gender:tnDC$("gender")?.value||"",
+    pronunciation:tnDCValue("pronunciation"),
+    tags:tnDCValue("tags"),
+    memo:tnDCValue("memo"),
+    saved:false,
+    status:"new",
+    seen:0,
+    level:1,
+    nextReview:tn82TodayPlus(1),
+    createdAt:new Date().toISOString()
+  };
+  (db.words ||= []).push(word);
+  try{tn82TouchLocal()}catch(e){}
+  tnDCPersist();
+  clearForm();
+  try{if(window.tnLibraryRender)window.tnLibraryRender();else tn82RenderLibrary()}catch(e){}
+  try{tn82RenderPlaylistSelects()}catch(e){}
+  try{tn82CloudSaveSoon()}catch(e){}
+  tnDCToast("1 word added");
+  return false;
+}
+
+function tn82BindAdd(){
+  window.tnRegisterWordCritical=tn82AddWord;
+  window.addWord=tn82AddWord;
+  window.registerWord=tn82AddWord;
+  const btn=tnDC$("addWordBtn")||[...document.querySelectorAll("button")].find(b=>(b.textContent||"").includes("Register"));
+  if(btn){
+    btn.id="addWordBtn";
+    btn.type="button";
+    btn.onclick=tn82AddWord;
+    if(!btn.__tnDCAddCapture){
+      btn.addEventListener("click",event=>{
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        tn82AddWord(event);
+      },true);
+      btn.__tnDCAddCapture=true;
+    }
+  }
+  tnDCBindPronunciationFields();
+}
+
+function tnFinalSplitLine(line){
+  const raw=String(line||"").trim();
+  if(!raw)return [];
+  if(raw.includes("\t"))return raw.split("\t").map(tnDCClean);
+  if(raw.includes(","))return raw.split(",").map(tnDCClean);
+  const multi=raw.split(/\s{2,}/).map(tnDCClean).filter(Boolean);
+  if(multi.length>=2)return multi;
+  return raw.split(/\s+/).map(tnDCClean).filter(Boolean);
+}
+
+function parseBulk(text){
+  return String(text||"").split(/\r?\n/).map((line,i)=>({line:String(line||"").trim(),row:i+1})).filter(x=>x.line).map(({line,row})=>{
+    let before=line,exampleFromPipe="";
+    if(line.includes("|")){
+      const pieces=line.split("|");
+      before=pieces.shift().trim();
+      exampleFromPipe=pieces.join("|").trim();
+    }
+    const parts=tnFinalSplitLine(before);
+    let front="",back="",pos="",gender="",memo="",pronunciation="";
+    if(parts.length>=6){
+      front=parts[0];back=parts[1];pos=parts[2];gender=parts[3];memo=parts[4];pronunciation=parts.slice(5).join(" ");
+    }else if(parts.length===5){
+      front=parts[0];back=parts[1];pos=parts[2];gender=parts[3];memo=parts[4];
+    }else if(parts.length===4){
+      front=parts[0];back=parts[1];pos=parts[2];gender=parts[3];
+    }else if(parts.length===3){
+      front=parts[0];back=parts[1];pos=parts[2];
+    }else if(parts.length===2){
+      front=parts[0];back=parts[1];
+    }
+    if(exampleFromPipe)memo=memo?`${memo} | ${exampleFromPipe}`:exampleFromPipe;
+    return {row,front:tnDCClean(front),back:tnDCClean(back),pos:tnDCClean(pos),gender:tnDCClean(gender),memo:tnDCClean(memo),pronunciation:tnDCClean(pronunciation)};
+  }).filter(r=>r.front&&r.back);
+}
+
+function previewBulk(){
+  const box=tnFinalBulkPreviewBox();
+  const rows=bulkRows();
+  box.style.display="block";
+  if(!rows.length){
+    box.innerHTML='<div class="bulk-empty">No readable rows. Use: Front / Back / POS / Gender / Example / Pronunciation</div>';
+    return;
+  }
+  const frontDupCount=rows.filter(r=>r.frontDuplicate).length;
+  const exactDupCount=rows.filter(r=>r.duplicate).length;
+  box.innerHTML=`
+    ${frontDupCount?`<div class="bulk-warning"><b>${frontDupCount} possible duplicate${frontDupCount>1?"s":""}</b><span>Choose how to import them below.</span></div>`:""}
+    <div class="bulk-summary"><span>${rows.length} readable rows</span><span>${frontDupCount} possible duplicates</span><span>${exactDupCount} exact duplicates</span></div>
+    <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th>#</th><th>Front</th><th>Back</th><th>POS</th><th>Gender</th><th>Example</th><th>Pronunciation</th><th>Status</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr class="${r.frontDuplicate?'dup-row':''}"><td>${r.row}</td><td><b>${tnDCEsc(r.front)}</b></td><td>${tnDCEsc(r.back)}</td><td>${tnDCEsc(r.pos||"—")}</td><td>${tnDCEsc(r.gender||"—")}</td><td>${tnDCEsc(r.memo||"")}</td><td>${tnDCEsc(r.pronunciation||"")}</td><td>${r.frontDuplicate?`<span class="badge yellow">${tnDCEsc(r.duplicateReason||"Possible duplicate")}</span>`:`<span class="badge green">Ready</span>`}</td></tr>`).join("")}
+    </tbody></table></div>
+    ${frontDupCount?`<div class="bulk-review-actions"><button class="btn primary small" onclick="bulkImport('addBoth')">Import all</button><button class="btn small" onclick="bulkImport('skip')">Skip duplicates</button><button class="btn small" onclick="bulkImport('replace')">Replace same front</button></div>`:""}
+  `;
+}
+
+function bulkImport(mode){
+  if(window.__tnBulkImportBusy)return;
+  window.__tnBulkImportBusy=true;
+  const box=tnFinalBulkPreviewBox();
+  try{
+    let rows=bulkRows();
+    const listId=tnDC$("bulkList")?.value||(db.lists?.[0]?.id||"starter");
+    const frontLang=tnDC$("bulkFrontLang")?.value||"en-US";
+    const backLang=tnDC$("bulkBackLang")?.value||"ja-JP";
+    if(!rows.length){
+      box.style.display="block";
+      box.innerHTML='<div class="bulk-empty">No readable rows. Use: Front / Back / POS / Gender / Example / Pronunciation</div>';
+      tnDCToast("No readable words");
+      return;
+    }
+    if(rows.some(r=>r.frontDuplicate)&&!mode){previewBulk();tnDCToast("Duplicate check needs your choice");return}
+    if(mode==="skip")rows=rows.filter(r=>!r.frontDuplicate&&!r.duplicate);
+    let added=0,replaced=0;
+    const assignWord=(target,r)=>Object.assign(target,{front:r.front,back:r.back,pos:r.pos,gender:r.gender,memo:r.memo,pronunciation:r.pronunciation,frontLang,backLang,listId});
+    if(mode==="replace"){
+      rows.forEach(r=>{
+        const ex=softDuplicateMatch(r,listId);
+        if(ex){assignWord(ex,r);replaced++}
+        else{(db.words ||= []).push({id:tnFinalUid(),front:r.front,back:r.back,pos:r.pos,gender:r.gender,memo:r.memo,pronunciation:r.pronunciation,frontLang,backLang,listId,tags:"",saved:false,status:"new",seen:0,level:1,nextReview:tnFinalAddDays(1),createdAt:new Date().toISOString()});added++}
+      });
+    }else{
+      const seenExact=new Set();
+      rows=rows.filter(r=>{const k=[r.front,r.back,r.pos].map(tnFinalKey).join("||");if(seenExact.has(k))return false;seenExact.add(k);return true});
+      rows.forEach(r=>{(db.words ||= []).push({id:tnFinalUid(),front:r.front,back:r.back,pos:r.pos,gender:r.gender,memo:r.memo,pronunciation:r.pronunciation,frontLang,backLang,listId,tags:"",saved:false,status:"new",seen:0,level:1,nextReview:tnFinalAddDays(1),createdAt:new Date().toISOString()});added++});
+    }
+    const text=tnDC$("bulkText");if(text)text.value="";
+    clearBulkPreview();
+    tnDCPersist();
+    try{if(window.tnLibraryRender)window.tnLibraryRender();else if(typeof renderWords==="function")renderWords()}catch(e){}
+    tnDCToast(replaced?`${added} added, ${replaced} replaced`:`${added} added`);
+    window.__tnBulkLastSuccessAt=Date.now();
+  }catch(e){
+    console.error("Bulk import isolated error:",e);
+    box.style.display="block";
+    box.innerHTML=`<div class="bulk-empty">Bulk Add error: ${tnDCEsc(e.message||e)}</div>`;
+    tnDCToast("Bulk Add error");
+  }finally{
+    window.__tnBulkImportBusy=false;
+  }
+}
+
+function openEdit(id){
+  let w=(db.words||[]).find(x=>x.id===id);if(!w)return;
+  tnDC$("editId").value=w.id;tnDC$("editFront").value=w.front;tnDC$("editBack").value=w.back;
+  tnDC$("editFrontLang").innerHTML=optionsHTML(w.frontLang);tnDC$("editBackLang").innerHTML=optionsHTML(w.backLang);
+  tnDC$("editList").value=w.listId;tnDC$("editPOS").value=w.pos||"";tnDC$("editGender").value=w.gender||"";
+  if(tnDC$("editPronunciation"))tnDC$("editPronunciation").value=w.pronunciation||"";
+  tnDC$("editTags").value=w.tags||"";tnDC$("editStatus").value=w.status||"new";tnDC$("editLevel").value=w.level||1;tnDC$("editMemo").value=w.memo||"";
+  tnDC$("editModal").classList.add("show");
+}
+
+function saveEdit(){
+  let id=tnDC$("editId").value;
+  db.words=(db.words||[]).map(w=>w.id===id?{...w,front:tnDCValue("editFront"),back:tnDCValue("editBack"),frontLang:tnDC$("editFrontLang").value,backLang:tnDC$("editBackLang").value,listId:tnDC$("editList").value,pos:tnDC$("editPOS").value,gender:tnDC$("editGender").value,tags:tnDCValue("editTags"),status:tnDC$("editStatus").value,level:parseInt(tnDC$("editLevel").value,10)||1,pronunciation:tnDCValue("editPronunciation"),memo:tnDCValue("editMemo")}:w);
+  closeEdit();
+  try{save()}catch(e){tnDCPersist()}
+}
+
+function startQuiz(){
+  clearQuizTimers();
+  ensureQuizFeedbackDefault();
+  let words=quizPool();
+  let requested=parseInt(tnDC$("quizCount").value,10)||10;
+  if(requested<1)requested=1;
+  if(!words.length)return tnDCToast("No words");
+  const allow=!!tnDC$("quizAllowDuplicates")?.checked;
+  let actual=Math.min(requested,words.length);
+  let queue=quizAdaptiveOrder(words).slice(0,actual);
+  if(allow&&requested>words.length){
+    while(queue.length<requested){
+      queue=queue.concat(quizAdaptiveOrder(words).slice(0,requested-queue.length));
+    }
+    actual=requested;
+  }else if(requested>words.length){
+    tnDCToast(`Only ${actual} words available`);
+  }
+  quiz={queue,wrong:[],allWrong:[],index:0,score:0,current:null,answered:false,type:tnDC$("quizType").value||"choice",direction:tnDC$("quizDirection").value,total:actual,previousQuestionId:"",previousQuestionKey:"",selectedAnswer:""};
+  tnDC$("quizSetup").style.display="none";tnDC$("quizRun").style.display="block";tnDC$("quizEnd").style.display="none";
+  showQuizQuestion();
+}
+
+function quizFeedbackHtml(ok){
+  return `<button type="button" class="quiz-next-btn" onclick="nextQuizQuestion()">Next</button>`;
+}
+
+function renderQuizQuestionAnswer(ok){
+  const box=tnDC$("quizQuestionAnswer");if(!box||!quiz.current)return;
+  const answer=correctAnswer();
+  const pron=tnDCClean(quiz.current.pronunciation||"");
+  const card=document.querySelector(".quiz-question");
+  if(card){card.classList.add("is-answered");card.classList.toggle("has-long-answer",String(answer).length>32||String(pron).length>32)}
+  box.className=`quiz-question-answer show ${ok?"ok":"no"}`;
+  box.innerHTML=`<div class="quiz-answer-block"><span>Correct answer</span><strong>${tnDCEsc(answer)}</strong></div><div class="quiz-answer-block"><span>Pronunciation</span><strong>${pron?tnDCEsc(pron):"—"}</strong></div><div class="quiz-answer-status ${ok?"ok":"no"}">${ok?"Correct":"Incorrect"}</div>`;
+}
+
+function finishAnswer(ok){
+  if(quiz.answered)return;
+  quiz.answered=true;
+  quiz.previousQuestionId=quiz.current?.id||quiz.previousQuestionId;
+  quiz.previousQuestionKey=quizQuestionKey(quiz.current)||quiz.previousQuestionKey;
+  clearInterval(quizTimerInterval);
+  if(ok){quiz.score++;updateWordLearning(quiz.current.id,"learned");tnDC$("quizResult").className="result-box show ok";tnDC$("quizResult").innerHTML=quizFeedbackHtml(true)}
+  else{updateWordLearning(quiz.current.id,"hard");tnDC$("quizResult").className="result-box show no";tnDC$("quizResult").innerHTML=quizFeedbackHtml(false);quiz.wrong.push(quiz.current);if(!quiz.allWrong.some(w=>w.id===quiz.current.id))quiz.allWrong.push(quiz.current)}
+  renderQuizQuestionAnswer(ok);
+  tnDC$("quizScore").textContent=quiz.score+" / "+quiz.total;
+  if(tnDC$("quizAudioAfter").value==="on")setTimeout(()=>{try{speakQuizFront()}catch(e){}},80);
+  if(isAutoAdvance())scheduleNext(ok);
+}
+
+setTimeout(tnDCBindPronunciationFields,0);
+setTimeout(tnDCBindPronunciationFields,800);
